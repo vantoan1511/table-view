@@ -1,0 +1,39 @@
+{
+  "applicationId": "com.github.vantoan1511.table-view",
+  "version": "0.0.1",
+  "defaultMode": "window",
+  "documentRoot": "/src/dist/",
+  "url": "/",
+  "enableServer": true,
+  "enableNativeAPI": true,
+  "nativeAllowList": [
+    "app.*",
+    "filesystem.readDirectory"
+  ],
+  "modes": {
+    "window": {
+      "title": "Table View",
+      "width": 800,
+      "height": 500,
+      "minWidth": 400,
+      "minHeight": 200,
+      "icon": "/src/public/favicon.ico",
+      "enableInspector": true
+    }
+  },
+  "cli": {
+    "binaryName": "my-neu-zero",
+    "resourcesPath": "/src/dist/",
+    "extensionsPath": "/extensions/",
+    "binaryVersion": "6.5.0",
+    "clientVersion": "6.5.0",
+    "frontendLibrary": {
+      "patchFile": "/src/index.html",
+      "devUrl": "http://localhost:5173",
+      "projectPath": "/src",
+      "initCommand": "npm install",
+      "devCommand": "npm run dev",
+      "buildCommand": "npm run build"
+    }
+  }
+}
