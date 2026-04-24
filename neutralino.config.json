@@ -30,7 +30,7 @@
     }
   },
   "cli": {
-    "binaryName": "my-neu-zero",
+    "binaryName": "table-view",
     "resourcesPath": "/src/dist/",
     "extensionsPath": "/extensions/",
     "binaryVersion": "6.5.0",
