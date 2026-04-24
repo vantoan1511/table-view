@@ -1,96 +1,72 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
-import { filesystem } from "@neutralinojs/lib"
-import { onMounted } from 'vue'
+import TitleBar from '@/components/layout/TitleBar.vue'
+import Sidebar from '@/components/layout/Sidebar.vue'
+import StatusBar from '@/components/layout/StatusBar.vue'
+import DataGrid from '@/components/grid/DataGrid.vue'
+import SqlEditor from '@/components/sql/SqlEditor.vue'
+import NewConnectionModal from '@/components/modals/NewConnectionModal.vue'
+import { useTabsStore } from '@/stores/tabs'
+import { useGridStore } from '@/stores/grid'
+import { watch } from 'vue'
 
-onMounted(() => {
- filesystem.readDirectory('./').then((data) => {
-      console.log(data)
-    }).catch((err) => {
-      console.log(err)
-    })
-})
+const tabsStore = useTabsStore()
+const gridStore = useGridStore()
 
+// When active tab changes to a table tab, load its data
+watch(
+  () => tabsStore.activeTab,
+  (tab) => {
+    if (tab?.type === 'table' && tab.tableName) {
+      gridStore.loadTable(tab.tableName)
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <div id="app-shell" class="flex flex-col h-screen overflow-hidden bg-surface">
+    <!-- Title Bar -->
+    <TitleBar />
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+    <!-- Main Content Area -->
+    <div class="flex flex-1 min-h-0">
+      <!-- Sidebar -->
+      <Sidebar />
 
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
+      <!-- Content -->
+      <main class="flex flex-col flex-1 min-w-0 min-h-0">
+        <!-- Data Grid (for table tabs) -->
+        <template v-if="tabsStore.activeTab?.type === 'table'">
+          <DataGrid />
+        </template>
+
+        <!-- SQL Editor (for sql tabs) -->
+        <template v-else-if="tabsStore.activeTab?.type === 'sql'">
+          <div class="flex flex-col flex-1 min-h-0">
+            <SqlEditor />
+          </div>
+        </template>
+
+        <!-- Empty State -->
+        <template v-else>
+          <div class="flex flex-col items-center justify-center flex-1 text-text-tertiary">
+            <svg class="w-16 h-16 mb-4 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <line x1="3" y1="9" x2="21" y2="9"/>
+              <line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>
+            <p class="text-[14px] font-medium">No tab open</p>
+            <p class="text-[12px] mt-1">Select a table from the sidebar or open a SQL editor</p>
+          </div>
+        </template>
+      </main>
     </div>
-  </header>
 
-  <RouterView />
+    <!-- Status Bar -->
+    <StatusBar />
+
+    <!-- Modals -->
+    <NewConnectionModal />
+  </div>
 </template>
-
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
-</style>
