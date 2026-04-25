@@ -93,7 +93,7 @@ onMounted(async () => {
           </template>
 
           <!-- SQL Editor — always at the bottom as a persistent panel -->
-          <SqlEditor />
+          <!-- <SqlEditor /> -->
         </main>
       </div>
     </div>
