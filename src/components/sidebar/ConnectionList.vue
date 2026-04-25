@@ -65,10 +65,12 @@ function handleContextAction(action: string) {
   if (!id) return
 
   if (action === 'sql') {
-    //
+    tabsStore.openSqlEditor()
   } else if (action === 'edit') {
-    // TODO: Implement edit
-    toastStore.addToast({ message: 'Edit feature coming soon', severity: 'info' })
+    const conn = connectionsStore.connections.find(c => c.id === id)
+    if (conn) {
+      connectionsStore.toggleConnectionModal(true, conn)
+    }
   } else if (action === 'duplicate') {
     const conn = connectionsStore.connections.find(c => c.id === id)
     if (conn) {

@@ -7,6 +7,7 @@ import * as Neutralino from '@neutralinojs/lib'
 import { Icon, MessageBoxChoice } from '@neutralinojs/lib'
 
 import {
+  Check,
   ChevronDown,
   Columns3,
   Download,
@@ -17,13 +18,49 @@ import {
   Trash2,
   Wrench,
 } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+
+import ContextMenu from '@/components/ui/ContextMenu.vue'
 
 const gridStore = useGridStore()
 const toastStore = useToastStore()
 
 const selectedCount = computed(() => gridStore.selectedRowIndices.size)
 const showDeleteConfirm = ref(false)
+
+// ─── Dropdowns state ────────────────────────────────────────────────────────
+const showColumnsMenu = ref(false)
+const columnsMenuPos = ref({ x: 0, y: 0 })
+const showRowsMenu = ref(false)
+const rowsMenuPos = ref({ x: 0, y: 0 })
+
+const columnVisibility = ref<Record<string, boolean>>({})
+
+// Initialize column visibility
+watch(() => gridStore.columns, (cols) => {
+  cols.forEach(c => {
+    if (columnVisibility.value[c.name] === undefined) {
+      columnVisibility.value[c.name] = true
+    }
+  })
+}, { immediate: true })
+
+function toggleColumnsMenu(e: MouseEvent) {
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  columnsMenuPos.value = { x: rect.left, y: rect.bottom + 5 }
+  showColumnsMenu.value = !showColumnsMenu.value
+}
+
+function toggleRowsMenu(e: MouseEvent) {
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  rowsMenuPos.value = { x: rect.left, y: rect.bottom + 5 }
+  showRowsMenu.value = !showRowsMenu.value
+}
+
+function setRowsPerPage(count: number) {
+  gridStore.setRowsPerPage(count)
+  showRowsMenu.value = false
+}
 
 // ─── Add Row Inline ────────────────────────────────────────────────────────
 async function handleInsert() {
@@ -89,9 +126,17 @@ async function handleExport() {
         const payload = evt.detail
         if (payload.reqId === reqId) {
           if (payload.success) {
-            Neutralino.os.showMessageBox('Success', 'Export completed successfully.', MessageBoxChoice.OK, Icon.INFO)
+            toastStore.addToast({
+              title: 'Export Success',
+              message: 'Data exported successfully to ' + path,
+              severity: 'success'
+            })
           } else {
-            Neutralino.os.showMessageBox('Error', 'Failed to export: ' + payload.error, MessageBoxChoice.OK, Icon.ERROR)
+            toastStore.addToast({
+              title: 'Export Error',
+              message: payload.error,
+              severity: 'error'
+            })
           }
           Neutralino.events.off('dbBridge.exportCSVResult', onResult)
         }
@@ -176,12 +221,27 @@ async function handleExport() {
           @keydown.enter="gridStore.loadTable(gridStore.activeTableName)" />
       </div>
 
-      <!-- Columns -->
+      <!-- Columns Dropdown -->
       <button
-        class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer">
+        class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer"
+        @click="toggleColumnsMenu">
         <Columns3 :size="13" />
         <span>Columns</span>
       </button>
+      <ContextMenu :show="showColumnsMenu" :x="columnsMenuPos.x" :y="columnsMenuPos.y" @close="showColumnsMenu = false">
+        <div class="px-3 py-2 text-[11px] font-semibold text-text-tertiary uppercase tracking-wider border-b border-border mb-1">
+          Toggle Visibility
+        </div>
+        <div class="max-h-[300px] overflow-y-auto">
+          <label v-for="col in gridStore.columns" :key="col.name" 
+            class="flex items-center gap-2 px-3 py-1.5 hover:bg-hover cursor-pointer text-[12px]">
+            <input type="checkbox" :checked="gridStore.columnVisibility[col.name] !== false"
+              @change="gridStore.toggleColumnVisibility(col.name)"
+              class="rounded border-border text-primary focus:ring-primary" />
+            <span class="truncate">{{ col.name }}</span>
+          </label>
+        </div>
+      </ContextMenu>
 
       <!-- Export -->
       <button
@@ -192,12 +252,24 @@ async function handleExport() {
         <ChevronDown :size="12" />
       </button>
 
-      <!-- Row Count -->
-      <div
-        class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] text-text-secondary">
+      <!-- Row Count Dropdown -->
+      <button
+        class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] text-text-secondary hover:bg-hover transition-colors cursor-pointer"
+        @click="toggleRowsMenu">
         <span>{{ gridStore.rowsPerPage }} rows</span>
         <ChevronDown :size="12" />
-      </div>
+      </button>
+      <ContextMenu :show="showRowsMenu" :x="rowsMenuPos.x" :y="rowsMenuPos.y" @close="showRowsMenu = false">
+        <div class="px-3 py-2 text-[11px] font-semibold text-text-tertiary uppercase tracking-wider border-b border-border mb-1">
+          Rows Per Page
+        </div>
+        <button v-for="count in [25, 50, 100, 200, 500]" :key="count"
+          class="w-full flex items-center justify-between px-3 py-2 hover:bg-hover text-[12px]"
+          @click="setRowsPerPage(count)">
+          <span>{{ count }} rows</span>
+          <Check v-if="gridStore.rowsPerPage === count" :size="14" class="text-primary" />
+        </button>
+      </ContextMenu>
 
       <!-- Alter Table -->
       <button

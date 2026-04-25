@@ -33,6 +33,16 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTabId.value = tab.id
   }
 
+  function openSqlEditor() {
+    const tab: Tab = {
+      id: `tab-sql-${Date.now()}`,
+      type: 'sql',
+      title: 'Query Console',
+    }
+    tabs.value.push(tab)
+    activeTabId.value = tab.id
+  }
+
   function closeTab(id: string) {
     const idx = tabs.value.findIndex((t) => t.id === id)
     if (idx === -1) return
@@ -49,6 +59,7 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTab,
     setActiveTab,
     openTable,
+    openSqlEditor,
     closeTab,
   }
 })

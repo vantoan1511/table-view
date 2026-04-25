@@ -128,12 +128,23 @@ export const useConnectionsStore = defineStore('connections', () => {
     await saveConnections()
   }
 
-  function toggleConnectionModal(show?: boolean) {
+  const connectionToEdit = ref<Connection | null>(null)
+
+  function toggleConnectionModal(show?: boolean, conn?: Connection) {
     showNewConnectionModal.value = show ?? !showNewConnectionModal.value
+    connectionToEdit.value = conn ?? null
   }
 
   function generateId(): string {
     return `conn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  }
+
+  async function updateConnection(id: string, updates: Partial<Connection>) {
+    const idx = connections.value.findIndex(c => c.id === id)
+    if (idx !== -1) {
+      connections.value[idx] = { ...connections.value[idx], ...updates }
+      await saveConnections()
+    }
   }
 
   return {
@@ -142,11 +153,13 @@ export const useConnectionsStore = defineStore('connections', () => {
     activeConnection,
     connectedConnections,
     showNewConnectionModal,
+    connectionToEdit,
     loadConnections,
     saveConnections,
     setActiveConnection,
     addConnection,
     removeConnection,
+    updateConnection,
     toggleConnectionModal,
     generateId,
   }

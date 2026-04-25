@@ -28,6 +28,7 @@ export const useGridStore = defineStore('grid', () => {
   const sqlRows = ref<GridRow[]>([])
   const sqlRowCount = ref(0)
   const sqlExecutionTime = ref(0)
+  const sqlLimit = ref(100)
   const sqlMessages = ref<Array<{ type: string; text: string; timestamp: string }>>([])
 
   const totalPages = computed(() => Math.max(1, Math.ceil(totalRows.value / rowsPerPage.value)))
@@ -262,6 +263,11 @@ export const useGridStore = defineStore('grid', () => {
   }
 
   const showAlterTableDialog = ref(false)
+  const columnVisibility = ref<Record<string, boolean>>({})
+
+  function toggleColumnVisibility(colName: string) {
+    columnVisibility.value[colName] = !columnVisibility.value[colName]
+  }
 
   async function saveNewRow() {
     if (newRowIdx.value === null) return
@@ -416,6 +422,7 @@ export const useGridStore = defineStore('grid', () => {
     sqlRows,
     sqlRowCount,
     sqlExecutionTime,
+    sqlLimit,
     sqlMessages,
     setPage,
     setRowsPerPage,
@@ -438,5 +445,7 @@ export const useGridStore = defineStore('grid', () => {
     getTableColumns,
     alterTable,
     showAlterTableDialog,
+    columnVisibility,
+    toggleColumnVisibility,
   }
 })

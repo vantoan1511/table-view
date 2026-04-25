@@ -78,6 +78,11 @@ onMounted(async () => {
             <DataGrid />
           </template>
 
+          <!-- SQL Editor -->
+          <template v-else-if="tabsStore.activeTab?.type === 'sql'">
+            <SqlEditor />
+          </template>
+
           <!-- No tab: empty state -->
           <template v-else-if="!tabsStore.activeTab">
             <div class="flex flex-col items-center justify-center flex-1 text-text-tertiary">
@@ -91,9 +96,6 @@ onMounted(async () => {
               <p class="text-[12px] mt-1">Select a table from the sidebar or open a SQL editor</p>
             </div>
           </template>
-
-          <!-- SQL Editor — always at the bottom as a persistent panel -->
-          <!-- <SqlEditor /> -->
         </main>
       </div>
     </div>

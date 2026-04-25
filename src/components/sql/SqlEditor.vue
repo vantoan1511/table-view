@@ -1,24 +1,38 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import ContextMenu from '@/components/ui/ContextMenu.vue'
 import { useGridStore } from '@/stores/grid'
 import { useSchemaStore } from '@/stores/schema'
-import { EditorView, basicSetup } from 'codemirror'
+import { PostgreSQL, sql } from '@codemirror/lang-sql'
+import { Compartment, EditorState } from '@codemirror/state'
 import { keymap } from '@codemirror/view'
-import { EditorState, Compartment } from '@codemirror/state'
-import { sql, PostgreSQL } from '@codemirror/lang-sql'
-import ResultsGrid from './ResultsGrid.vue'
+import { EditorView, basicSetup } from 'codemirror'
 import {
-  Play,
+  Check,
   ChevronDown,
   Clock,
-  X,
-  Plus,
+  Play
 } from 'lucide-vue-next'
+import { onMounted, ref, watch } from 'vue'
+import ResultsGrid from './ResultsGrid.vue'
 
 const gridStore = useGridStore()
 const schemaStore = useSchemaStore()
 const editorContainer = ref<HTMLElement>()
 const activeResultTab = ref<'results' | 'messages'>('results')
+
+const showLimitMenu = ref(false)
+const limitMenuPos = ref({ x: 0, y: 0 })
+
+function toggleLimitMenu(e: MouseEvent) {
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  limitMenuPos.value = { x: rect.left, y: rect.bottom + 5 }
+  showLimitMenu.value = !showLimitMenu.value
+}
+
+function setSqlLimit(limit: number) {
+  gridStore.sqlLimit = limit
+  showLimitMenu.value = false
+}
 let editorView: EditorView | null = null
 const sqlCompartment = new Compartment()
 
@@ -120,20 +134,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col border-t border-border bg-surface" style="height: 320px">
-    <!-- SQL Tab Strip -->
-    <div class="flex items-center border-b border-border bg-muted">
-      <div class="flex items-center gap-0.5 px-2 py-1">
-        <button class="flex items-center gap-1.5 px-2.5 py-1 bg-surface border border-border rounded-t-md text-[12px] font-medium text-text-primary -mb-px">
-          SQL Editor
-          <X :size="12" class="text-text-tertiary hover:text-text-secondary cursor-pointer" />
-        </button>
-        <button class="flex items-center justify-center w-6 h-6 rounded text-text-tertiary hover:text-text-secondary hover:bg-hover cursor-pointer">
-          <Plus :size="13" />
-        </button>
+  <div class="flex flex-col flex-1 min-h-0 bg-surface">
+    <!-- Results / Messages tabs toggle -->
+    <div class="flex items-center border-b border-border bg-muted shrink-0">
+      <div class="px-4 py-1.5 text-[12px] font-semibold text-text-secondary uppercase tracking-wider">
+        Query Results
       </div>
-
-      <!-- Results / Messages tabs -->
       <div class="flex items-center ml-auto border-l border-border">
         <button
           class="px-3 py-1.5 text-[12px] font-medium transition-colors cursor-pointer"
@@ -172,12 +178,23 @@ onMounted(() => {
             <ChevronDown :size="12" />
           </button>
 
-          <div class="flex items-center gap-1.5 text-[11px] text-text-secondary ml-2">
+          <div class="flex items-center gap-1.5 text-[11px] text-text-secondary ml-2 relative">
             <span>Limit</span>
-            <button class="flex items-center gap-1 px-1.5 py-0.5 border border-border rounded text-[11px] hover:bg-hover cursor-pointer">
-              100
+            <button 
+              class="flex items-center gap-1 px-1.5 py-0.5 border border-border rounded text-[11px] hover:bg-hover cursor-pointer"
+              @click="toggleLimitMenu"
+            >
+              {{ gridStore.sqlLimit }}
               <ChevronDown :size="10" />
             </button>
+            <ContextMenu :show="showLimitMenu" :x="limitMenuPos.x" :y="limitMenuPos.y" @close="showLimitMenu = false">
+              <button v-for="limit in [100, 500, 1000, 5000, 0]" :key="limit"
+                class="w-full flex items-center justify-between px-3 py-1.5 hover:bg-hover text-[12px]"
+                @click="setSqlLimit(limit)">
+                <span>{{ limit === 0 ? 'No Limit' : limit }}</span>
+                <Check v-if="gridStore.sqlLimit === limit" :size="14" class="text-primary" />
+              </button>
+            </ContextMenu>
           </div>
 
           <div class="flex items-center gap-1 text-[11px] text-text-secondary ml-auto">

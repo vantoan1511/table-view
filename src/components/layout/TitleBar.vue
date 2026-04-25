@@ -49,6 +49,10 @@ function closeAll() {
   closeMenu()
 }
 
+function openNewQueryConsole() {
+  tabsStore.openSqlEditor()
+}
+
 onMounted(() => {
   window.addEventListener('click', closeMenu)
 })
@@ -92,7 +96,10 @@ onUnmounted(() => {
         </span>
       </button>
       
-      <button class="flex items-center justify-center w-8 h-[calc(var(--titlebar-height)-8px)] rounded-t-lg text-text-tertiary hover:bg-hover/50 hover:text-text-secondary shrink-0 mb-[1px]">
+      <button 
+        class="flex items-center justify-center w-8 h-[calc(var(--titlebar-height)-8px)] rounded-t-lg text-text-tertiary hover:bg-hover/50 hover:text-text-secondary shrink-0 mb-[1px] cursor-pointer"
+        @click="openNewQueryConsole"
+      >
         <Plus :size="14" />
       </button>
     </nav>

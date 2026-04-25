@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { useConnectionsStore } from '@/stores/connections'
 import type { Connection, ConnectionColor, DbType } from '@/types'
 import ColorPicker from '@/components/ui/ColorPicker.vue'
@@ -44,6 +44,35 @@ const form = reactive<Omit<Connection, 'id' | 'isConnected'>>({
   comment: '',
   savePassword: false,
 })
+
+// Initialize form if editing
+watch(
+  () => connectionsStore.connectionToEdit,
+  (conn) => {
+    if (conn) {
+      Object.assign(form, { ...conn })
+    } else {
+      // Reset to defaults
+      Object.assign(form, {
+        name: '',
+        type: 'postgresql',
+        host: 'localhost',
+        port: 5432,
+        database: 'postgres',
+        username: 'postgres',
+        password: '',
+        color: 'indigo',
+        environment: 'development',
+        connectionTimeout: 30,
+        queryTimeout: 60,
+        applicationName: 'Table View',
+        comment: '',
+        savePassword: false,
+      })
+    }
+  },
+  { immediate: true }
+)
 
 const portDefaults: Partial<Record<DbType, number>> = {
   postgresql: 5432,
@@ -95,12 +124,16 @@ function handleTestConnection() {
 }
 
 function handleSave() {
-  const conn: Connection = {
-    ...form,
-    id: connectionsStore.generateId(),
-    isConnected: false,
+  if (connectionsStore.connectionToEdit) {
+    connectionsStore.updateConnection(connectionsStore.connectionToEdit.id, { ...form })
+  } else {
+    const conn: Connection = {
+      ...form,
+      id: connectionsStore.generateId(),
+      isConnected: false,
+    }
+    connectionsStore.addConnection(conn)
   }
-  connectionsStore.addConnection(conn)
   connectionsStore.toggleConnectionModal(false)
 }
 
@@ -121,7 +154,9 @@ function handleClose() {
       <div class="bg-surface rounded-xl shadow-modal w-[920px] max-h-[90vh] flex flex-col overflow-hidden animate-in">
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-3.5 border-b border-border">
-          <h2 class="text-[15px] font-semibold text-text-primary">New Connection</h2>
+          <h2 class="text-[15px] font-semibold text-text-primary">
+            {{ connectionsStore.connectionToEdit ? 'Edit Connection' : 'New Connection' }}
+          </h2>
           <button
             class="flex items-center justify-center w-7 h-7 rounded-md text-text-tertiary hover:text-text-secondary hover:bg-hover cursor-pointer transition-colors"
             @click="handleClose"

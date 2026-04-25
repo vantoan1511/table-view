@@ -68,7 +68,9 @@ function handleTableClick(tableName: string) {
       </button>
       <div v-show="expandedSections.views" class="ml-3">
         <button v-for="view in schemaStore.filteredViews" :key="view.name"
-          class="flex items-center gap-2 w-full pl-5 pr-3 py-1 text-[13px] text-text-primary hover:bg-hover rounded-md cursor-pointer transition-colors">
+          class="flex items-center gap-2 w-full pl-5 pr-3 py-1 text-[13px] text-text-primary hover:bg-hover rounded-md cursor-pointer transition-colors"
+          :class="tabsStore.activeTab?.tableName === view.name ? 'bg-active text-primary font-medium' : ''"
+          @click="handleTableClick(view.name)">
           <Eye :size="13" class="shrink-0 opacity-50" />
           <span class="truncate">{{ view.name }}</span>
         </button>
