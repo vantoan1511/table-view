@@ -1,6 +1,6 @@
+import type { GridColumn, GridRow } from '@/types'
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import type { GridColumn, GridRow, GridState } from '@/types'
+import { computed, ref } from 'vue'
 
 import * as Neutralino from '@neutralinojs/lib'
 
@@ -204,6 +204,14 @@ export const useGridStore = defineStore('grid', () => {
 
   function clearSelection() {
     selectedRowIndices.value = new Set()
+  }
+
+  function selectAllRows() {
+    const newSet = new Set<number>()
+    for (let i = 0; i < rows.value.length; i++) {
+      newSet.add(i)
+    }
+    selectedRowIndices.value = newSet
   }
 
   function setColumnWidth(colName: string, width: number) {
@@ -412,6 +420,7 @@ export const useGridStore = defineStore('grid', () => {
     toggleSort,
     toggleRowSelection,
     clearSelection,
+    selectAllRows,
     setColumnWidth,
     insertRow,
     deleteRows,

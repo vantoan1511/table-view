@@ -115,6 +115,28 @@ async function handleExport() {
         <span>Add Row</span>
       </button>
 
+      <!-- Selection Controls -->
+      <div v-if="selectedCount > 0" class="flex items-center gap-px bg-border p-px rounded-lg">
+        <div
+          class="flex items-center px-2.5 py-[5px] bg-primary/10 text-primary text-[12px] font-medium rounded-l-[7px]">
+          {{ selectedCount }} selected
+        </div>
+        <button
+          class="flex items-center gap-1.5 px-2.5 py-[5px] bg-surface text-[12px] text-text-secondary hover:text-text-primary hover:bg-hover transition-colors"
+          :class="{
+            'rounded-l-[7px]': selectedCount === 0,
+            'text-primary': selectedCount === gridStore.rows.length && gridStore.rows.length > 0
+          }" title="Select All" @click="gridStore.selectAllRows">
+          <span>All</span>
+        </button>
+        <button
+          class="flex items-center gap-1.5 px-2.5 py-[5px] bg-surface text-[12px] text-text-secondary hover:text-text-primary hover:bg-hover transition-colors rounded-r-[7px]"
+          title="Deselect All" @click="gridStore.clearSelection" :disabled="selectedCount === 0"
+          :class="selectedCount === 0 ? 'opacity-50 cursor-not-allowed' : ''">
+          <span>None</span>
+        </button>
+      </div>
+
       <!-- Delete Selected -->
       <button id="btn-delete-rows"
         class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] transition-colors cursor-pointer"
@@ -124,7 +146,7 @@ async function handleExport() {
         :title="selectedCount > 0 ? `Delete ${selectedCount} selected row(s)` : 'Select rows to delete'"
         @click="promptDelete">
         <Trash2 :size="13" />
-        <span>Delete{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}</span>
+        <span>Delete</span>
       </button>
     </div>
 

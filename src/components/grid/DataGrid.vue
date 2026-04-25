@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
 import { useGridStore } from '@/stores/grid'
-import type { GridColumn } from '@/types'
-import { ArrowUp, ArrowDown, Check, X } from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, Check, X } from 'lucide-vue-next'
+import { nextTick, ref } from 'vue'
 import GridToolbar from './GridToolbar.vue'
 import Pagination from './Pagination.vue'
 
@@ -91,13 +90,13 @@ const contextMenu = ref({ show: false, x: 0, y: 0, rowIdx: -1 })
 
 function onContextMenu(event: MouseEvent, rowIdx: number) {
   event.preventDefault()
-  
+
   // Keep the menu fully on-screen
   let x = event.clientX
   let y = event.clientY
   const menuWidth = 192 // w-48 is 12rem = 192px
   const menuHeight = 160
-  
+
   if (x + menuWidth > window.innerWidth) x -= menuWidth
   if (y + menuHeight > window.innerHeight) y -= menuHeight
 
@@ -159,147 +158,100 @@ onUnmounted(() => {
             <!-- Row number header -->
             <th
               class="w-12 px-3 py-2 text-right text-[11px] font-medium text-text-tertiary border-r border-grid-border bg-grid-header"
-            >
+              @click="gridStore.selectAllRows">
               #
             </th>
-            <th
-              v-for="col in gridStore.columns"
-              :key="col.name"
+            <th v-for="col in gridStore.columns" :key="col.name"
               class="px-3 py-1.5 text-left font-medium text-text-primary border-r border-grid-border bg-grid-header cursor-pointer select-none relative group"
-              :style="getColStyle(col.name)"
-              @click="gridStore.toggleSort(col.name)"
-            >
+              :style="getColStyle(col.name)" @click="gridStore.toggleSort(col.name)">
               <div class="flex items-center gap-1.5">
                 <span class="text-[12px]">{{ col.name }}</span>
-                <span
-                  v-if="col.isPrimaryKey"
-                  class="text-[10px] text-amber-500 font-bold"
-                  title="Primary Key"
-                  >PK</span
-                >
+                <span v-if="col.isPrimaryKey" class="text-[10px] text-amber-500 font-bold" title="Primary Key">PK</span>
                 <!-- Sort indicator -->
-                <ArrowUp
-                  v-if="gridStore.sortColumn === col.name && gridStore.sortDirection === 'asc'"
-                  :size="12"
-                  class="text-primary shrink-0"
-                />
-                <ArrowDown
-                  v-else-if="gridStore.sortColumn === col.name && gridStore.sortDirection === 'desc'"
-                  :size="12"
-                  class="text-primary shrink-0"
-                />
+                <ArrowUp v-if="gridStore.sortColumn === col.name && gridStore.sortDirection === 'asc'" :size="12"
+                  class="text-primary shrink-0" />
+                <ArrowDown v-else-if="gridStore.sortColumn === col.name && gridStore.sortDirection === 'desc'"
+                  :size="12" class="text-primary shrink-0" />
               </div>
               <div class="text-[10px] text-text-tertiary font-normal mt-0.5">
                 {{ col.dataType }}
               </div>
 
               <!-- Resize handle -->
-              <div
-                class="absolute top-0 right-0 w-[5px] h-full cursor-col-resize hover:bg-primary/30 transition-colors"
-                @mousedown="onResizeStart(col.name, $event)"
-                @click.stop
-              ></div>
+              <div class="absolute top-0 right-0 w-[5px] h-full cursor-col-resize hover:bg-primary/30 transition-colors"
+                @mousedown="onResizeStart(col.name, $event)" @click.stop></div>
             </th>
-            <th v-if="gridStore.newRowIdx !== null" class="w-32 px-3 py-1.5 text-left font-medium text-text-primary border-r border-grid-border bg-grid-header">
-            Actions
-          </th>
-        </tr>
+            <th v-if="gridStore.newRowIdx !== null"
+              class="w-32 px-3 py-1.5 text-left font-medium text-text-primary border-r border-grid-border bg-grid-header">
+              Actions
+            </th>
+          </tr>
         </thead>
 
         <!-- Body -->
         <tbody>
-          <tr
-            v-for="(row, rowIdx) in gridStore.rows"
-            :key="rowIdx"
-            class="border-b border-grid-border hover:bg-grid-row-hover transition-colors"
-            :class="{
+          <tr v-for="(row, rowIdx) in gridStore.rows" :key="rowIdx"
+            class="border-b border-grid-border hover:bg-grid-row-hover transition-colors" :class="{
               'bg-grid-row-alt': rowIdx % 2 === 1 && !gridStore.selectedRowIndices.has(rowIdx),
               'bg-primary/10!': gridStore.selectedRowIndices.has(rowIdx),
-            }"
-            @contextmenu.prevent.stop="onContextMenu($event, rowIdx)"
-          >
+            }" @contextmenu.prevent.stop="onContextMenu($event, rowIdx)">
             <!-- Row number (selection click target) -->
             <td
               class="px-3 py-1.5 text-right text-[11px] text-text-tertiary border-r border-grid-border tabular-nums cursor-pointer select-none"
               :class="{ 'bg-primary/20! text-primary! font-semibold': gridStore.selectedRowIndices.has(rowIdx) }"
-              @click="gridStore.toggleRowSelection(rowIdx, $event)"
-            >
+              @click="gridStore.toggleRowSelection(rowIdx, $event)">
               {{ (gridStore.currentPage - 1) * gridStore.rowsPerPage + rowIdx + 1 }}
             </td>
 
             <!-- Data cells -->
-            <td
-              v-for="col in gridStore.columns"
-              :key="col.name"
-              class="px-3 py-1.5 text-text-primary border-r border-grid-border relative"
-              :style="getColStyle(col.name)"
-              @dblclick="gridStore.newRowIdx !== rowIdx && startEdit(rowIdx, col.name, row[col.name])"
-            >
+            <td v-for="col in gridStore.columns" :key="col.name"
+              class="px-3 py-1.5 text-text-primary border-r border-grid-border relative" :style="getColStyle(col.name)"
+              @dblclick="gridStore.newRowIdx !== rowIdx && startEdit(rowIdx, col.name, row[col.name])">
               <!-- New Row Input -->
               <template v-if="gridStore.newRowIdx === rowIdx">
-                <input
-                  v-model="gridStore.newRowData[col.name]"
+                <input v-model="gridStore.newRowData[col.name]"
                   :placeholder="col.isPrimaryKey ? '(auto)' : col.isNullable ? 'NULL' : '*Required'"
                   class="w-full px-1.5 py-0.5 text-[12px] font-(--font-mono) border border-border rounded outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-surface transition-all"
-                  @keydown.enter="gridStore.saveNewRow"
-                  @keydown.esc="gridStore.cancelNewRow"
-                />
+                  @keydown.enter="gridStore.saveNewRow" @keydown.esc="gridStore.cancelNewRow" />
               </template>
-              
+
               <template v-else>
                 <!-- Editing Input -->
-                <div
-                  v-if="editingCell?.rowIdx === rowIdx && editingCell?.colName === col.name"
-                  class="absolute inset-0 bg-surface z-10 border-2 border-primary"
-                >
-                  <input
-                    :ref="setInputRef"
-                    v-model="editValue"
+                <div v-if="editingCell?.rowIdx === rowIdx && editingCell?.colName === col.name"
+                  class="absolute inset-0 bg-surface z-10 border-2 border-primary">
+                  <input :ref="setInputRef" v-model="editValue"
                     class="w-full h-full px-2 text-[12px] font-(--font-mono) outline-none bg-transparent"
-                    @blur="saveEdit"
-                    @keydown.enter="saveEdit"
-                    @keydown.esc="cancelEdit"
-                  />
+                    @blur="saveEdit" @keydown.enter="saveEdit" @keydown.esc="cancelEdit" />
                 </div>
 
                 <!-- Status badge -->
-                <span
-                  v-else-if="getCellClass(col.name, row[col.name])"
+                <span v-else-if="getCellClass(col.name, row[col.name])"
                   class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium cursor-default"
                   :class="{
                     'bg-success-light text-success': row[col.name] === 'active',
                     'bg-danger-light text-danger': row[col.name] === 'inactive',
-                  }"
-                >
+                  }">
                   {{ row[col.name] }}
                 </span>
 
                 <!-- Normal value -->
-                <span
-                  v-else
-                  class="tabular-nums truncate block cursor-text select-none"
-                  :class="{ 'text-text-tertiary italic': row[col.name] === null }"
-                >
+                <span v-else class="tabular-nums truncate block cursor-text select-none"
+                  :class="{ 'text-text-tertiary italic': row[col.name] === null }">
                   {{ row[col.name] === null ? 'NULL' : row[col.name] }}
                 </span>
               </template>
             </td>
 
             <!-- Actions Cell -->
-            <td v-if="gridStore.newRowIdx !== null" class="px-2 py-1.5 text-center border-r border-grid-border whitespace-nowrap">
+            <td v-if="gridStore.newRowIdx !== null"
+              class="px-2 py-1.5 text-center border-r border-grid-border whitespace-nowrap">
               <div v-if="gridStore.newRowIdx === rowIdx" class="flex items-center justify-center gap-1">
-                <button
-                  @click.stop="gridStore.saveNewRow"
-                  class="p-1 text-success hover:bg-success/10 rounded transition-colors"
-                  title="Save row"
-                >
+                <button @click.stop="gridStore.saveNewRow"
+                  class="p-1 text-success hover:bg-success/10 rounded transition-colors" title="Save row">
                   <Check :size="14" />
                 </button>
-                <button
-                  @click.stop="gridStore.cancelNewRow"
-                  class="p-1 text-danger hover:bg-danger/10 rounded transition-colors"
-                  title="Cancel"
-                >
+                <button @click.stop="gridStore.cancelNewRow"
+                  class="p-1 text-danger hover:bg-danger/10 rounded transition-colors" title="Cancel">
                   <X :size="14" />
                 </button>
               </div>
@@ -313,23 +265,24 @@ onUnmounted(() => {
     <Pagination />
 
     <!-- Context Menu -->
-    <div 
-      v-if="contextMenu.show" 
-      class="fixed z-[100] w-52 py-1.5 bg-surface border border-border rounded-lg shadow-xl"
-      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
-      @click.stop
-    >
-      <button @click="handleContextAction('addRow')" class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
+    <div v-if="contextMenu.show" class="fixed z-[100] w-52 py-1.5 bg-surface border border-border rounded-lg shadow-xl"
+      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" @click.stop>
+      <button @click="handleContextAction('addRow')"
+        class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
         <Plus :size="14" class="text-text-secondary" /> <span>Add Row</span>
       </button>
-      <button @click="handleContextAction('deleteRows')" class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-danger hover:bg-danger-light hover:text-danger" :disabled="gridStore.selectedRowIndices.size === 0">
+      <button @click="handleContextAction('deleteRows')"
+        class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-danger hover:bg-danger-light hover:text-danger"
+        :disabled="gridStore.selectedRowIndices.size === 0">
         <Trash2 :size="14" /> <span>Delete Row(s)</span>
       </button>
       <div class="h-px bg-border my-1.5 w-full"></div>
-      <button @click="handleContextAction('alterTable')" class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
+      <button @click="handleContextAction('alterTable')"
+        class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
         <Wrench :size="14" class="text-text-secondary" /> <span>Alter Table...</span>
       </button>
-      <button @click="handleContextAction('refresh')" class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
+      <button @click="handleContextAction('refresh')"
+        class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
         <RefreshCw :size="14" class="text-text-secondary" /> <span>Refresh</span>
       </button>
     </div>
