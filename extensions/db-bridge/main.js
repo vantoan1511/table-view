@@ -177,6 +177,24 @@ ws.on('message', async (messageData) => {
           broadcast('dbBridge.deleteRowsResult', { reqId, success: false, error: String(error.message || error) });
         }
       }
+      else if (action === 'getTableColumns') {
+        const { reqId, tableName } = payload;
+        try {
+          const columns = await activeDriver.getTableColumns(tableName);
+          broadcast('dbBridge.getTableColumnsResult', { reqId, success: true, columns });
+        } catch (error) {
+          broadcast('dbBridge.getTableColumnsResult', { reqId, success: false, error: String(error.message || error) });
+        }
+      }
+      else if (action === 'alterTable') {
+        const { reqId, tableName, operations } = payload;
+        try {
+          await activeDriver.alterTable(tableName, operations);
+          broadcast('dbBridge.alterTableResult', { reqId, success: true });
+        } catch (error) {
+          broadcast('dbBridge.alterTableResult', { reqId, success: false, error: String(error.message || error) });
+        }
+      }
     } catch (err) {
       console.error(`Error handling action ${action}:`, err);
     }

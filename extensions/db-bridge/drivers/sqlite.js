@@ -214,5 +214,51 @@ module.exports = {
       writeStream.end(() => resolve(true));
       writeStream.on('error', reject);
     });
+  },
+
+  getTableColumns: async (tableName) => {
+    if (!module.exports.db) throw new Error("Not connected to database");
+    const columns = await new Promise((res, rej) => {
+      module.exports.db.all(`PRAGMA table_info("${tableName.replace(/"/g, '""')}")`, (err, data) => err ? rej(err) : res(data));
+    });
+    return columns.map(c => ({
+      name: c.name,
+      dataType: c.type,
+      nullable: c.notnull === 0,
+      default: c.dflt_value
+    }));
+  },
+
+  alterTable: async (tableName, operations) => {
+    if (!module.exports.db) throw new Error("Not connected to database");
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    for (const op of operations) {
+      if (op.type === 'ADD_COLUMN') {
+        const safeCol = `"${op.name.replace(/"/g, '""')}"`;
+        let def = `ADD COLUMN ${safeCol} ${op.dataType}`;
+        if (op.nullable === false) def += ' NOT NULL';
+        if (op.default !== undefined && op.default !== null && op.default !== '') {
+          const isNumericOrFunc = /^[0-9]+$/.test(op.default) || op.default.includes('(');
+          def += ` DEFAULT ${isNumericOrFunc ? op.default : "'" + op.default.replace(/'/g, "''") + "'"}`;
+        }
+        await new Promise((res, rej) => {
+          module.exports.db.run(`ALTER TABLE ${safeTable} ${def}`, (err) => err ? rej(err) : res());
+        });
+      }
+      else if (op.type === 'DROP_COLUMN') {
+        const safeCol = `"${op.name.replace(/"/g, '""')}"`;
+        await new Promise((res, rej) => {
+          module.exports.db.run(`ALTER TABLE ${safeTable} DROP COLUMN ${safeCol}`, (err) => err ? rej(err) : res());
+        });
+      }
+      else if (op.type === 'RENAME_COLUMN') {
+        const safeOld = `"${op.oldName.replace(/"/g, '""')}"`;
+        const safeNew = `"${op.newName.replace(/"/g, '""')}"`;
+        await new Promise((res, rej) => {
+          module.exports.db.run(`ALTER TABLE ${safeTable} RENAME COLUMN ${safeOld} TO ${safeNew}`, (err) => err ? rej(err) : res());
+        });
+      }
+    }
+    return true;
   }
 };

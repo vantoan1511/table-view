@@ -271,6 +271,65 @@ module.exports = {
   },
 
   /**
+   * Get detailed column definitions for a table
+   */
+  getTableColumns: async (tableName) => {
+    if (!module.exports.client) throw new Error("Not connected to database");
+    
+    // Fetch columns with metadata
+    const query = `
+      SELECT 
+        c.column_name as name,
+        c.data_type as "dataType",
+        c.is_nullable as nullable,
+        c.column_default as "default"
+      FROM information_schema.columns c
+      WHERE c.table_schema = 'public' AND c.table_name = $1
+      ORDER BY c.ordinal_position;
+    `;
+    const result = await module.exports.client.query(query, [tableName]);
+    return result.rows.map(r => ({
+      name: r.name,
+      dataType: r.dataType,
+      nullable: r.nullable === 'YES',
+      default: r.default
+    }));
+  },
+
+  /**
+   * Alter table (ADD, DROP, RENAME columns)
+   */
+  alterTable: async (tableName, operations) => {
+    if (!module.exports.client) throw new Error("Not connected to database");
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+
+    // Process each operation sequentially
+    for (const op of operations) {
+      if (op.type === 'ADD_COLUMN') {
+        const safeCol = `"${op.name.replace(/"/g, '""')}"`;
+        let def = `ADD COLUMN ${safeCol} ${op.dataType}`;
+        if (op.nullable === false) def += ' NOT NULL';
+        if (op.default !== undefined && op.default !== null && op.default !== '') {
+          // simple check for numbers/functions vs strings
+          const isNumericOrFunc = /^[0-9]+$/.test(op.default) || op.default.includes('(');
+          def += ` DEFAULT ${isNumericOrFunc ? op.default : "'" + op.default.replace(/'/g, "''") + "'"}`;
+        }
+        await module.exports.client.query(`ALTER TABLE public.${safeTable} ${def}`);
+      } 
+      else if (op.type === 'DROP_COLUMN') {
+        const safeCol = `"${op.name.replace(/"/g, '""')}"`;
+        await module.exports.client.query(`ALTER TABLE public.${safeTable} DROP COLUMN ${safeCol}`);
+      } 
+      else if (op.type === 'RENAME_COLUMN') {
+        const safeOld = `"${op.oldName.replace(/"/g, '""')}"`;
+        const safeNew = `"${op.newName.replace(/"/g, '""')}"`;
+        await module.exports.client.query(`ALTER TABLE public.${safeTable} RENAME COLUMN ${safeOld} TO ${safeNew}`);
+      }
+    }
+    return true;
+  },
+
+  /**
    * Disconnect from the database
    */
   disconnect: async () => {

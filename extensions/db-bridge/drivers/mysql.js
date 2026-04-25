@@ -207,5 +207,52 @@ module.exports = {
       writeStream.end(() => resolve(true));
       writeStream.on('error', reject);
     });
+  },
+
+  getTableColumns: async (tableName) => {
+    if (!module.exports.connection) throw new Error("Not connected to database");
+    const [rows] = await module.exports.connection.query(`
+      SELECT 
+        COLUMN_NAME as name, 
+        DATA_TYPE as dataType, 
+        IS_NULLABLE as isNullable, 
+        COLUMN_DEFAULT as columnDefault 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+      ORDER BY ORDINAL_POSITION
+    `, [tableName]);
+    return rows.map(r => ({
+      name: r.name,
+      dataType: r.dataType,
+      nullable: r.isNullable === 'YES',
+      default: r.columnDefault
+    }));
+  },
+
+  alterTable: async (tableName, operations) => {
+    if (!module.exports.connection) throw new Error("Not connected to database");
+    const safeTable = `\`${tableName.replace(/`/g, '``')}\``;
+    for (const op of operations) {
+      if (op.type === 'ADD_COLUMN') {
+        const safeCol = `\`${op.name.replace(/`/g, '``')}\``;
+        let def = `ADD COLUMN ${safeCol} ${op.dataType}`;
+        if (op.nullable === false) def += ' NOT NULL';
+        if (op.default !== undefined && op.default !== null && op.default !== '') {
+          const isNumericOrFunc = /^[0-9]+$/.test(op.default) || op.default.includes('(');
+          def += ` DEFAULT ${isNumericOrFunc ? op.default : "'" + op.default.replace(/'/g, "''") + "'"}`;
+        }
+        await module.exports.connection.query(`ALTER TABLE ${safeTable} ${def}`);
+      }
+      else if (op.type === 'DROP_COLUMN') {
+        const safeCol = `\`${op.name.replace(/`/g, '``')}\``;
+        await module.exports.connection.query(`ALTER TABLE ${safeTable} DROP COLUMN ${safeCol}`);
+      }
+      else if (op.type === 'RENAME_COLUMN') {
+        const safeOld = `\`${op.oldName.replace(/`/g, '``')}\``;
+        const safeNew = `\`${op.newName.replace(/`/g, '``')}\``;
+        await module.exports.connection.query(`ALTER TABLE ${safeTable} RENAME COLUMN ${safeOld} TO ${safeNew}`);
+      }
+    }
+    return true;
   }
 };

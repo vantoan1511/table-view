@@ -345,6 +345,38 @@ export const useGridStore = defineStore('grid', () => {
     })
   }
 
+  function getTableColumns(tableName: string): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      if (!window.NL_PORT) return resolve([])
+      const reqId = Date.now().toString()
+      const onResult = (evt: any) => {
+        const payload = evt.detail
+        if (payload.reqId !== reqId) return
+        Neutralino.events.off('dbBridge.getTableColumnsResult', onResult)
+        if (payload.success) resolve(payload.columns)
+        else reject(new Error(payload.error))
+      }
+      Neutralino.events.on('dbBridge.getTableColumnsResult', onResult)
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getTableColumns', { reqId, tableName })
+    })
+  }
+
+  function alterTable(tableName: string, operations: any[]): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!window.NL_PORT) return resolve()
+      const reqId = Date.now().toString()
+      const onResult = (evt: any) => {
+        const payload = evt.detail
+        if (payload.reqId !== reqId) return
+        Neutralino.events.off('dbBridge.alterTableResult', onResult)
+        if (payload.success) resolve()
+        else reject(new Error(payload.error))
+      }
+      Neutralino.events.on('dbBridge.alterTableResult', onResult)
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.alterTable', { reqId, tableName, operations })
+    })
+  }
+
   return {
     columns,
     rows,
@@ -381,5 +413,7 @@ export const useGridStore = defineStore('grid', () => {
     setColumnWidth,
     insertRow,
     deleteRows,
+    getTableColumns,
+    alterTable,
   }
 })

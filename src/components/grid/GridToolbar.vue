@@ -4,7 +4,7 @@ import { useGridStore } from '@/stores/grid'
 import * as Neutralino from '@neutralinojs/lib'
 import { MessageBoxChoice, Icon } from '@neutralinojs/lib'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
-// import AddRowDialog from '@/components/ui/AddRowDialog.vue'  // removed inline row handling
+import AlterTableDialog from '@/components/ui/AlterTableDialog.vue'
 import {
   Filter,
   Columns3,
@@ -14,9 +14,14 @@ import {
   LayoutGrid,
   Plus,
   Trash2,
+  Wrench,
 } from 'lucide-vue-next'
 
 const gridStore = useGridStore()
+
+const selectedCount = computed(() => gridStore.selectedRowIndices.size)
+const showDeleteConfirm = ref(false)
+const showAlterTableDialog = ref(false)
 
 // ─── Add Row Inline ────────────────────────────────────────────────────────
 async function handleInsert() {
@@ -24,10 +29,6 @@ async function handleInsert() {
 }
 
 // ─── Delete Confirmation ──────────────────────────────────────────────────────
-const showDeleteConfirm = ref(false)
-
-const selectedCount = computed(() => gridStore.selectedRowIndices.size)
-
 function promptDelete() {
   if (selectedCount.value === 0) return
   showDeleteConfirm.value = true
@@ -39,6 +40,21 @@ async function confirmDelete() {
     await gridStore.deleteRows([...gridStore.selectedRowIndices])
   } catch (err: any) {
     console.error('Delete failed:', err)
+  }
+}
+
+async function confirmAlterTable(operations: any[]) {
+  if (operations.length === 0) {
+    showAlterTableDialog.value = false
+    return
+  }
+  try {
+    await gridStore.alterTable(gridStore.activeTableName, operations)
+    showAlterTableDialog.value = false
+    gridStore.loadTable(gridStore.activeTableName)
+    Neutralino.os.showMessageBox('Success', 'Table altered successfully.', MessageBoxChoice.OK, Icon.INFO)
+  } catch (err: any) {
+    Neutralino.os.showMessageBox('Error', 'Failed to alter table: ' + err.message, MessageBoxChoice.OK, Icon.ERROR)
   }
 }
 
@@ -155,6 +171,15 @@ async function handleExport() {
         <ChevronDown :size="12" />
       </div>
 
+      <!-- Alter Table -->
+      <button
+        class="flex items-center justify-center w-8 h-8 border border-border rounded-lg text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer"
+        title="Alter Table Structure"
+        @click="showAlterTableDialog = true"
+      >
+        <Wrench :size="14" />
+      </button>
+
       <!-- Refresh -->
       <button
         class="flex items-center justify-center w-8 h-8 border border-border rounded-lg text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer"
@@ -174,6 +199,14 @@ async function handleExport() {
     confirm-label="Delete"
     @confirm="confirmDelete"
     @cancel="showDeleteConfirm = false"
+  />
+
+  <!-- Alter Table Dialog -->
+  <AlterTableDialog
+    v-if="showAlterTableDialog"
+    :tableName="gridStore.activeTableName"
+    @close="showAlterTableDialog = false"
+    @apply="confirmAlterTable"
   />
 </template>
 
