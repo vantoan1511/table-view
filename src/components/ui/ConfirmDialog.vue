@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Info, AlertCircle, Trash2, X } from 'lucide-vue-next'
+import { AlertTriangle, Info, Trash2, X } from 'lucide-vue-next'
 
 interface Props {
   title: string
@@ -48,20 +48,13 @@ const colorMap = {
 <template>
   <!-- Backdrop -->
   <Teleport to="body">
-    <div
-      class="fixed inset-0 z-[200] flex items-center justify-center"
-      @click.self="emit('cancel')"
-    >
+    <div class="fixed inset-0 z-200 flex items-center justify-center" @click.self="emit('cancel')">
       <!-- Scrim -->
       <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="emit('cancel')" />
 
       <!-- Dialog -->
-      <div
-        class="relative z-10 w-full max-w-sm mx-4 bg-surface rounded-xl shadow-modal border border-border overflow-hidden
-               animate-[scale-in_0.15s_ease-out]"
-        role="dialog"
-        aria-modal="true"
-      >
+      <div class="relative z-10 w-full max-w-sm mx-4 bg-surface rounded-xl shadow-modal border border-border overflow-hidden
+               animate-[scale-in_0.15s_ease-out]" role="dialog" aria-modal="true">
         <!-- Header -->
         <div class="flex items-start gap-3 p-5 pb-3">
           <div :class="['p-2 rounded-lg shrink-0', colorMap[variant].bg]">
@@ -73,8 +66,7 @@ const colorMap = {
           </div>
           <button
             class="shrink-0 p-1 rounded-md text-text-tertiary hover:text-text-secondary hover:bg-hover transition-colors"
-            @click="emit('cancel')"
-          >
+            @click="emit('cancel')">
             <X :size="16" />
           </button>
         </div>
@@ -86,14 +78,12 @@ const colorMap = {
         <div class="flex items-center justify-end gap-2 p-4">
           <button
             class="px-4 py-2 rounded-lg text-[13px] font-medium text-text-secondary hover:bg-hover border border-border transition-colors cursor-pointer"
-            @click="emit('cancel')"
-          >
+            @click="emit('cancel')">
             {{ cancelLabel }}
           </button>
           <button
             :class="['px-4 py-2 rounded-lg text-[13px] font-medium transition-colors shadow-sm cursor-pointer', colorMap[variant].btn]"
-            @click="emit('confirm')"
-          >
+            @click="emit('confirm')">
             {{ confirmLabel }}
           </button>
         </div>
@@ -104,7 +94,14 @@ const colorMap = {
 
 <style scoped>
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>
