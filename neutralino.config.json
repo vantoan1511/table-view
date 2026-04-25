@@ -10,7 +10,7 @@
   "enableNativeAPI": true,
   "singlePageServe": true,
   "enableExtensions": true,
-  "tokenSecurity": "none",
+  "tokenSecurity": "one-time",
   "nativeAllowList": [
     "app.*",
     "os.*",
@@ -29,13 +29,13 @@
   "modes": {
     "window": {
       "title": "Table View",
-      "width": 800,
-      "height": 500,
-      "minWidth": 400,
-      "minHeight": 200,
+      "width": 1280,
+      "height": 720,
+      "minWidth": 640,
+      "minHeight": 480,
       "center": true,
       "icon": "/public/favicon.ico",
-      "enableInspector": true,
+      "enableInspector": false,
       "openInspectorOnStartup": false
     }
   },
