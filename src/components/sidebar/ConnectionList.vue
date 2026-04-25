@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useConnectionsStore } from '@/stores/connections';
+import { useToastStore } from '@/stores/toast';
 import { MoreVertical } from 'lucide-vue-next';
 
 const connectionsStore = useConnectionsStore()
+const toastStore = useToastStore()
 
 const colorMap: Record<string, string> = {
   indigo: 'bg-conn-indigo',
@@ -14,6 +16,18 @@ const colorMap: Record<string, string> = {
   pink: 'bg-conn-pink',
   gray: 'bg-conn-gray',
 }
+
+const handleSelectConnection = (id: string) => {
+  connectionsStore.setActiveConnection(id).catch((err: any) => {
+    toastStore.addToast({
+      title: 'Connection Failed',
+      message: err.message,
+      severity: 'error',
+      variation: 'filled',
+      position: 'bottom-center'
+    })
+  })
+}
 </script>
 
 <template>
@@ -21,9 +35,9 @@ const colorMap: Record<string, string> = {
     <button v-for="conn in connectionsStore.connections" :key="conn.id"
       class="group flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg cursor-pointer text-left transition-all duration-150"
       :class="connectionsStore.activeConnectionId === conn.id
-          ? 'bg-active border border-primary/20'
-          : 'hover:bg-hover border border-transparent'
-        " @click="connectionsStore.setActiveConnection(conn.id)">
+        ? 'bg-active border border-primary/20'
+        : 'hover:bg-hover border border-transparent'
+        " @click="handleSelectConnection(conn.id)">
       <!-- Color dot / connected indicator -->
       <span class="w-2.5 h-2.5 rounded-full shrink-0"
         :class="conn.isConnected ? 'bg-success' : colorMap[conn.color] ?? 'bg-conn-gray'"></span>

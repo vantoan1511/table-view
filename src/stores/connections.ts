@@ -73,35 +73,44 @@ export const useConnectionsStore = defineStore('connections', () => {
     }
   }
 
-  async function setActiveConnection(id: string) {
+  async function setActiveConnection(id: string): Promise<any> {
+    const previousActiveConnection = activeConnection.value
     activeConnectionId.value = id
     // Connect to the actual database using the db-bridge
     const conn = connections.value.find(c => c.id === id)
     if (conn && window.NL_PORT) {
-      const reqId = Date.now().toString()
+      return new Promise((resolve, reject) => {
+        const reqId = Date.now().toString()
 
-      const onConnectResult = async (evt: any) => {
-        const payload = evt.detail
-        if (payload.reqId === reqId) {
-          if (payload.success) {
-            conn.isConnected = true
-            // Import dynamically to avoid circular dependency
-            const { useSchemaStore } = await import('./schema')
-            const schemaStore = useSchemaStore()
-            schemaStore.loadSchema()
-          } else {
-            conn.isConnected = false
-            console.error("Failed to connect:", payload.error)
-            throw new Error(payload.error || `Failed to connect to database: ${conn.name}`)
+        const onConnectResult = async (evt: any) => {
+          const payload = evt.detail
+          if (payload.reqId === reqId) {
+            Neutralino.events.off('dbBridge.connectResult', onConnectResult)
+            if (payload.success) {
+              conn.isConnected = true
+              // Import dynamically to avoid circular dependency
+              const { useSchemaStore } = await import('./schema')
+              const schemaStore = useSchemaStore()
+              schemaStore.loadSchema()
+              resolve(true)
+            } else {
+              conn.isConnected = false
+              if (previousActiveConnection) {
+                activeConnectionId.value = previousActiveConnection.id
+              } else {
+                activeConnectionId.value = null
+              }
+              console.error("Failed to connect:", payload.error)
+              reject(new Error(payload.error || `Failed to connect to database: ${conn.name}`))
+            }
           }
-          Neutralino.events.off('dbBridge.connectResult', onConnectResult)
         }
-      }
 
-      Neutralino.events.on('dbBridge.connectResult', onConnectResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.connect', {
-        reqId,
-        config: conn
+        Neutralino.events.on('dbBridge.connectResult', onConnectResult)
+        Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.connect', {
+          reqId,
+          config: conn
+        })
       })
     }
   }
