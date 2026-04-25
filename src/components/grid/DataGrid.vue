@@ -85,6 +85,31 @@ function getCellClass(colName: string, value: unknown): string {
   return ''
 }
 
+// ─── Data Type helper ──────────────────────────────────────────────────────
+function formatDataType(dt: string): string {
+  const pgOids: Record<string, string> = {
+    '16': 'boolean',
+    '17': 'bytea',
+    '20': 'bigint',
+    '21': 'smallint',
+    '23': 'integer',
+    '25': 'text',
+    '114': 'json',
+    '700': 'real',
+    '701': 'double precision',
+    '1042': 'character',
+    '1043': 'varchar',
+    '1082': 'date',
+    '1083': 'time',
+    '1114': 'timestamp',
+    '1184': 'timestamptz',
+    '1700': 'numeric',
+    '2950': 'uuid',
+    '3802': 'jsonb',
+  }
+  return pgOids[dt] || dt
+}
+
 // ─── Context Menu ──────────────────────────────────────────────────────────
 const contextMenu = ref({ show: false, x: 0, y: 0, rowIdx: -1 })
 
@@ -174,7 +199,7 @@ onUnmounted(() => {
                   :size="12" class="text-primary shrink-0" />
               </div>
               <div class="text-[10px] text-text-tertiary font-normal mt-0.5">
-                {{ col.dataType }}
+                {{ formatDataType(col.dataType) }}
               </div>
 
               <!-- Resize handle -->
