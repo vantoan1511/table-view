@@ -34,6 +34,15 @@ app.mount('#app')
 if (window.NL_PORT) {
   Neutralino.init()
 
+  // Set window title with version
+  const setWindowTitle = async () => {
+    const config = await Neutralino.app.getConfig();
+    if (config && config.version) {
+      await Neutralino.window.setTitle(`${config.applicationName} v${config.version}`);
+    }
+  }
+  setWindowTitle()
+
   Neutralino.events.on('extensionReady', (evt) => {
     console.log('Extension ready:', evt.detail)
   })

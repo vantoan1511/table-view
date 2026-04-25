@@ -17,7 +17,8 @@
     "filesystem.*",
     "storage.*",
     "extensions.*",
-    "events.*"
+    "events.*",
+    "window.*"
   ],
   "extensions": [
     {
