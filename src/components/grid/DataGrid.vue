@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ContextMenu from '@/components/ui/ContextMenu.vue'
 import { useGridStore } from '@/stores/grid'
 import { ArrowDown, ArrowUp, Check, X } from 'lucide-vue-next'
 import { nextTick, ref } from 'vue'
@@ -159,14 +160,6 @@ function handleContextAction(action: string) {
   }
 }
 
-import { onMounted, onUnmounted } from 'vue'
-
-onMounted(() => {
-  window.addEventListener('click', closeContextMenu)
-})
-onUnmounted(() => {
-  window.removeEventListener('click', closeContextMenu)
-})
 </script>
 
 <template>
@@ -290,8 +283,7 @@ onUnmounted(() => {
     <Pagination />
 
     <!-- Context Menu -->
-    <div v-if="contextMenu.show" class="fixed z-100 w-52 py-1.5 bg-surface border border-border rounded-lg shadow-xl"
-      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" @click.stop>
+    <ContextMenu :show="contextMenu.show" :x="contextMenu.x" :y="contextMenu.y" @close="closeContextMenu">
       <button @click="handleContextAction('addRow')"
         class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
         <Plus :size="14" class="text-text-secondary" /> <span>Add Row</span>
@@ -310,6 +302,6 @@ onUnmounted(() => {
         class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
         <RefreshCw :size="14" class="text-text-secondary" /> <span>Refresh</span>
       </button>
-    </div>
+    </ContextMenu>
   </div>
 </template>
