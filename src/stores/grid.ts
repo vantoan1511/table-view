@@ -46,11 +46,11 @@ export const useGridStore = defineStore('grid', () => {
   async function loadTable(tableName: string) {
     activeTableName.value = tableName
     if (!tableName || !window.NL_PORT) return
-    
+
     const reqId = Date.now().toString()
     const offset = (currentPage.value - 1) * rowsPerPage.value
     const startTime = performance.now()
-    
+
     const onResult = (evt: any) => {
       const payload = evt.detail
       if (payload.reqId === reqId) {
@@ -65,9 +65,9 @@ export const useGridStore = defineStore('grid', () => {
         Neutralino.events.off('dbBridge.fetchTableDataResult', onResult)
       }
     }
-    
+
     Neutralino.events.on('dbBridge.fetchTableDataResult', onResult)
-    Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.fetchTableData', { 
+    Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.fetchTableData', {
       reqId,
       tableName,
       limit: rowsPerPage.value,
@@ -135,7 +135,7 @@ export const useGridStore = defineStore('grid', () => {
           sqlRows.value = payload.rows || []
           sqlColumns.value = (payload.fields || []).map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID), isPrimaryKey: !!f.isPrimaryKey }))
           sqlRowCount.value = payload.rowCount || 0
-          
+
           sqlMessages.value.push({
             type: 'info',
             text: `Query executed successfully. ${sqlRowCount.value} rows affected.`,
@@ -153,9 +153,9 @@ export const useGridStore = defineStore('grid', () => {
     }
 
     Neutralino.events.on('dbBridge.executeQueryResult', onResult)
-    Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.executeQuery', { 
+    Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.executeQuery', {
       reqId,
-      sql 
+      sql
     })
   }
 
@@ -195,8 +195,12 @@ export const useGridStore = defineStore('grid', () => {
       }
     } else {
       // Single select
-      newSet.clear()
-      newSet.add(rowIdx)
+      if (newSet.has(rowIdx)) {
+        newSet.delete(rowIdx)
+      } else {
+        newSet.clear()
+        newSet.add(rowIdx)
+      }
     }
 
     selectedRowIndices.value = newSet
