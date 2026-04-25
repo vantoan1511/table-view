@@ -36,20 +36,13 @@ watch(
 
       <!-- Content -->
       <main class="flex flex-col flex-1 min-w-0 min-h-0">
-        <!-- Data Grid (for table tabs) -->
+        <!-- Table tab active: show DataGrid on top -->
         <template v-if="tabsStore.activeTab?.type === 'table'">
           <DataGrid />
         </template>
 
-        <!-- SQL Editor (for sql tabs) -->
-        <template v-else-if="tabsStore.activeTab?.type === 'sql'">
-          <div class="flex flex-col flex-1 min-h-0">
-            <SqlEditor />
-          </div>
-        </template>
-
-        <!-- Empty State -->
-        <template v-else>
+        <!-- No tab: empty state -->
+        <template v-else-if="!tabsStore.activeTab">
           <div class="flex flex-col items-center justify-center flex-1 text-text-tertiary">
             <svg class="w-16 h-16 mb-4 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -60,6 +53,9 @@ watch(
             <p class="text-[12px] mt-1">Select a table from the sidebar or open a SQL editor</p>
           </div>
         </template>
+
+        <!-- SQL Editor — always at the bottom as a persistent panel -->
+        <SqlEditor />
       </main>
     </div>
 

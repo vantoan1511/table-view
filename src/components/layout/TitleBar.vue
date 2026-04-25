@@ -6,21 +6,12 @@ import {
   Search,
   LayoutGrid,
   X,
-  Code2,
   Home,
   MoreVertical,
 } from 'lucide-vue-next'
 
 const connectionsStore = useConnectionsStore()
 const tabsStore = useTabsStore()
-
-function getTabIcon(type: string) {
-  switch (type) {
-    case 'table': return LayoutGrid
-    case 'sql': return Code2
-    default: return Home
-  }
-}
 </script>
 
 <template>
@@ -30,7 +21,6 @@ function getTabIcon(type: string) {
       id="btn-new-tab"
       class="flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-hover hover:text-text-primary"
       title="New Tab"
-      @click="tabsStore.openSqlEditor()"
     >
       <Plus :size="18" />
     </button>
@@ -48,7 +38,7 @@ function getTabIcon(type: string) {
         "
         @click="tabsStore.setActiveTab(tab.id)"
       >
-        <component :is="getTabIcon(tab.type)" :size="14" class="shrink-0" />
+        <LayoutGrid :size="14" class="shrink-0" />
         <span class="truncate max-w-[120px]">{{ tab.title }}</span>
         <span
           class="flex items-center justify-center w-4 h-4 rounded opacity-0 group-hover:opacity-100 hover:bg-border-strong transition-opacity"
@@ -61,7 +51,7 @@ function getTabIcon(type: string) {
       <!-- Add Tab -->
       <button
         class="flex items-center justify-center w-7 h-7 rounded-md text-text-tertiary hover:bg-hover hover:text-text-secondary shrink-0"
-        @click="tabsStore.openSqlEditor()"
+        title="Open new table"
       >
         <Plus :size="14" />
       </button>

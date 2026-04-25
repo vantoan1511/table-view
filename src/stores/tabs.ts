@@ -3,10 +3,10 @@ import { ref, computed } from 'vue'
 import type { Tab, TabType } from '@/types'
 
 export const useTabsStore = defineStore('tabs', () => {
+  // Only table tabs in the main tab strip
   const tabs = ref<Tab[]>([
     { id: 'tab-users', type: 'table', title: 'users', tableName: 'users' },
     { id: 'tab-orders', type: 'table', title: 'orders', tableName: 'orders' },
-    { id: 'tab-sql-1', type: 'sql', title: 'SQL Editor', query: `SELECT u.id,\n       u.name,\n       u.email,\n       u.created_at,\n       r.name AS role_name\nFROM users u\nLEFT JOIN roles r ON r.id = u.role_id\nWHERE u.status = 'active'\nORDER BY u.created_at DESC\nLIMIT 100;` },
   ])
   const activeTabId = ref<string>('tab-users')
 
@@ -36,18 +36,6 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTabId.value = tab.id
   }
 
-  function openSqlEditor() {
-    const sqlCount = tabs.value.filter((t) => t.type === 'sql').length
-    const tab: Tab = {
-      id: `tab-sql-${Date.now()}`,
-      type: 'sql',
-      title: `SQL Editor${sqlCount > 0 ? ` ${sqlCount + 1}` : ''}`,
-      query: '',
-    }
-    tabs.value.push(tab)
-    activeTabId.value = tab.id
-  }
-
   function closeTab(id: string) {
     const idx = tabs.value.findIndex((t) => t.id === id)
     if (idx === -1) return
@@ -64,7 +52,6 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTab,
     setActiveTab,
     openTable,
-    openSqlEditor,
     closeTab,
   }
 })

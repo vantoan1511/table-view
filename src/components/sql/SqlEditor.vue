@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useGridStore } from '@/stores/grid'
-import { useTabsStore } from '@/stores/tabs'
 import { EditorView, basicSetup } from 'codemirror'
 import { EditorState } from '@codemirror/state'
 import { sql, PostgreSQL } from '@codemirror/lang-sql'
-import { keymap } from '@codemirror/view'
 import ResultsGrid from './ResultsGrid.vue'
 import {
   Play,
@@ -16,15 +14,25 @@ import {
 } from 'lucide-vue-next'
 
 const gridStore = useGridStore()
-const tabsStore = useTabsStore()
 const editorContainer = ref<HTMLElement>()
 const activeResultTab = ref<'results' | 'messages'>('results')
 let editorView: EditorView | null = null
 
+const initialQuery = `SELECT u.id,
+       u.name,
+       u.email,
+       u.created_at,
+       r.name AS role_name
+FROM users u
+LEFT JOIN roles r ON r.id = u.role_id
+WHERE u.status = 'active'
+ORDER BY u.created_at DESC
+LIMIT 100;`
+
 onMounted(() => {
   if (!editorContainer.value) return
 
-  const initialDoc = tabsStore.activeTab?.query ?? ''
+  const initialDoc = initialQuery
 
   const state = EditorState.create({
     doc: initialDoc,
