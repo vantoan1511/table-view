@@ -15,55 +15,50 @@ const tabsStore = useTabsStore()
 </script>
 
 <template>
-  <header class="flex items-center h-[var(--titlebar-height)] bg-surface border-b border-border px-3 gap-2 shrink-0">
-    <!-- New Tab Button -->
-    <button
-      id="btn-new-tab"
-      class="flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-hover hover:text-text-primary"
-      title="New Tab"
-    >
-      <Plus :size="18" />
-    </button>
+  <header class="flex items-center h-[var(--titlebar-height)] bg-muted border-b border-border pl-2 pr-3 shrink-0">
+    
+    <div class="flex items-center h-full mr-2">
+      <!-- Home Button -->
+      <button class="flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-hover hover:text-text-primary" title="Home">
+        <Home :size="16" />
+      </button>
+    </div>
 
     <!-- Tab Strip -->
-    <nav class="flex items-center gap-0.5 flex-1 min-w-0 overflow-x-auto px-1" id="tab-strip">
+    <nav class="flex items-end flex-1 min-w-0 overflow-hidden h-full" id="tab-strip">
       <button
         v-for="tab in tabsStore.tabs"
         :key="tab.id"
-        class="group flex items-center gap-1.5 px-3 h-[var(--tab-height)] rounded-lg text-[13px] whitespace-nowrap shrink-0 cursor-pointer transition-all duration-150"
+        class="group relative flex items-center gap-1.5 px-3 h-[calc(var(--titlebar-height)-8px)] min-w-[120px] max-w-[200px] rounded-t-lg text-[13px] whitespace-nowrap shrink-0 cursor-pointer transition-colors border border-transparent border-b-0"
         :class="
           tabsStore.activeTabId === tab.id
-            ? 'bg-active text-primary font-medium'
-            : 'text-text-secondary hover:bg-hover hover:text-text-primary'
+            ? 'bg-surface border-border z-10 font-medium text-text-primary after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[1px] after:bg-surface'
+            : 'text-text-secondary hover:bg-hover/50 hover:text-text-primary'
         "
         @click="tabsStore.setActiveTab(tab.id)"
       >
-        <LayoutGrid :size="14" class="shrink-0" />
-        <span class="truncate max-w-[120px]">{{ tab.title }}</span>
+        <LayoutGrid :size="14" class="shrink-0" :class="tabsStore.activeTabId === tab.id ? 'text-primary' : 'text-text-tertiary'" />
+        <span class="truncate flex-1 text-left">{{ tab.title }}</span>
         <span
-          class="flex items-center justify-center w-4 h-4 rounded opacity-0 group-hover:opacity-100 hover:bg-border-strong transition-opacity"
+          class="flex items-center justify-center w-4 h-4 rounded opacity-0 group-hover:opacity-100 hover:bg-border transition-opacity"
           @click.stop="tabsStore.closeTab(tab.id)"
         >
           <X :size="12" />
         </span>
       </button>
-
-      <!-- Add Tab -->
-      <button
-        class="flex items-center justify-center w-7 h-7 rounded-md text-text-tertiary hover:bg-hover hover:text-text-secondary shrink-0"
-        title="Open new table"
-      >
+      
+      <button class="flex items-center justify-center w-8 h-[calc(var(--titlebar-height)-8px)] rounded-t-lg text-text-tertiary hover:bg-hover/50 hover:text-text-secondary shrink-0 mb-[1px]">
         <Plus :size="14" />
       </button>
     </nav>
 
     <!-- Right Actions -->
-    <div class="flex items-center gap-2 shrink-0">
+    <div class="flex items-center gap-2 shrink-0 ml-2">
       <!-- Search -->
-      <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted border border-border rounded-lg text-text-tertiary text-[12px]">
+      <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border rounded-lg text-text-tertiary text-[12px]">
         <Search :size="13" />
         <span>Search</span>
-        <kbd class="ml-1 px-1 py-0.5 bg-surface border border-border rounded text-[10px] font-mono">⌘K</kbd>
+        <kbd class="ml-1 px-1 py-0.5 bg-muted border border-border rounded text-[10px] font-mono">⌘K</kbd>
       </div>
 
       <!-- New Connection Button -->
