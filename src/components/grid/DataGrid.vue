@@ -176,10 +176,11 @@ function handleContextAction(action: string) {
             <!-- Row number header -->
             <th
               class="w-12 px-3 py-2 text-right text-[11px] font-medium text-text-tertiary border-r border-grid-border bg-grid-header"
-              @click="gridStore.selectAllRows">
+              @click="gridStore.toggleSelectAllRows">
               #
             </th>
-            <th v-for="col in gridStore.columns.filter(c => gridStore.columnVisibility[c.name] !== false)" :key="col.name"
+            <th v-for="col in gridStore.columns.filter(c => gridStore.columnVisibility[c.name] !== false)"
+              :key="col.name"
               class="px-3 py-1.5 text-left font-medium text-text-primary border-r border-grid-border bg-grid-header cursor-pointer select-none relative group"
               :style="getColStyle(col.name)" @click="gridStore.toggleSort(col.name)">
               <div class="flex items-center gap-1.5">
@@ -222,8 +223,9 @@ function handleContextAction(action: string) {
             </td>
 
             <!-- Data cells -->
-            <td v-for="col in gridStore.columns.filter(c => gridStore.columnVisibility[c.name] !== false)" :key="col.name"
-              class="px-3 py-1.5 text-text-primary border-r border-grid-border relative" :style="getColStyle(col.name)"
+            <td v-for="col in gridStore.columns.filter(c => gridStore.columnVisibility[c.name] !== false)"
+              :key="col.name" class="px-3 py-1.5 text-text-primary border-r border-grid-border relative"
+              :style="getColStyle(col.name)"
               @dblclick="gridStore.newRowIdx !== rowIdx && startEdit(rowIdx, col.name, row[col.name])">
               <!-- New Row Input -->
               <template v-if="gridStore.newRowIdx === rowIdx">
