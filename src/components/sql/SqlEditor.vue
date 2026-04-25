@@ -36,17 +36,6 @@ function setSqlLimit(limit: number) {
 let editorView: EditorView | null = null
 const sqlCompartment = new Compartment()
 
-const initialQuery = `SELECT u.id,
-       u.name,
-       u.email,
-       u.created_at,
-       r.name AS role_name
-FROM users u
-LEFT JOIN roles r ON r.id = u.role_id
-WHERE u.status = 'active'
-ORDER BY u.created_at DESC
-LIMIT 100;`
-
 function handleRun() {
   if (!editorView) return
   const query = editorView.state.doc.toString()
@@ -70,7 +59,7 @@ onMounted(() => {
   }
 
   const state = EditorState.create({
-    doc: initialQuery,
+    doc: '',
     extensions: [
       basicSetup,
       sqlCompartment.of(buildSqlExtension()),
@@ -141,18 +130,14 @@ onMounted(() => {
         Query Results
       </div>
       <div class="flex items-center ml-auto border-l border-border">
-        <button
-          class="px-3 py-1.5 text-[12px] font-medium transition-colors cursor-pointer"
+        <button class="px-3 py-1.5 text-[12px] font-medium transition-colors cursor-pointer"
           :class="activeResultTab === 'results' ? 'text-primary border-b-2 border-primary' : 'text-text-secondary hover:text-text-primary'"
-          @click="activeResultTab = 'results'"
-        >
+          @click="activeResultTab = 'results'">
           Results
         </button>
-        <button
-          class="px-3 py-1.5 text-[12px] font-medium transition-colors cursor-pointer"
+        <button class="px-3 py-1.5 text-[12px] font-medium transition-colors cursor-pointer"
           :class="activeResultTab === 'messages' ? 'text-primary border-b-2 border-primary' : 'text-text-secondary hover:text-text-primary'"
-          @click="activeResultTab = 'messages'"
-        >
+          @click="activeResultTab = 'messages'">
           Messages
         </button>
       </div>
@@ -166,11 +151,9 @@ onMounted(() => {
 
         <!-- Run Bar -->
         <div class="flex items-center gap-3 px-3 py-1.5 border-t border-border bg-muted">
-          <button
-            id="btn-run-query"
+          <button id="btn-run-query"
             class="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover text-text-inverse rounded-lg text-[12px] font-medium cursor-pointer transition-colors shadow-sm"
-            @click="handleRun"
-          >
+            @click="handleRun">
             <Play :size="13" fill="currentColor" />
             Run
           </button>
@@ -180,10 +163,9 @@ onMounted(() => {
 
           <div class="flex items-center gap-1.5 text-[11px] text-text-secondary ml-2 relative">
             <span>Limit</span>
-            <button 
+            <button
               class="flex items-center gap-1 px-1.5 py-0.5 border border-border rounded text-[11px] hover:bg-hover cursor-pointer"
-              @click="toggleLimitMenu"
-            >
+              @click="toggleLimitMenu">
               {{ gridStore.sqlLimit }}
               <ChevronDown :size="10" />
             </button>
@@ -210,16 +192,11 @@ onMounted(() => {
           <ResultsGrid />
         </div>
         <div v-else class="p-3 text-[12px] font-(--font-mono) text-text-secondary">
-          <div
-            v-for="(msg, i) in gridStore.sqlMessages"
-            :key="i"
-            class="py-1"
-            :class="{
-              'text-success': msg.type === 'info',
-              'text-danger': msg.type === 'error',
-              'text-warning': msg.type === 'warning',
-            }"
-          >
+          <div v-for="(msg, i) in gridStore.sqlMessages" :key="i" class="py-1" :class="{
+            'text-success': msg.type === 'info',
+            'text-danger': msg.type === 'error',
+            'text-warning': msg.type === 'warning',
+          }">
             {{ msg.text }}
           </div>
           <div v-if="gridStore.sqlMessages.length === 0" class="text-text-tertiary italic">

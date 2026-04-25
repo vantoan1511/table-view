@@ -4,14 +4,14 @@ import StatusBar from '@/components/layout/StatusBar.vue'
 import TitleBar from '@/components/layout/TitleBar.vue'
 import MinimizedDock from '@/components/layout/MinimizedDock.vue'
 import TabContent from '@/components/layout/TabContent.vue'
+import SplitPanel from '@/components/ui/SplitPanel.vue'
 import NewConnectionModal from '@/components/modals/NewConnectionModal.vue'
 import GlobalErrorDialog from '@/components/ui/GlobalErrorDialog.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
 import { useTabsStore } from '@/stores/tabs'
-import { ArrowUp, Minus, X } from 'lucide-vue-next'
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, watch } from 'vue'
 
 const tabsStore = useTabsStore()
 const gridStore = useGridStore()
@@ -25,39 +25,13 @@ function onDrop() {
   }
 }
 
+// ─── Bottom Panel Actions ─────────────────────────────────────────────────────
 function minimizeBottomPanel() {
   if (tabsStore.bottomTabId) {
     const id = tabsStore.bottomTabId
     tabsStore.closeBottomPanel()
     tabsStore.minimizeTab(id)
   }
-}
-
-// ─── Resizable Split Divider ──────────────────────────────────────────────────
-const contentAreaRef = ref<HTMLElement | null>(null)
-
-function onDividerMouseDown(e: MouseEvent) {
-  e.preventDefault()
-  const container = contentAreaRef.value
-  if (!container) return
-
-  const startY = e.clientY
-  const startRatio = tabsStore.splitRatio
-  const containerRect = container.getBoundingClientRect()
-
-  const onMouseMove = (ev: MouseEvent) => {
-    const deltaY = ev.clientY - startY
-    const deltaPct = (deltaY / containerRect.height) * 100
-    tabsStore.splitRatio = Math.max(20, Math.min(80, startRatio + deltaPct))
-  }
-
-  const onMouseUp = () => {
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseup', onMouseUp)
-  }
-
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
 }
 
 // When active tab changes to a table tab, load its data
@@ -111,64 +85,27 @@ onMounted(async () => {
       <Sidebar />
 
       <!-- Content Area (Tabs + Main View) -->
-      <div ref="contentAreaRef" class="flex flex-col flex-1 min-w-0 min-h-0 relative">
+      <div class="flex flex-col flex-1 min-w-0 min-h-0 relative">
         <!-- Title Bar (Tabs) -->
         <TitleBar />
 
-        <!-- Main View (split or single) -->
-        <template v-if="tabsStore.bottomTab">
-          <!-- Split View: Top Panel -->
-          <main class="flex flex-col min-w-0 min-h-0 overflow-hidden" :style="{ flex: `0 0 ${tabsStore.splitRatio}%` }">
+        <!-- Main View (uses SplitPanel for split / single view) -->
+        <SplitPanel
+          :split="!!tabsStore.bottomTab"
+          :split-ratio="tabsStore.splitRatio"
+          :bottom-title="tabsStore.bottomTab?.title ?? ''"
+          @update:split-ratio="tabsStore.splitRatio = $event"
+          @move-to-top="tabsStore.moveBottomToTop"
+          @minimize="minimizeBottomPanel"
+          @close="tabsStore.closeBottomPanel"
+        >
+          <template #top>
             <TabContent :tab="tabsStore.activeTab" />
-          </main>
-
-          <!-- Resize Divider -->
-          <div
-            class="h-[5px] bg-border hover:bg-primary/40 cursor-row-resize transition-colors shrink-0 flex items-center justify-center group"
-            @mousedown="onDividerMouseDown"
-          >
-            <div class="w-8 h-[3px] rounded bg-text-tertiary/30 group-hover:bg-primary/60 transition-colors"></div>
-          </div>
-
-          <!-- Split View: Bottom Panel -->
-          <div class="flex flex-col min-w-0 min-h-0 flex-1 overflow-hidden">
-            <!-- Bottom panel header -->
-            <div class="flex items-center gap-2 px-3 py-1 bg-muted border-b border-border shrink-0">
-              <span class="text-[12px] font-medium text-text-primary truncate">{{ tabsStore.bottomTab.title }}</span>
-              <div class="flex items-center gap-0.5 ml-auto">
-                <button
-                  class="flex items-center justify-center w-5 h-5 rounded text-text-tertiary hover:text-text-primary hover:bg-hover transition-colors cursor-pointer"
-                  title="Move to top"
-                  @click="tabsStore.moveBottomToTop"
-                >
-                  <ArrowUp :size="12" />
-                </button>
-                <button
-                  class="flex items-center justify-center w-5 h-5 rounded text-text-tertiary hover:text-text-primary hover:bg-hover transition-colors cursor-pointer"
-                  title="Minimize"
-                  @click="minimizeBottomPanel"
-                >
-                  <Minus :size="12" />
-                </button>
-                <button
-                  class="flex items-center justify-center w-5 h-5 rounded text-text-tertiary hover:text-danger hover:bg-danger-light transition-colors cursor-pointer"
-                  title="Close panel"
-                  @click="tabsStore.closeBottomPanel"
-                >
-                  <X :size="12" />
-                </button>
-              </div>
-            </div>
+          </template>
+          <template #bottom>
             <TabContent :tab="tabsStore.bottomTab" />
-          </div>
-        </template>
-
-        <!-- Single View (no split) -->
-        <template v-else>
-          <main class="flex flex-col flex-1 min-w-0 min-h-0">
-            <TabContent :tab="tabsStore.activeTab" />
-          </main>
-        </template>
+          </template>
+        </SplitPanel>
 
         <!-- Minimized Tabs Dock -->
         <MinimizedDock />
