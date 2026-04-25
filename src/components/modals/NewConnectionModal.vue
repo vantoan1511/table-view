@@ -53,6 +53,8 @@ const portDefaults: Partial<Record<DbType, number>> = {
   redis: 6379,
 }
 
+import * as Neutralino from '@neutralinojs/lib'
+
 function selectDbType(type: DbType) {
   form.type = type
   form.port = portDefaults[type] ?? 5432
@@ -60,10 +62,36 @@ function selectDbType(type: DbType) {
 
 function handleTestConnection() {
   testStatus.value = 'testing'
-  setTimeout(() => {
-    testStatus.value = 'success'
-    setTimeout(() => { testStatus.value = 'ready' }, 2000)
-  }, 1500)
+  
+  if (window.NL_PORT) {
+    const reqId = Date.now().toString()
+    
+    const onTestResult = (evt: any) => {
+      const payload = evt.detail
+      if (payload.reqId === reqId) {
+        if (payload.success) {
+          testStatus.value = 'success'
+          setTimeout(() => { testStatus.value = 'ready' }, 2000)
+        } else {
+          testStatus.value = 'error'
+          console.error("Connection failed:", payload.error)
+        }
+        Neutralino.events.off('dbBridge.testConnectionResult', onTestResult)
+      }
+    }
+    
+    Neutralino.events.on('dbBridge.testConnectionResult', onTestResult)
+    Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.testConnection', {
+      reqId,
+      config: form
+    })
+  } else {
+    // Dev fallback
+    setTimeout(() => {
+      testStatus.value = 'success'
+      setTimeout(() => { testStatus.value = 'ready' }, 2000)
+    }, 1500)
+  }
 }
 
 function handleSave() {

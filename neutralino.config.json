@@ -9,12 +9,21 @@
   "enableServer": true,
   "enableNativeAPI": true,
   "singlePageServe": true,
+  "enableExtensions": true,
   "tokenSecurity": "none",
   "nativeAllowList": [
     "app.*",
     "os.*",
     "filesystem.*",
-    "storage.*"
+    "storage.*",
+    "extensions.*",
+    "events.*"
+  ],
+  "extensions": [
+    {
+      "id": "com.github.vantoan1511.table-view.db-bridge",
+      "command": "node ${NL_PATH}/extensions/db-bridge/main.js"
+    }
   ],
   "modes": {
     "window": {

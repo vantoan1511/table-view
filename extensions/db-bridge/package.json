@@ -1,0 +1,10 @@
+{
+  "name": "db-bridge",
+  "version": "1.0.0",
+  "description": "Database Bridge for Table View",
+  "main": "main.js",
+  "dependencies": {
+    "pg": "^8.11.3",
+    "ws": "^8.16.0"
+  }
+}
