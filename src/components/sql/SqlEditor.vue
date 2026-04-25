@@ -3,7 +3,7 @@ import ContextMenu from '@/components/ui/ContextMenu.vue'
 import { useGridStore } from '@/stores/grid'
 import { useSchemaStore } from '@/stores/schema'
 import { PostgreSQL, sql } from '@codemirror/lang-sql'
-import { Compartment, EditorState } from '@codemirror/state'
+import { Compartment, EditorState, Prec } from '@codemirror/state'
 import { keymap } from '@codemirror/view'
 import { EditorView, basicSetup } from 'codemirror'
 import {
@@ -36,9 +36,60 @@ function setSqlLimit(limit: number) {
 let editorView: EditorView | null = null
 const sqlCompartment = new Compartment()
 
+/**
+ * Extract the SQL statement at the current cursor position.
+ * Splits the document by semicolons, maps each statement to its
+ * character range, and returns the one the cursor falls within.
+ */
+function getQueryAtCursor(): string {
+  if (!editorView) return ''
+  const doc = editorView.state.doc.toString()
+  const cursor = editorView.state.selection.main.head
+
+  // Split into statements by semicolon, tracking each one's range
+  const statements: { text: string; start: number; end: number }[] = []
+  let offset = 0
+  const parts = doc.split(';')
+
+  for (let i = 0; i < parts.length; i++) {
+    const raw = parts[i]
+    if (!raw) continue;
+    const end = offset + raw.length + (i < parts.length - 1 ? 1 : 0) // +1 for the ';'
+    const trimmed = raw.trim()
+    if (trimmed) {
+      statements.push({ text: trimmed, start: offset, end })
+    }
+    offset = end
+  }
+
+  if (statements.length === 0) return ''
+
+  // Find the statement whose range contains the cursor.
+  // Use <= for end so that a cursor right after a ';' still matches that statement.
+  for (const stmt of statements) {
+    if (cursor >= stmt.start && cursor <= stmt.end) {
+      return stmt.text
+    }
+  }
+
+  // Fallback: return the last statement (cursor might be past everything)
+  return statements[statements.length - 1]?.text ?? ''
+}
+
 function handleRun() {
   if (!editorView) return
-  const query = editorView.state.doc.toString()
+
+  const selection = editorView.state.sliceDoc(
+    editorView.state.selection.main.from,
+    editorView.state.selection.main.to,
+  )
+
+  // Priority: selected text > statement at cursor > entire document
+  const queryAtCursor = getQueryAtCursor()
+  console.log('getQueryAtCursor', queryAtCursor)
+  const query = selection.trim() || queryAtCursor || editorView.state.doc.toString()
+  if (!query) return
+
   gridStore.runQuery(query)
   activeResultTab.value = 'results'
 }
@@ -63,7 +114,7 @@ onMounted(() => {
     extensions: [
       basicSetup,
       sqlCompartment.of(buildSqlExtension()),
-      keymap.of([
+      Prec.highest(keymap.of([
         {
           key: 'Mod-Enter',
           run: () => {
@@ -71,7 +122,7 @@ onMounted(() => {
             return true
           },
         },
-      ]),
+      ])),
       EditorView.theme({
         '&': {
           fontSize: '12px',

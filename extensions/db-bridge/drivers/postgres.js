@@ -39,10 +39,19 @@ module.exports = {
     }
     
     const result = await module.exports.client.query(sql);
+
+    // pg returns an array of results when the query contains multiple statements.
+    // Use the last result that has rows/fields (i.e. the last SELECT).
+    let finalResult = result;
+    if (Array.isArray(result)) {
+      // Find the last result with fields (SELECT), or fall back to the very last one
+      finalResult = [...result].reverse().find(r => r.fields && r.fields.length > 0) || result[result.length - 1];
+    }
+
     return {
-      rows: result.rows,
-      fields: result.fields.map(f => ({ name: f.name, dataTypeID: f.dataTypeID })),
-      rowCount: result.rowCount
+      rows: finalResult.rows || [],
+      fields: (finalResult.fields || []).map(f => ({ name: f.name, dataTypeID: f.dataTypeID })),
+      rowCount: finalResult.rowCount || 0
     };
   },
 
