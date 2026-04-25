@@ -1,7 +1,7 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import type { Connection, ConnectionColor, DbType } from '@/types'
+import type { Connection } from '@/types'
 import * as Neutralino from '@neutralinojs/lib'
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 
 // ─── Simple Password Obfuscation ─────────────────────────────────────────────
 // Uses a fixed key to XOR-encode passwords before storage.
@@ -79,7 +79,7 @@ export const useConnectionsStore = defineStore('connections', () => {
     const conn = connections.value.find(c => c.id === id)
     if (conn && window.NL_PORT) {
       const reqId = Date.now().toString()
-      
+
       const onConnectResult = async (evt: any) => {
         const payload = evt.detail
         if (payload.reqId === reqId) {
@@ -92,11 +92,12 @@ export const useConnectionsStore = defineStore('connections', () => {
           } else {
             conn.isConnected = false
             console.error("Failed to connect:", payload.error)
+            throw new Error(payload.error || `Failed to connect to database: ${conn.name}`)
           }
           Neutralino.events.off('dbBridge.connectResult', onConnectResult)
         }
       }
-      
+
       Neutralino.events.on('dbBridge.connectResult', onConnectResult)
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.connect', {
         reqId,

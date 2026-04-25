@@ -290,7 +290,7 @@ onUnmounted(() => {
     <Pagination />
 
     <!-- Context Menu -->
-    <div v-if="contextMenu.show" class="fixed z-[100] w-52 py-1.5 bg-surface border border-border rounded-lg shadow-xl"
+    <div v-if="contextMenu.show" class="fixed z-100 w-52 py-1.5 bg-surface border border-border rounded-lg shadow-xl"
       :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" @click.stop>
       <button @click="handleContextAction('addRow')"
         class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">

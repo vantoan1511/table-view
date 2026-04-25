@@ -59,7 +59,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div id="app-shell" class="flex flex-col h-screen overflow-hidden bg-surface">
+  <div id="app-shell" class="flex flex-col h-screen overflow-hidden bg-surface" @contextmenu.prevent>
     <!-- Main Top Area -->
     <div class="flex flex-1 min-h-0">
       <!-- Sidebar (now spans full height above status bar) -->
