@@ -15,6 +15,7 @@ export const useGridStore = defineStore('grid', () => {
   const sortDirection = ref<'asc' | 'desc' | undefined>()
   const executionTime = ref(0)
   const activeTableName = ref('')
+  const filterText = ref('')
 
   // Row selection state
   const selectedRowIndices = ref<Set<number>>(new Set())
@@ -72,7 +73,8 @@ export const useGridStore = defineStore('grid', () => {
       limit: rowsPerPage.value,
       offset,
       sortColumn: sortColumn.value,
-      sortDirection: sortDirection.value
+      sortDirection: sortDirection.value,
+      filter: filterText.value
     })
   }
 
@@ -218,6 +220,7 @@ export const useGridStore = defineStore('grid', () => {
     sortDirection,
     executionTime,
     activeTableName,
+    filterText,
     totalPages,
     selectedRowIndices,
     columnWidths,

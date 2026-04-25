@@ -89,12 +89,20 @@ module.exports = {
   /**
    * Fetch data from a specific table with pagination
    */
-  fetchTableData: async (tableName, limit = 100, offset = 0, sortColumn = null, sortDirection = 'asc') => {
+  fetchTableData: async (tableName, limit = 100, offset = 0, sortColumn = null, sortDirection = 'asc', filter = null) => {
     if (!module.exports.client) {
       throw new Error("Not connected to database");
     }
     
     const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    
+    // Build WHERE clause if filter is specified
+    let whereClause = '';
+    const queryParams = [limit, offset];
+    if (filter) {
+      whereClause = ` WHERE CAST(t.* AS TEXT) ILIKE $3`;
+      queryParams.push(`%${filter}%`);
+    }
     
     // Find primary keys for the table
     const pkQuery = `
@@ -116,14 +124,18 @@ module.exports = {
       orderClause = ` ORDER BY ${safeCol} ${dir}`;
     }
     
-    const query = `SELECT * FROM public.${safeTable}${orderClause} LIMIT $1 OFFSET $2;`;
-    const countQuery = `SELECT COUNT(*) as total FROM public.${safeTable};`;
+    const query = `SELECT * FROM public.${safeTable} t${whereClause}${orderClause} LIMIT $1 OFFSET $2;`;
+    const countQuery = `SELECT COUNT(*) as total FROM public.${safeTable} t${whereClause};`;
     
-    const [pkResult, dataResult, countResult] = await Promise.all([
-      module.exports.client.query(pkQuery, [tableName]),
-      module.exports.client.query(query, [limit, offset]),
-      module.exports.client.query(countQuery)
-    ]);
+    const pkResult = await module.exports.client.query(pkQuery, [tableName]);
+    const dataResult = await module.exports.client.query(query, queryParams);
+    
+    // For count query, if there's a filter, it will be the third param in whereClause ($3)
+    // but the count query doesn't have $1 and $2 (limit/offset).
+    // So we replace $3 with $1 in the count query.
+    const finalCountQuery = filter ? countQuery.replace('$3', '$1') : countQuery;
+    const finalCountParams = filter ? [queryParams[2]] : [];
+    const countResult = await module.exports.client.query(finalCountQuery, finalCountParams);
     
     const pkColumns = pkResult.rows.map(r => r.column_name);
 

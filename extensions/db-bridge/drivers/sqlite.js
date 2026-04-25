@@ -1,0 +1,179 @@
+const sqlite3 = require('sqlite3');
+const fs = require('fs');
+
+module.exports = {
+  db: null,
+
+  connect: async (config) => {
+    return new Promise((resolve, reject) => {
+      // For SQLite, "database" field should contain the file path
+      const dbPath = config.database;
+      if (!dbPath) {
+        return reject(new Error("SQLite requires a database file path."));
+      }
+
+      module.exports.db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
+        if (err) return reject(err);
+        resolve(true);
+      });
+    });
+  },
+
+  disconnect: async () => {
+    return new Promise((resolve, reject) => {
+      if (module.exports.db) {
+        module.exports.db.close((err) => {
+          if (err) return reject(err);
+          module.exports.db = null;
+          resolve(true);
+        });
+      } else {
+        resolve(true);
+      }
+    });
+  },
+
+  query: async (sql) => {
+    if (!module.exports.db) {
+      throw new Error("Not connected to database");
+    }
+    return new Promise((resolve, reject) => {
+      module.exports.db.all(sql, [], (err, rows) => {
+        if (err) return reject(err);
+        // SQLite doesn't return field metadata like pg/mysql in the same way
+        // We'll infer column names from the first row if available
+        const fields = rows.length > 0 ? Object.keys(rows[0]).map(name => ({ name, dataTypeID: 0 })) : [];
+        resolve({
+          rows,
+          fields,
+          rowCount: rows.length
+        });
+      });
+    });
+  },
+
+  getSchema: async () => {
+    if (!module.exports.db) {
+      throw new Error("Not connected to database");
+    }
+
+    const tablesQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'";
+    const viewsQuery = "SELECT name FROM sqlite_master WHERE type='view'";
+
+    const getTables = () => new Promise((res, rej) => module.exports.db.all(tablesQuery, (err, rows) => err ? rej(err) : res(rows)));
+    const getViews = () => new Promise((res, rej) => module.exports.db.all(viewsQuery, (err, rows) => err ? rej(err) : res(rows)));
+
+    const [tables, views] = await Promise.all([getTables(), getViews()]);
+
+    return {
+      tables: tables.map(t => ({ name: t.name, schema: 'main' })),
+      views: views.map(v => ({ name: v.name, schema: 'main' })),
+      functions: [] // SQLite doesn't have stored functions in the same way
+    };
+  },
+
+  fetchTableData: async (tableName, limit = 100, offset = 0, sortColumn = null, sortDirection = 'asc') => {
+    if (!module.exports.db) {
+      throw new Error("Not connected to database");
+    }
+
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    
+    // Get column info to find PK
+    const pragmaQuery = `PRAGMA table_info(${safeTable})`;
+    const columns = await new Promise((res, rej) => module.exports.db.all(pragmaQuery, (err, rows) => err ? rej(err) : res(rows)));
+    
+    const pkColumns = columns.filter(c => c.pk === 1).map(c => c.name);
+
+    let orderClause = '';
+    if (sortColumn) {
+      const safeCol = `"${sortColumn.replace(/"/g, '""')}"`;
+      const dir = sortDirection.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+      orderClause = ` ORDER BY ${safeCol} ${dir}`;
+    }
+
+    const rows = await new Promise((res, rej) => {
+      module.exports.db.all(`SELECT * FROM ${safeTable}${orderClause} LIMIT ? OFFSET ?`, [limit, offset], (err, data) => err ? rej(err) : res(data));
+    });
+
+    const countResult = await new Promise((res, rej) => {
+      module.exports.db.get(`SELECT COUNT(*) as total FROM ${safeTable}`, (err, row) => err ? rej(err) : res(row));
+    });
+
+    return {
+      rows,
+      fields: columns.map(c => ({
+        name: c.name,
+        dataTypeID: c.type,
+        isPrimaryKey: c.pk === 1
+      })),
+      totalCount: countResult.total
+    };
+  },
+
+  updateCell: async (tableName, pkColumn, pkValue, targetColumn, newValue) => {
+    if (!module.exports.db) {
+      throw new Error("Not connected to database");
+    }
+
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    const safeTarget = `"${targetColumn.replace(/"/g, '""')}"`;
+    const safePk = `"${pkColumn.replace(/"/g, '""')}"`;
+
+    return new Promise((res, rej) => {
+      module.exports.db.run(
+        `UPDATE ${safeTable} SET ${safeTarget} = ? WHERE ${safePk} = ?`,
+        [newValue, pkValue],
+        (err) => err ? rej(err) : res(true)
+      );
+    });
+  },
+
+  exportToCSV: async (tableName, exportPath) => {
+    if (!module.exports.db) {
+      throw new Error("Not connected to database");
+    }
+
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    const writeStream = fs.createWriteStream(exportPath);
+
+    // Get headers
+    const columns = await new Promise((res, rej) => module.exports.db.all(`PRAGMA table_info(${safeTable})`, (err, rows) => err ? rej(err) : res(rows)));
+    const headers = columns.map(c => c.name);
+    writeStream.write(headers.join(',') + '\n');
+
+    let offset = 0;
+    const batchSize = 2000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const rows = await new Promise((res, rej) => {
+        module.exports.db.all(`SELECT * FROM ${safeTable} LIMIT ? OFFSET ?`, [batchSize, offset], (err, data) => err ? rej(err) : res(data));
+      });
+
+      if (rows.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      for (const row of rows) {
+        const line = headers.map(h => {
+          let val = row[h];
+          if (val === null || val === undefined) return '';
+          val = String(val).replace(/"/g, '""');
+          if (val.includes(',') || val.includes('\n') || val.includes('"')) {
+            return `"${val}"`;
+          }
+          return val;
+        }).join(',');
+        writeStream.write(line + '\n');
+      }
+      offset += batchSize;
+    }
+
+    return new Promise((resolve, reject) => {
+      writeStream.end(() => resolve(true));
+      writeStream.on('error', reject);
+    });
+  }
+};

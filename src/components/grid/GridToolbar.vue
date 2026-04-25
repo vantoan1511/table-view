@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useGridStore } from '@/stores/grid'
 import * as Neutralino from '@neutralinojs/lib'
+import { MessageBoxChoice, Icon } from '@neutralinojs/lib'
 import {
   Filter,
   Columns3,
@@ -29,9 +30,9 @@ async function handleExport() {
         const payload = evt.detail
         if (payload.reqId === reqId) {
           if (payload.success) {
-            Neutralino.os.showMessageBox('Success', 'Export completed successfully.', 'OK', 'INFO')
+            Neutralino.os.showMessageBox('Success', 'Export completed successfully.', MessageBoxChoice.OK, Icon.INFO)
           } else {
-            Neutralino.os.showMessageBox('Error', 'Failed to export: ' + payload.error, 'OK', 'ERROR')
+            Neutralino.os.showMessageBox('Error', 'Failed to export: ' + payload.error, MessageBoxChoice.OK, Icon.ERROR)
           }
           Neutralino.events.off('dbBridge.exportCSVResult', onResult)
         }
@@ -63,10 +64,16 @@ async function handleExport() {
     <!-- Right: Actions -->
     <div class="flex items-center gap-2">
       <!-- Filter -->
-      <button class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer">
-        <Filter :size="13" />
-        <span>Filter</span>
-      </button>
+      <div class="relative group">
+        <Filter :size="13" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary group-focus-within:text-primary transition-colors" />
+        <input 
+          v-model="gridStore.filterText"
+          type="text" 
+          placeholder="Quick search..." 
+          class="pl-8 pr-3 py-1.5 border border-border rounded-lg text-[12px] bg-muted focus:bg-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all w-[180px] group-hover:border-border-strong"
+          @keydown.enter="gridStore.loadTable(gridStore.activeTableName)"
+        />
+      </div>
 
       <!-- Columns -->
       <button class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer">

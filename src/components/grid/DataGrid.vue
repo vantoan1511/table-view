@@ -32,7 +32,8 @@ async function saveEdit() {
   if (!editingCell.value) return
   const { rowIdx, colName } = editingCell.value
   const column = gridStore.columns.find((c) => c.name === colName)
-  if (column && editValue.value !== gridStore.rows[rowIdx][colName]) {
+  const row = gridStore.rows[rowIdx]
+  if (column && row && editValue.value !== row[colName]) {
     await gridStore.updateCell(rowIdx, column, editValue.value)
   }
   editingCell.value = null
@@ -93,7 +94,7 @@ function getCellClass(colName: string, value: unknown): string {
 
     <!-- Table Container -->
     <div class="flex-1 overflow-auto min-h-0">
-      <table class="w-full border-collapse text-[12px] font-[var(--font-mono)]">
+      <table class="w-full border-collapse text-[12px] font-(--font-mono)">
         <!-- Header -->
         <thead class="sticky top-0 z-10">
           <tr class="bg-grid-header border-b border-grid-border">
@@ -152,13 +153,13 @@ function getCellClass(colName: string, value: unknown): string {
             class="border-b border-grid-border hover:bg-grid-row-hover transition-colors"
             :class="{
               'bg-grid-row-alt': rowIdx % 2 === 1 && !gridStore.selectedRowIndices.has(rowIdx),
-              '!bg-primary/10': gridStore.selectedRowIndices.has(rowIdx),
+              'bg-primary/10!': gridStore.selectedRowIndices.has(rowIdx),
             }"
           >
             <!-- Row number (selection click target) -->
             <td
               class="px-3 py-1.5 text-right text-[11px] text-text-tertiary border-r border-grid-border tabular-nums cursor-pointer select-none"
-              :class="{ '!bg-primary/20 !text-primary font-semibold': gridStore.selectedRowIndices.has(rowIdx) }"
+              :class="{ 'bg-primary/20! text-primary! font-semibold': gridStore.selectedRowIndices.has(rowIdx) }"
               @click="gridStore.toggleRowSelection(rowIdx, $event)"
             >
               {{ (gridStore.currentPage - 1) * gridStore.rowsPerPage + rowIdx + 1 }}
@@ -180,7 +181,7 @@ function getCellClass(colName: string, value: unknown): string {
                 <input
                   :ref="setInputRef"
                   v-model="editValue"
-                  class="w-full h-full px-2 text-[12px] font-[var(--font-mono)] outline-none bg-transparent"
+                  class="w-full h-full px-2 text-[12px] font-(--font-mono) outline-none bg-transparent"
                   @blur="saveEdit"
                   @keydown.enter="saveEdit"
                   @keydown.esc="cancelEdit"

@@ -34,8 +34,26 @@ if (!authInfo.nlPort || !authInfo.nlToken || !authInfo.nlExtId) {
 
 // Load drivers
 const drivers = {
-  'postgres': require('./drivers/postgres.js')
+  'postgresql': require('./drivers/postgres.js'),
+  'mysql': null, // To be implemented
+  'sqlite': null  // To be implemented
 };
+
+// Lazy load other drivers when needed to keep startup fast
+function getDriver(type) {
+  if (type === 'postgres') type = 'postgresql'; // normalization
+  if (!drivers[type]) {
+    try {
+      drivers[type] = require(`./drivers/${type === 'postgresql' ? 'postgres' : type}.js`);
+    } catch (err) {
+      console.error(`Failed to load driver for ${type}:`, err);
+      throw new Error(`Driver for ${type} not found or not implemented.`);
+    }
+  }
+  return drivers[type];
+}
+
+let activeDriver = drivers['postgresql']; // Default
 
 const WS_URL = `ws://localhost:${authInfo.nlPort}?extensionId=${authInfo.nlExtId}&connectToken=${authInfo.nlConnectToken}`;
 const ws = new WebSocket(WS_URL);
@@ -77,8 +95,8 @@ ws.on('message', async (messageData) => {
     try {
       if (action === 'testConnection') {
         const { reqId, config } = payload;
-        const driver = drivers['postgres'];
         try {
+          const driver = getDriver(config.type);
           await driver.connect(config);
           await driver.disconnect();
           broadcast('dbBridge.testConnectionResult', { reqId, success: true });
@@ -88,9 +106,9 @@ ws.on('message', async (messageData) => {
       }
       else if (action === 'connect') {
         const { reqId, config } = payload;
-        const driver = drivers['postgres'];
         try {
-          await driver.connect(config);
+          activeDriver = getDriver(config.type);
+          await activeDriver.connect(config);
           broadcast('dbBridge.connectResult', { reqId, success: true });
         } catch (error) {
           broadcast('dbBridge.connectResult', { reqId, success: false, error: String(error.message || error) });
@@ -98,9 +116,8 @@ ws.on('message', async (messageData) => {
       }
       else if (action === 'getSchema') {
         const { reqId } = payload;
-        const driver = drivers['postgres'];
         try {
-          const schema = await driver.getSchema();
+          const schema = await activeDriver.getSchema();
           broadcast('dbBridge.getSchemaResult', { reqId, success: true, schema });
         } catch (error) {
           broadcast('dbBridge.getSchemaResult', { reqId, success: false, error: String(error.message || error) });
@@ -108,9 +125,8 @@ ws.on('message', async (messageData) => {
       }
       else if (action === 'fetchTableData') {
         const { reqId, tableName, limit, offset, sortColumn, sortDirection } = payload;
-        const driver = drivers['postgres'];
         try {
-          const result = await driver.fetchTableData(tableName, limit, offset, sortColumn, sortDirection);
+          const result = await activeDriver.fetchTableData(tableName, limit, offset, sortColumn, sortDirection);
           broadcast('dbBridge.fetchTableDataResult', { reqId, success: true, ...result });
         } catch (error) {
           broadcast('dbBridge.fetchTableDataResult', { reqId, success: false, error: String(error.message || error) });
@@ -118,9 +134,8 @@ ws.on('message', async (messageData) => {
       }
       else if (action === 'executeQuery') {
         const { reqId, sql } = payload;
-        const driver = drivers['postgres'];
         try {
-          const result = await driver.query(sql);
+          const result = await activeDriver.query(sql);
           broadcast('dbBridge.executeQueryResult', { reqId, success: true, ...result });
         } catch (error) {
           broadcast('dbBridge.executeQueryResult', { reqId, success: false, error: String(error.message || error) });
@@ -128,9 +143,8 @@ ws.on('message', async (messageData) => {
       }
       else if (action === 'updateCell') {
         const { reqId, tableName, pkColumn, pkValue, targetColumn, newValue } = payload;
-        const driver = drivers['postgres'];
         try {
-          await driver.updateCell(tableName, pkColumn, pkValue, targetColumn, newValue);
+          await activeDriver.updateCell(tableName, pkColumn, pkValue, targetColumn, newValue);
           broadcast('dbBridge.updateCellResult', { reqId, success: true });
         } catch (error) {
           broadcast('dbBridge.updateCellResult', { reqId, success: false, error: String(error.message || error) });
@@ -138,9 +152,8 @@ ws.on('message', async (messageData) => {
       }
       else if (action === 'exportCSV') {
         const { reqId, tableName, exportPath } = payload;
-        const driver = drivers['postgres'];
         try {
-          await driver.exportToCSV(tableName, exportPath);
+          await activeDriver.exportToCSV(tableName, exportPath);
           broadcast('dbBridge.exportCSVResult', { reqId, success: true });
         } catch (error) {
           broadcast('dbBridge.exportCSVResult', { reqId, success: false, error: String(error.message || error) });

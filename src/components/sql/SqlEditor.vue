@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import { EditorView, basicSetup } from 'codemirror'
+import { keymap } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { sql, PostgreSQL } from '@codemirror/lang-sql'
 import ResultsGrid from './ResultsGrid.vue'
@@ -29,6 +30,13 @@ WHERE u.status = 'active'
 ORDER BY u.created_at DESC
 LIMIT 100;`
 
+function handleRun() {
+  if (!editorView) return
+  const query = editorView.state.doc.toString()
+  gridStore.runQuery(query)
+  activeResultTab.value = 'results'
+}
+
 onMounted(() => {
   if (!editorContainer.value) return
 
@@ -39,6 +47,15 @@ onMounted(() => {
     extensions: [
       basicSetup,
       sql({ dialect: PostgreSQL }),
+      keymap.of([
+        {
+          key: 'Mod-Enter',
+          run: () => {
+            handleRun()
+            return true
+          },
+        },
+      ]),
       EditorView.theme({
         '&': {
           fontSize: '12px',
@@ -75,13 +92,6 @@ onMounted(() => {
     parent: editorContainer.value,
   })
 })
-
-function handleRun() {
-  if (!editorView) return
-  const query = editorView.state.doc.toString()
-  gridStore.runQuery(query)
-  activeResultTab.value = 'results'
-}
 </script>
 
 <template>

@@ -4,7 +4,9 @@
   "description": "Database Bridge for Table View",
   "main": "main.js",
   "dependencies": {
+    "mysql2": "^3.22.2",
     "pg": "^8.11.3",
+    "sqlite3": "^6.0.1",
     "ws": "^8.16.0"
   }
 }

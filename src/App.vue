@@ -27,6 +27,33 @@ watch(
 
 onMounted(async () => {
   await connectionsStore.loadConnections()
+
+  // Global Keyboard Shortcuts
+  window.addEventListener('keydown', (e) => {
+    const isMod = e.ctrlKey || e.metaKey
+    
+    // Ctrl+W: Close active tab
+    if (isMod && e.key === 'w') {
+      e.preventDefault()
+      if (tabsStore.activeTabId) {
+        tabsStore.closeTab(tabsStore.activeTabId)
+      }
+    }
+
+    // Ctrl+K: Focus search (placeholder for now)
+    if (isMod && e.key === 'k') {
+      e.preventDefault()
+      // TODO: focus search input
+    }
+
+    // Ctrl+R: Refresh data
+    if (isMod && e.key === 'r') {
+      e.preventDefault()
+      if (tabsStore.activeTab?.type === 'table') {
+        gridStore.loadTable(tabsStore.activeTab.tableName!)
+      }
+    }
+  })
 })
 </script>
 

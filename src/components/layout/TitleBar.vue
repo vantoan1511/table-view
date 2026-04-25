@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useConnectionsStore } from '@/stores/connections'
 import { useTabsStore } from '@/stores/tabs'
 import {
@@ -12,6 +13,49 @@ import {
 
 const connectionsStore = useConnectionsStore()
 const tabsStore = useTabsStore()
+
+// ─── Context Menu ────────────────────────────────────────────────────────────
+const showMenu = ref(false)
+const menuPos = ref({ x: 0, y: 0 })
+const menuTargetTabId = ref<string | null>(null)
+
+function onContextMenu(e: MouseEvent, tabId: string) {
+  e.preventDefault()
+  showMenu.value = true
+  menuPos.value = { x: e.clientX, y: e.clientY }
+  menuTargetTabId.value = tabId
+}
+
+function closeMenu() {
+  showMenu.value = false
+}
+
+function closeTab() {
+  if (menuTargetTabId.value) tabsStore.closeTab(menuTargetTabId.value)
+  closeMenu()
+}
+
+function closeOthers() {
+  if (menuTargetTabId.value) {
+    const toClose = tabsStore.tabs.filter(t => t.id !== menuTargetTabId.value).map(t => t.id)
+    toClose.forEach(id => tabsStore.closeTab(id))
+  }
+  closeMenu()
+}
+
+function closeAll() {
+  const toClose = tabsStore.tabs.map(t => t.id)
+  toClose.forEach(id => tabsStore.closeTab(id))
+  closeMenu()
+}
+
+onMounted(() => {
+  window.addEventListener('click', closeMenu)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeMenu)
+})
 </script>
 
 <template>
@@ -36,6 +80,7 @@ const tabsStore = useTabsStore()
             : 'text-text-secondary hover:bg-hover/50 hover:text-text-primary'
         "
         @click="tabsStore.setActiveTab(tab.id)"
+        @contextmenu.prevent="onContextMenu($event, tab.id)"
       >
         <LayoutGrid :size="14" class="shrink-0" :class="tabsStore.activeTabId === tab.id ? 'text-primary' : 'text-text-tertiary'" />
         <span class="truncate flex-1 text-left">{{ tab.title }}</span>
@@ -73,6 +118,26 @@ const tabsStore = useTabsStore()
       <!-- More -->
       <button class="flex items-center justify-center w-7 h-7 rounded-md text-text-secondary hover:bg-hover">
         <MoreVertical :size="16" />
+      </button>
+    </div>
+
+    <!-- Context Menu Overlay -->
+    <div
+      v-if="showMenu"
+      class="fixed z-[100] bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[160px] text-[12px]"
+      :style="{ left: menuPos.x + 'px', top: menuPos.y + 'px' }"
+      @click.stop
+    >
+      <button class="w-full text-left px-3 py-1.5 hover:bg-hover text-text-primary flex items-center gap-2" @click="closeTab">
+        <X :size="13" />
+        Close Tab
+      </button>
+      <div class="h-px bg-border my-1"></div>
+      <button class="w-full text-left px-3 py-1.5 hover:bg-hover text-text-primary" @click="closeOthers">
+        Close Others
+      </button>
+      <button class="w-full text-left px-3 py-1.5 hover:bg-hover text-text-primary" @click="closeAll">
+        Close All
       </button>
     </div>
   </header>
