@@ -5,6 +5,7 @@
 /bin
 /dist
 /.tmp
+/build
 
 # Neutralinojs client (minified)
 neutralino.js

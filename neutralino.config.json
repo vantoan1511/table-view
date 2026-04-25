@@ -4,7 +4,7 @@
   "author": "Toan Nguyen",
   "version": "0.0.1",
   "defaultMode": "window",
-  "documentRoot": "/src/dist/",
+  "documentRoot": "/build/",
   "url": "/",
   "enableServer": true,
   "enableNativeAPI": true,
@@ -24,21 +24,21 @@
       "minWidth": 400,
       "minHeight": 200,
       "center": true,
-      "icon": "/src/public/favicon.ico",
+      "icon": "/public/favicon.ico",
       "enableInspector": true,
       "openInspectorOnStartup": false
     }
   },
   "cli": {
     "binaryName": "table-view",
-    "resourcesPath": "/src/dist/",
+    "resourcesPath": "/build/",
     "extensionsPath": "/extensions/",
     "binaryVersion": "6.5.0",
     "clientVersion": "6.5.0",
     "frontendLibrary": {
-      "patchFile": "/src/index.html",
+      "patchFile": "/index.html",
       "devUrl": "http://localhost:5173",
-      "projectPath": "/src",
+      "projectPath": "/",
       "initCommand": "npm install",
       "devCommand": "npm run dev",
       "buildCommand": "npm run build"
