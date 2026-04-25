@@ -44,6 +44,13 @@ export const useGridStore = defineStore('grid', () => {
   }
 
   async function loadTable(tableName: string) {
+    if(activeTableName.value === tableName) {
+      sortColumn.value = undefined
+      sortDirection.value = undefined
+      currentPage.value = 1
+      return;
+    }
+    
     activeTableName.value = tableName
     if (!tableName || !window.NL_PORT) return
 

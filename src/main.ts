@@ -1,14 +1,32 @@
 import './assets/main.css'
 
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import { useErrorStore } from '@/stores/error'
 import * as Neutralino from '@neutralinojs/lib'
+import { createPinia } from 'pinia'
+import { createApp } from 'vue'
 
 import App from './App.vue'
 
 const app = createApp(App)
+const pinia = createPinia()
+const errorStore = useErrorStore(pinia)
 
-app.use(createPinia())
+app.use(pinia)
+
+app.config.errorHandler = (err, instance, info) => {
+  console.error('Vue Error:', err, info)
+  errorStore.showError('An unexpected error occurred', err)
+}
+
+window.addEventListener('error', (event) => {
+  console.error('Global Error:', event.error)
+  errorStore.showError(event.message || 'An unexpected error occurred', event.error)
+})
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled Rejection:', event.reason)
+  errorStore.showError('An unhandled promise rejection occurred', event.reason)
+})
 
 app.mount('#app')
 
