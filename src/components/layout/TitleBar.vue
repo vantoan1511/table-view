@@ -9,6 +9,7 @@ import {
   X,
   Home,
   MoreVertical,
+  Minus,
 } from 'lucide-vue-next'
 
 const connectionsStore = useConnectionsStore()
@@ -53,6 +54,24 @@ function openNewQueryConsole() {
   tabsStore.openSqlEditor()
 }
 
+function minimizeTab() {
+  if (menuTargetTabId.value) tabsStore.minimizeTab(menuTargetTabId.value)
+  closeMenu()
+}
+
+function onDragStart(event: DragEvent, tabId: string) {
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    // Set some data to make it draggable in Firefox, though we rely on draggingTabId
+    event.dataTransfer.setData('text/plain', tabId)
+  }
+  tabsStore.draggingTabId = tabId
+}
+
+function onDragEnd() {
+  tabsStore.draggingTabId = null
+}
+
 onMounted(() => {
   window.addEventListener('click', closeMenu)
 })
@@ -75,8 +94,9 @@ onUnmounted(() => {
     <!-- Tab Strip -->
     <nav class="flex items-end flex-1 min-w-0 overflow-hidden h-full" id="tab-strip">
       <button
-        v-for="tab in tabsStore.tabs"
+        v-for="tab in tabsStore.mainTabs"
         :key="tab.id"
+        draggable="true"
         class="group relative flex items-center gap-1.5 px-3 h-[calc(var(--titlebar-height)-8px)] min-w-[120px] max-w-[200px] rounded-t-lg text-[13px] whitespace-nowrap shrink-0 cursor-pointer transition-colors border border-transparent border-b-0"
         :class="
           tabsStore.activeTabId === tab.id
@@ -85,6 +105,8 @@ onUnmounted(() => {
         "
         @click="tabsStore.setActiveTab(tab.id)"
         @contextmenu.prevent="onContextMenu($event, tab.id)"
+        @dragstart="onDragStart($event, tab.id)"
+        @dragend="onDragEnd"
       >
         <LayoutGrid :size="14" class="shrink-0" :class="tabsStore.activeTabId === tab.id ? 'text-primary' : 'text-text-tertiary'" />
         <span class="truncate flex-1 text-left">{{ tab.title }}</span>
@@ -138,6 +160,10 @@ onUnmounted(() => {
       <button class="w-full text-left px-3 py-1.5 hover:bg-hover text-text-primary flex items-center gap-2" @click="closeTab">
         <X :size="13" />
         Close Tab
+      </button>
+      <button class="w-full text-left px-3 py-1.5 hover:bg-hover text-text-primary flex items-center gap-2" @click="minimizeTab">
+        <Minus :size="13" />
+        Minimize
       </button>
       <div class="h-px bg-border my-1"></div>
       <button class="w-full text-left px-3 py-1.5 hover:bg-hover text-text-primary" @click="closeOthers">

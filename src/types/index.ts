@@ -36,6 +36,7 @@ export interface Tab {
   tableName?: string
   query?: string
   scrollPosition?: number
+  minimized?: boolean
 }
 
 // ─── Schema ─────────────────────────────────────────────────────────────────

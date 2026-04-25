@@ -1,20 +1,64 @@
 <script setup lang="ts">
-import DataGrid from '@/components/grid/DataGrid.vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import StatusBar from '@/components/layout/StatusBar.vue'
 import TitleBar from '@/components/layout/TitleBar.vue'
+import MinimizedDock from '@/components/layout/MinimizedDock.vue'
+import TabContent from '@/components/layout/TabContent.vue'
 import NewConnectionModal from '@/components/modals/NewConnectionModal.vue'
-import SqlEditor from '@/components/sql/SqlEditor.vue'
 import GlobalErrorDialog from '@/components/ui/GlobalErrorDialog.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
 import { useTabsStore } from '@/stores/tabs'
-import { onMounted, watch } from 'vue'
+import { ArrowUp, Minus, X } from 'lucide-vue-next'
+import { onMounted, ref, watch } from 'vue'
 
 const tabsStore = useTabsStore()
 const gridStore = useGridStore()
 const connectionsStore = useConnectionsStore()
+
+// ─── Drop Zone ────────────────────────────────────────────────────────────────
+function onDrop() {
+  if (tabsStore.draggingTabId) {
+    tabsStore.moveTabToBottom(tabsStore.draggingTabId)
+    tabsStore.draggingTabId = null
+  }
+}
+
+function minimizeBottomPanel() {
+  if (tabsStore.bottomTabId) {
+    const id = tabsStore.bottomTabId
+    tabsStore.closeBottomPanel()
+    tabsStore.minimizeTab(id)
+  }
+}
+
+// ─── Resizable Split Divider ──────────────────────────────────────────────────
+const contentAreaRef = ref<HTMLElement | null>(null)
+
+function onDividerMouseDown(e: MouseEvent) {
+  e.preventDefault()
+  const container = contentAreaRef.value
+  if (!container) return
+
+  const startY = e.clientY
+  const startRatio = tabsStore.splitRatio
+  const containerRect = container.getBoundingClientRect()
+
+  const onMouseMove = (ev: MouseEvent) => {
+    const deltaY = ev.clientY - startY
+    const deltaPct = (deltaY / containerRect.height) * 100
+    tabsStore.splitRatio = Math.max(20, Math.min(80, startRatio + deltaPct))
+  }
+
+  const onMouseUp = () => {
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+  }
+
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
 
 // When active tab changes to a table tab, load its data
 watch(
@@ -63,40 +107,83 @@ onMounted(async () => {
   <div id="app-shell" class="flex flex-col h-screen overflow-hidden bg-surface" @contextmenu.prevent>
     <!-- Main Top Area -->
     <div class="flex flex-1 min-h-0">
-      <!-- Sidebar (now spans full height above status bar) -->
+      <!-- Sidebar (spans full height above status bar) -->
       <Sidebar />
 
       <!-- Content Area (Tabs + Main View) -->
-      <div class="flex flex-col flex-1 min-w-0 min-h-0">
-        <!-- Title Bar (Tabs) is now only above the main content -->
+      <div ref="contentAreaRef" class="flex flex-col flex-1 min-w-0 min-h-0 relative">
+        <!-- Title Bar (Tabs) -->
         <TitleBar />
 
-        <!-- Main View -->
-        <main class="flex flex-col flex-1 min-w-0 min-h-0">
-          <!-- Table tab active: show DataGrid on top -->
-          <template v-if="tabsStore.activeTab?.type === 'table'">
-            <DataGrid />
-          </template>
+        <!-- Main View (split or single) -->
+        <template v-if="tabsStore.bottomTab">
+          <!-- Split View: Top Panel -->
+          <main class="flex flex-col min-w-0 min-h-0 overflow-hidden" :style="{ flex: `0 0 ${tabsStore.splitRatio}%` }">
+            <TabContent :tab="tabsStore.activeTab" />
+          </main>
 
-          <!-- SQL Editor -->
-          <template v-else-if="tabsStore.activeTab?.type === 'sql'">
-            <SqlEditor />
-          </template>
+          <!-- Resize Divider -->
+          <div
+            class="h-[5px] bg-border hover:bg-primary/40 cursor-row-resize transition-colors shrink-0 flex items-center justify-center group"
+            @mousedown="onDividerMouseDown"
+          >
+            <div class="w-8 h-[3px] rounded bg-text-tertiary/30 group-hover:bg-primary/60 transition-colors"></div>
+          </div>
 
-          <!-- No tab: empty state -->
-          <template v-else-if="!tabsStore.activeTab">
-            <div class="flex flex-col items-center justify-center flex-1 text-text-tertiary">
-              <svg class="w-16 h-16 mb-4 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="1">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <line x1="3" y1="9" x2="21" y2="9" />
-                <line x1="9" y1="21" x2="9" y2="9" />
-              </svg>
-              <p class="text-[14px] font-medium">No tab open</p>
-              <p class="text-[12px] mt-1">Select a table from the sidebar or open a SQL editor</p>
+          <!-- Split View: Bottom Panel -->
+          <div class="flex flex-col min-w-0 min-h-0 flex-1 overflow-hidden">
+            <!-- Bottom panel header -->
+            <div class="flex items-center gap-2 px-3 py-1 bg-muted border-b border-border shrink-0">
+              <span class="text-[12px] font-medium text-text-primary truncate">{{ tabsStore.bottomTab.title }}</span>
+              <div class="flex items-center gap-0.5 ml-auto">
+                <button
+                  class="flex items-center justify-center w-5 h-5 rounded text-text-tertiary hover:text-text-primary hover:bg-hover transition-colors cursor-pointer"
+                  title="Move to top"
+                  @click="tabsStore.moveBottomToTop"
+                >
+                  <ArrowUp :size="12" />
+                </button>
+                <button
+                  class="flex items-center justify-center w-5 h-5 rounded text-text-tertiary hover:text-text-primary hover:bg-hover transition-colors cursor-pointer"
+                  title="Minimize"
+                  @click="minimizeBottomPanel"
+                >
+                  <Minus :size="12" />
+                </button>
+                <button
+                  class="flex items-center justify-center w-5 h-5 rounded text-text-tertiary hover:text-danger hover:bg-danger-light transition-colors cursor-pointer"
+                  title="Close panel"
+                  @click="tabsStore.closeBottomPanel"
+                >
+                  <X :size="12" />
+                </button>
+              </div>
             </div>
-          </template>
-        </main>
+            <TabContent :tab="tabsStore.bottomTab" />
+          </div>
+        </template>
+
+        <!-- Single View (no split) -->
+        <template v-else>
+          <main class="flex flex-col flex-1 min-w-0 min-h-0">
+            <TabContent :tab="tabsStore.activeTab" />
+          </main>
+        </template>
+
+        <!-- Minimized Tabs Dock -->
+        <MinimizedDock />
+
+        <!-- Drop Zone Overlay (scoped to content area, only visible when dragging) -->
+        <div
+          v-if="tabsStore.draggingTabId"
+          class="absolute bottom-0 left-0 right-0 h-1/2 z-50 bg-primary/5 border-t-2 border-primary border-dashed flex items-center justify-center pointer-events-auto transition-all"
+          @dragover.prevent
+          @drop="onDrop"
+        >
+          <div class="bg-surface/80 backdrop-blur px-6 py-3 rounded-xl border border-primary/20 text-primary font-medium shadow-lg pointer-events-none">
+            Drop here to open in split view
+          </div>
+        </div>
       </div>
     </div>
 

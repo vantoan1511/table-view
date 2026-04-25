@@ -140,9 +140,9 @@ export const useConnectionsStore = defineStore('connections', () => {
   }
 
   async function updateConnection(id: string, updates: Partial<Connection>) {
-    const idx = connections.value.findIndex(c => c.id === id)
-    if (idx !== -1) {
-      connections.value[idx] = { ...connections.value[idx], ...updates }
+    const conn = connections.value.find(c => c.id === id)
+    if (conn) {
+      Object.assign(conn, updates)
       await saveConnections()
     }
   }
