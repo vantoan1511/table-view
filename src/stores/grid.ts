@@ -242,6 +242,8 @@ export const useGridStore = defineStore('grid', () => {
     newRowData.value = {}
   }
 
+  const showAlterTableDialog = ref(false)
+
   async function saveNewRow() {
     if (newRowIdx.value === null) return
     try {
@@ -415,5 +417,6 @@ export const useGridStore = defineStore('grid', () => {
     deleteRows,
     getTableColumns,
     alterTable,
+    showAlterTableDialog,
   }
 })

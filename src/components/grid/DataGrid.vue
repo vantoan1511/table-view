@@ -85,6 +85,64 @@ function getCellClass(colName: string, value: unknown): string {
   }
   return ''
 }
+
+// ─── Context Menu ──────────────────────────────────────────────────────────
+const contextMenu = ref({ show: false, x: 0, y: 0, rowIdx: -1 })
+
+function onContextMenu(event: MouseEvent, rowIdx: number) {
+  event.preventDefault()
+  
+  // Keep the menu fully on-screen
+  let x = event.clientX
+  let y = event.clientY
+  const menuWidth = 192 // w-48 is 12rem = 192px
+  const menuHeight = 160
+  
+  if (x + menuWidth > window.innerWidth) x -= menuWidth
+  if (y + menuHeight > window.innerHeight) y -= menuHeight
+
+  contextMenu.value = { show: true, x, y, rowIdx }
+
+  // Select the row if it's not selected
+  if (rowIdx >= 0 && !gridStore.selectedRowIndices.has(rowIdx)) {
+    gridStore.clearSelection()
+    gridStore.toggleRowSelection(rowIdx, event)
+  }
+}
+
+function closeContextMenu() {
+  if (contextMenu.value.show) {
+    contextMenu.value.show = false
+  }
+}
+
+function handleContextAction(action: string) {
+  closeContextMenu()
+  if (action === 'addRow') {
+    gridStore.createNewRow()
+  } else if (action === 'deleteRows') {
+    // Rely on GridToolbar's promptDelete logic or do it directly
+    // Let's do it directly
+    if (gridStore.selectedRowIndices.size > 0) {
+      gridStore.deleteRows(Array.from(gridStore.selectedRowIndices)).catch(err => {
+        Neutralino.os.showMessageBox('Error', 'Failed to delete row(s): ' + err.message, 'OK', 'ERROR')
+      })
+    }
+  } else if (action === 'alterTable') {
+    gridStore.showAlterTableDialog = true
+  } else if (action === 'refresh') {
+    gridStore.loadTable(gridStore.activeTableName)
+  }
+}
+
+import { onMounted, onUnmounted } from 'vue'
+
+onMounted(() => {
+  window.addEventListener('click', closeContextMenu)
+})
+onUnmounted(() => {
+  window.removeEventListener('click', closeContextMenu)
+})
 </script>
 
 <template>
@@ -93,7 +151,7 @@ function getCellClass(colName: string, value: unknown): string {
     <GridToolbar />
 
     <!-- Table Container -->
-    <div class="flex-1 overflow-auto min-h-0">
+    <div class="flex-1 overflow-auto min-h-0" @contextmenu.prevent="onContextMenu($event, -1)">
       <table class="w-full border-collapse text-[12px] font-(--font-mono)">
         <!-- Header -->
         <thead class="sticky top-0 z-10">
@@ -158,6 +216,7 @@ function getCellClass(colName: string, value: unknown): string {
               'bg-grid-row-alt': rowIdx % 2 === 1 && !gridStore.selectedRowIndices.has(rowIdx),
               'bg-primary/10!': gridStore.selectedRowIndices.has(rowIdx),
             }"
+            @contextmenu.prevent.stop="onContextMenu($event, rowIdx)"
           >
             <!-- Row number (selection click target) -->
             <td
@@ -252,5 +311,27 @@ function getCellClass(colName: string, value: unknown): string {
 
     <!-- Pagination -->
     <Pagination />
+
+    <!-- Context Menu -->
+    <div 
+      v-if="contextMenu.show" 
+      class="fixed z-[100] w-52 py-1.5 bg-surface border border-border rounded-lg shadow-xl"
+      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
+      @click.stop
+    >
+      <button @click="handleContextAction('addRow')" class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
+        <Plus :size="14" class="text-text-secondary" /> <span>Add Row</span>
+      </button>
+      <button @click="handleContextAction('deleteRows')" class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-danger hover:bg-danger-light hover:text-danger" :disabled="gridStore.selectedRowIndices.size === 0">
+        <Trash2 :size="14" /> <span>Delete Row(s)</span>
+      </button>
+      <div class="h-px bg-border my-1.5 w-full"></div>
+      <button @click="handleContextAction('alterTable')" class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
+        <Wrench :size="14" class="text-text-secondary" /> <span>Alter Table...</span>
+      </button>
+      <button @click="handleContextAction('refresh')" class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover">
+        <RefreshCw :size="14" class="text-text-secondary" /> <span>Refresh</span>
+      </button>
+    </div>
   </div>
 </template>
