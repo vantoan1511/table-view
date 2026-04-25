@@ -4,6 +4,8 @@ import { useGridStore } from '@/stores/grid'
 import {
   Settings,
   RefreshCw,
+  Moon,
+  Sun
 } from 'lucide-vue-next'
 
 const connectionsStore = useConnectionsStore()
@@ -19,6 +21,9 @@ const gridStore = useGridStore()
       </button>
       <button class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary">
         <RefreshCw :size="13" />
+      </button>
+      <button class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary">
+        <Moon :size="13" />
       </button>
     </div>
 
