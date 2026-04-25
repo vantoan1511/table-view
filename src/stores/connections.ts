@@ -43,11 +43,11 @@ const mockConnections: Connection[] = [
   },
 ]
 
-// ─── Store ──────────────────────────────────────────────────────────────────
+import * as Neutralino from '@neutralinojs/lib'
 
 export const useConnectionsStore = defineStore('connections', () => {
-  const connections = ref<Connection[]>(mockConnections)
-  const activeConnectionId = ref<string | null>('conn-1')
+  const connections = ref<Connection[]>([])
+  const activeConnectionId = ref<string | null>(null)
   const showNewConnectionModal = ref(false)
 
   const activeConnection = computed(() =>
@@ -58,19 +58,69 @@ export const useConnectionsStore = defineStore('connections', () => {
     connections.value.filter((c) => c.isConnected),
   )
 
-  function setActiveConnection(id: string) {
+  async function loadConnections() {
+    if (window.NL_PORT) {
+      try {
+        const data = await Neutralino.storage.getData('connections')
+        connections.value = JSON.parse(data)
+        // Reset all isConnected states on boot
+        connections.value.forEach(c => c.isConnected = false)
+      } catch (err) {
+        // Storage not found, initialize empty
+        connections.value = []
+      }
+    }
+  }
+
+  async function saveConnections() {
+    if (window.NL_PORT) {
+      await Neutralino.storage.setData('connections', JSON.stringify(connections.value))
+    }
+  }
+
+  async function setActiveConnection(id: string) {
     activeConnectionId.value = id
+    // Connect to the actual database using the db-bridge
+    const conn = connections.value.find(c => c.id === id)
+    if (conn && window.NL_PORT) {
+      const reqId = Date.now().toString()
+      
+      const onConnectResult = async (evt: any) => {
+        const payload = evt.detail
+        if (payload.reqId === reqId) {
+          if (payload.success) {
+            conn.isConnected = true
+            // Import dynamically to avoid circular dependency
+            const { useSchemaStore } = await import('./schema')
+            const schemaStore = useSchemaStore()
+            schemaStore.loadSchema()
+          } else {
+            conn.isConnected = false
+            console.error("Failed to connect:", payload.error)
+          }
+          Neutralino.events.off('dbBridge.connectResult', onConnectResult)
+        }
+      }
+      
+      Neutralino.events.on('dbBridge.connectResult', onConnectResult)
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.connect', {
+        reqId,
+        config: conn
+      })
+    }
   }
 
-  function addConnection(conn: Connection) {
+  async function addConnection(conn: Connection) {
     connections.value.push(conn)
+    await saveConnections()
   }
 
-  function removeConnection(id: string) {
+  async function removeConnection(id: string) {
     connections.value = connections.value.filter((c) => c.id !== id)
     if (activeConnectionId.value === id) {
       activeConnectionId.value = connections.value[0]?.id ?? null
     }
+    await saveConnections()
   }
 
   function toggleConnectionModal(show?: boolean) {
@@ -87,6 +137,8 @@ export const useConnectionsStore = defineStore('connections', () => {
     activeConnection,
     connectedConnections,
     showNewConnectionModal,
+    loadConnections,
+    saveConnections,
     setActiveConnection,
     addConnection,
     removeConnection,

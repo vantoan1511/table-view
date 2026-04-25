@@ -77,10 +77,7 @@ ws.on('message', async (messageData) => {
     try {
       if (action === 'testConnection') {
         const { reqId, config } = payload;
-        
-        // TODO: Handle other DB types later, currently defaulting to postgres
         const driver = drivers['postgres'];
-        
         try {
           await driver.connect(config);
           await driver.disconnect();
@@ -89,9 +86,46 @@ ws.on('message', async (messageData) => {
           broadcast('dbBridge.testConnectionResult', { reqId, success: false, error: String(error.message || error) });
         }
       }
-      
-      // Additional actions like getSchema, executeQuery will go here in future
-      
+      else if (action === 'connect') {
+        const { reqId, config } = payload;
+        const driver = drivers['postgres'];
+        try {
+          await driver.connect(config);
+          broadcast('dbBridge.connectResult', { reqId, success: true });
+        } catch (error) {
+          broadcast('dbBridge.connectResult', { reqId, success: false, error: String(error.message || error) });
+        }
+      }
+      else if (action === 'getSchema') {
+        const { reqId } = payload;
+        const driver = drivers['postgres'];
+        try {
+          const schema = await driver.getSchema();
+          broadcast('dbBridge.getSchemaResult', { reqId, success: true, schema });
+        } catch (error) {
+          broadcast('dbBridge.getSchemaResult', { reqId, success: false, error: String(error.message || error) });
+        }
+      }
+      else if (action === 'fetchTableData') {
+        const { reqId, tableName, limit, offset } = payload;
+        const driver = drivers['postgres'];
+        try {
+          const result = await driver.fetchTableData(tableName, limit, offset);
+          broadcast('dbBridge.fetchTableDataResult', { reqId, success: true, ...result });
+        } catch (error) {
+          broadcast('dbBridge.fetchTableDataResult', { reqId, success: false, error: String(error.message || error) });
+        }
+      }
+      else if (action === 'executeQuery') {
+        const { reqId, sql } = payload;
+        const driver = drivers['postgres'];
+        try {
+          const result = await driver.query(sql);
+          broadcast('dbBridge.executeQueryResult', { reqId, success: true, ...result });
+        } catch (error) {
+          broadcast('dbBridge.executeQueryResult', { reqId, success: false, error: String(error.message || error) });
+        }
+      }
     } catch (err) {
       console.error(`Error handling action ${action}:`, err);
     }

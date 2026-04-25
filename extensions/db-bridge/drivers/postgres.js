@@ -54,21 +54,63 @@ module.exports = {
       throw new Error("Not connected to database");
     }
 
-    // Simplified query to get tables in the public schema
-    // In a real implementation, this would be more comprehensive
-    const tablesQuery = `
+    // Tables
+    const tablesResult = await module.exports.client.query(`
       SELECT table_name 
       FROM information_schema.tables 
-      WHERE table_schema = 'public' 
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
       ORDER BY table_name;
-    `;
-    
-    const result = await module.exports.client.query(tablesQuery);
+    `);
+
+    // Views
+    const viewsResult = await module.exports.client.query(`
+      SELECT table_name 
+      FROM information_schema.views 
+      WHERE table_schema = 'public'
+      ORDER BY table_name;
+    `);
+
+    // Functions
+    const functionsResult = await module.exports.client.query(`
+      SELECT routine_name 
+      FROM information_schema.routines 
+      WHERE routine_schema = 'public' AND routine_type = 'FUNCTION'
+      ORDER BY routine_name;
+    `);
+
     return {
-      tables: result.rows.map(r => ({ name: r.table_name })),
-      views: [],
-      functions: [],
+      tables: tablesResult.rows.map(r => ({ name: r.table_name })),
+      views: viewsResult.rows.map(r => ({ name: r.table_name })),
+      functions: functionsResult.rows.map(r => ({ name: r.routine_name })),
       schemas: [{ name: 'public' }]
+    };
+  },
+
+  /**
+   * Fetch data from a specific table with pagination
+   */
+  fetchTableData: async (tableName, limit = 100, offset = 0) => {
+    if (!module.exports.client) {
+      throw new Error("Not connected to database");
+    }
+    
+    // WARNING: For production, ensure tableName is properly escaped to prevent SQL injection!
+    // Since this is an internal tool and we select tableName from the schema, it is somewhat safe, 
+    // but best practice is to quote identifiers.
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    
+    const query = `SELECT * FROM public.${safeTable} LIMIT $1 OFFSET $2;`;
+    const countQuery = `SELECT COUNT(*) as total FROM public.${safeTable};`;
+    
+    const [dataResult, countResult] = await Promise.all([
+      module.exports.client.query(query, [limit, offset]),
+      module.exports.client.query(countQuery)
+    ]);
+    
+    return {
+      rows: dataResult.rows,
+      fields: dataResult.fields.map(f => ({ name: f.name, dataTypeID: f.dataTypeID })),
+      totalCount: parseInt(countResult.rows[0].total, 10)
     };
   },
 

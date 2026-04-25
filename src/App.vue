@@ -7,10 +7,12 @@ import SqlEditor from '@/components/sql/SqlEditor.vue'
 import NewConnectionModal from '@/components/modals/NewConnectionModal.vue'
 import { useTabsStore } from '@/stores/tabs'
 import { useGridStore } from '@/stores/grid'
-import { watch } from 'vue'
+import { useConnectionsStore } from '@/stores/connections'
+import { watch, onMounted } from 'vue'
 
 const tabsStore = useTabsStore()
 const gridStore = useGridStore()
+const connectionsStore = useConnectionsStore()
 
 // When active tab changes to a table tab, load its data
 watch(
@@ -22,6 +24,10 @@ watch(
   },
   { immediate: true },
 )
+
+onMounted(async () => {
+  await connectionsStore.loadConnections()
+})
 </script>
 
 <template>

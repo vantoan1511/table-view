@@ -2,110 +2,109 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { GridColumn, GridRow, GridState } from '@/types'
 
-// ─── Mock Data ──────────────────────────────────────────────────────────────
-
-const mockColumns: GridColumn[] = [
-  { name: 'id', dataType: 'int4', isPrimaryKey: true },
-  { name: 'name', dataType: 'varchar' },
-  { name: 'email', dataType: 'varchar' },
-  { name: 'created_at', dataType: 'timestamptz' },
-  { name: 'status', dataType: 'varchar' },
-  { name: 'role_id', dataType: 'int4' },
-]
-
-const mockNames = [
-  'John Doe', 'Jane Smith', 'Michael Brown', 'Emily Johnson', 'Daniel Wilson',
-  'Sarah Davis', 'David Miller', 'Olivia Garcia', 'James Martinez', 'Sophia Anderson',
-]
-
-const mockEmails = mockNames.map(
-  (n) => `${n.toLowerCase().replace(' ', '.')}@example.com`,
-)
-
-function generateMockRows(count: number, offset: number): GridRow[] {
-  const rows: GridRow[] = []
-  for (let i = 0; i < count; i++) {
-    const idx = (offset + i) % mockNames.length
-    rows.push({
-      id: offset + i + 1,
-      name: mockNames[idx]!,
-      email: mockEmails[idx]!,
-      created_at: `2024-05-01 ${String(10 + (i % 14)).padStart(2, '0')}:${String((i * 7 + 15) % 60).padStart(2, '0')}:${String((i * 13 + 23) % 60).padStart(2, '0')}`,
-      status: (offset + i) % 5 === 4 ? 'inactive' : 'active',
-      role_id: (idx % 2) + 1,
-    })
-  }
-  return rows
-}
-
-// ─── SQL Result Mock Data ───────────────────────────────────────────────────
-
-const sqlResultColumns: GridColumn[] = [
-  { name: 'id', dataType: 'int4', isPrimaryKey: true },
-  { name: 'name', dataType: 'varchar' },
-  { name: 'email', dataType: 'varchar' },
-  { name: 'created_at', dataType: 'timestamptz' },
-  { name: 'role_name', dataType: 'varchar' },
-]
-
-const sqlResultRows: GridRow[] = mockNames.slice(0, 8).map((name, i) => ({
-  id: i + 1,
-  name,
-  email: mockEmails[i]!,
-  created_at: `2024-05-01 ${String(10 + i).padStart(2, '0')}:${String((i * 7 + 15) % 60).padStart(2, '0')}:${String((i * 13 + 23) % 60).padStart(2, '0')}`,
-  role_name: i % 2 === 0 ? 'Admin' : 'Editor',
-}))
-
-// ─── Store ──────────────────────────────────────────────────────────────────
+import * as Neutralino from '@neutralinojs/lib'
 
 export const useGridStore = defineStore('grid', () => {
   // Table data grid state
-  const columns = ref<GridColumn[]>(mockColumns)
-  const rows = ref<GridRow[]>(generateMockRows(10, 0))
-  const totalRows = ref(12345)
+  const columns = ref<GridColumn[]>([])
+  const rows = ref<GridRow[]>([])
+  const totalRows = ref(0)
   const currentPage = ref(1)
   const rowsPerPage = ref(100)
   const sortColumn = ref<string | undefined>()
   const sortDirection = ref<'asc' | 'desc' | undefined>()
-  const executionTime = ref(120)
-  const activeTableName = ref('users')
+  const executionTime = ref(0)
+  const activeTableName = ref('')
 
   // SQL result state
-  const sqlColumns = ref<GridColumn[]>(sqlResultColumns)
-  const sqlRows = ref<GridRow[]>(sqlResultRows)
-  const sqlRowCount = ref(100)
-  const sqlExecutionTime = ref(120)
+  const sqlColumns = ref<GridColumn[]>([])
+  const sqlRows = ref<GridRow[]>([])
+  const sqlRowCount = ref(0)
+  const sqlExecutionTime = ref(0)
   const sqlMessages = ref<Array<{ type: string; text: string; timestamp: string }>>([])
 
-  const totalPages = computed(() => Math.ceil(totalRows.value / rowsPerPage.value))
+  const totalPages = computed(() => Math.max(1, Math.ceil(totalRows.value / rowsPerPage.value)))
 
   function setPage(page: number) {
     currentPage.value = page
-    const offset = (page - 1) * rowsPerPage.value
-    rows.value = generateMockRows(Math.min(10, rowsPerPage.value), offset)
+    loadTable(activeTableName.value)
   }
 
   function setRowsPerPage(count: number) {
     rowsPerPage.value = count
     currentPage.value = 1
-    rows.value = generateMockRows(Math.min(10, count), 0)
+    loadTable(activeTableName.value)
   }
 
-  function loadTable(tableName: string) {
+  async function loadTable(tableName: string) {
     activeTableName.value = tableName
-    currentPage.value = 1
-    rows.value = generateMockRows(10, 0)
+    if (!tableName || !window.NL_PORT) return
+    
+    const reqId = Date.now().toString()
+    const offset = (currentPage.value - 1) * rowsPerPage.value
+    const startTime = performance.now()
+    
+    const onResult = (evt: any) => {
+      const payload = evt.detail
+      if (payload.reqId === reqId) {
+        if (payload.success) {
+          rows.value = payload.rows
+          columns.value = payload.fields.map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID) }))
+          totalRows.value = payload.totalCount
+          executionTime.value = Math.round(performance.now() - startTime)
+        } else {
+          console.error("Failed to fetch table data:", payload.error)
+        }
+        Neutralino.events.off('dbBridge.fetchTableDataResult', onResult)
+      }
+    }
+    
+    Neutralino.events.on('dbBridge.fetchTableDataResult', onResult)
+    Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.fetchTableData', { 
+      reqId,
+      tableName,
+      limit: rowsPerPage.value,
+      offset
+    })
   }
 
-  function runQuery(_sql: string) {
-    sqlExecutionTime.value = Math.floor(Math.random() * 200) + 50
-    sqlMessages.value = [
-      {
-        type: 'info',
-        text: `Query executed successfully. ${sqlRowCount.value} rows returned.`,
-        timestamp: new Date().toISOString(),
-      },
-    ]
+  async function runQuery(sql: string) {
+    if (!sql || !window.NL_PORT) return
+
+    const reqId = Date.now().toString()
+    const startTime = performance.now()
+    sqlMessages.value = [] // clear previous messages
+
+    const onResult = (evt: any) => {
+      const payload = evt.detail
+      if (payload.reqId === reqId) {
+        sqlExecutionTime.value = Math.round(performance.now() - startTime)
+        if (payload.success) {
+          sqlRows.value = payload.rows || []
+          sqlColumns.value = (payload.fields || []).map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID) }))
+          sqlRowCount.value = payload.rowCount || 0
+          
+          sqlMessages.value.push({
+            type: 'info',
+            text: `Query executed successfully. ${sqlRowCount.value} rows affected.`,
+            timestamp: new Date().toISOString(),
+          })
+        } else {
+          sqlMessages.value.push({
+            type: 'error',
+            text: `Error: ${payload.error}`,
+            timestamp: new Date().toISOString(),
+          })
+        }
+        Neutralino.events.off('dbBridge.executeQueryResult', onResult)
+      }
+    }
+
+    Neutralino.events.on('dbBridge.executeQueryResult', onResult)
+    Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.executeQuery', { 
+      reqId,
+      sql 
+    })
   }
 
   return {

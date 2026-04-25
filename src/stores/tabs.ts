@@ -1,14 +1,11 @@
+import type { Tab } from '@/types'
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import type { Tab, TabType } from '@/types'
+import { computed, ref } from 'vue'
 
 export const useTabsStore = defineStore('tabs', () => {
   // Only table tabs in the main tab strip
-  const tabs = ref<Tab[]>([
-    { id: 'tab-users', type: 'table', title: 'users', tableName: 'users' },
-    { id: 'tab-orders', type: 'table', title: 'orders', tableName: 'orders' },
-  ])
-  const activeTabId = ref<string>('tab-users')
+  const tabs = ref<Tab[]>([])
+  const activeTabId = ref<string>('')
 
   const activeTab = computed(() =>
     tabs.value.find((t) => t.id === activeTabId.value) ?? null,

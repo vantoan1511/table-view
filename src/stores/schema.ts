@@ -36,10 +36,10 @@ const mockSchema: SchemaInfo = {
   schemas: ['public', 'auth'],
 }
 
-// ─── Store ──────────────────────────────────────────────────────────────────
+import * as Neutralino from '@neutralinojs/lib'
 
 export const useSchemaStore = defineStore('schema', () => {
-  const schema = ref<SchemaInfo>(mockSchema)
+  const schema = ref<SchemaInfo>({ tables: [], views: [], functions: [], schemas: ['public'] })
   const selectedSchema = ref('public')
   const filterQuery = ref('')
 
@@ -72,6 +72,32 @@ export const useSchemaStore = defineStore('schema', () => {
     selectedSchema.value = s
   }
 
+  async function loadSchema() {
+    if (window.NL_PORT) {
+      const reqId = Date.now().toString()
+      
+      const onResult = (evt: any) => {
+        const payload = evt.detail
+        if (payload.reqId === reqId) {
+          if (payload.success) {
+            schema.value = {
+              tables: payload.schema.tables.map((t: any) => ({ name: t.name, schema: 'public' })),
+              views: payload.schema.views.map((v: any) => ({ name: v.name, schema: 'public' })),
+              functions: payload.schema.functions.map((f: any) => ({ name: f.name, schema: 'public', returnType: 'unknown' })),
+              schemas: ['public']
+            }
+          } else {
+            console.error("Failed to load schema:", payload.error)
+          }
+          Neutralino.events.off('dbBridge.getSchemaResult', onResult)
+        }
+      }
+      
+      Neutralino.events.on('dbBridge.getSchemaResult', onResult)
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getSchema', { reqId })
+    }
+  }
+
   return {
     schema,
     selectedSchema,
@@ -81,5 +107,6 @@ export const useSchemaStore = defineStore('schema', () => {
     filteredFunctions,
     setFilter,
     setSelectedSchema,
+    loadSchema
   }
 })
