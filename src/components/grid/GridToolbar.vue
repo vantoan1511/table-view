@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import * as Neutralino from '@neutralinojs/lib'
 import { MessageBoxChoice, Icon } from '@neutralinojs/lib'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+// import AddRowDialog from '@/components/ui/AddRowDialog.vue'  // removed inline row handling
 import {
   Filter,
   Columns3,
@@ -9,9 +12,35 @@ import {
   RefreshCw,
   ChevronDown,
   LayoutGrid,
+  Plus,
+  Trash2,
 } from 'lucide-vue-next'
 
 const gridStore = useGridStore()
+
+// ─── Add Row Inline ────────────────────────────────────────────────────────
+async function handleInsert() {
+  gridStore.createNewRow()
+}
+
+// ─── Delete Confirmation ──────────────────────────────────────────────────────
+const showDeleteConfirm = ref(false)
+
+const selectedCount = computed(() => gridStore.selectedRowIndices.size)
+
+function promptDelete() {
+  if (selectedCount.value === 0) return
+  showDeleteConfirm.value = true
+}
+
+async function confirmDelete() {
+  showDeleteConfirm.value = false
+  try {
+    await gridStore.deleteRows([...gridStore.selectedRowIndices])
+  } catch (err: any) {
+    console.error('Delete failed:', err)
+  }
+}
 
 async function handleExport() {
   if (!gridStore.activeTableName) return
@@ -53,12 +82,41 @@ async function handleExport() {
 
 <template>
   <div class="flex items-center justify-between px-4 py-2 border-b border-border bg-surface">
-    <!-- Left: Table name -->
+    <!-- Left: Table name + row actions -->
     <div class="flex items-center gap-2">
       <LayoutGrid :size="16" class="text-text-secondary" />
       <h2 class="text-[15px] font-semibold text-text-primary">
         {{ gridStore.activeTableName }}
       </h2>
+
+      <!-- Divider -->
+      <div class="w-px h-5 bg-border mx-1" />
+
+      <!-- Add Row -->
+      <button
+        id="btn-add-row"
+        class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer"
+        title="Insert a new row"
+        @click="handleInsert"
+      >
+        <Plus :size="13" class="text-success" />
+        <span>Add Row</span>
+      </button>
+
+      <!-- Delete Selected -->
+      <button
+        id="btn-delete-rows"
+        class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] transition-colors cursor-pointer"
+        :class="selectedCount > 0
+          ? 'text-danger border-danger/40 hover:bg-danger-light hover:border-danger/60'
+          : 'text-text-tertiary border-border opacity-50 cursor-not-allowed'"
+        :disabled="selectedCount === 0"
+        :title="selectedCount > 0 ? `Delete ${selectedCount} selected row(s)` : 'Select rows to delete'"
+        @click="promptDelete"
+      >
+        <Trash2 :size="13" />
+        <span>Delete{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}</span>
+      </button>
     </div>
 
     <!-- Right: Actions -->
@@ -98,9 +156,24 @@ async function handleExport() {
       </div>
 
       <!-- Refresh -->
-      <button class="flex items-center justify-center w-8 h-8 border border-border rounded-lg text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer">
+      <button
+        class="flex items-center justify-center w-8 h-8 border border-border rounded-lg text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer"
+        @click="gridStore.loadTable(gridStore.activeTableName)"
+      >
         <RefreshCw :size="14" />
       </button>
     </div>
   </div>
+
+  <!-- Delete Confirmation Dialog -->
+  <ConfirmDialog
+    v-if="showDeleteConfirm"
+    title="Delete rows"
+    :message="`Are you sure you want to permanently delete ${selectedCount} row(s)? This cannot be undone.`"
+    variant="danger"
+    confirm-label="Delete"
+    @confirm="confirmDelete"
+    @cancel="showDeleteConfirm = false"
+  />
 </template>
+

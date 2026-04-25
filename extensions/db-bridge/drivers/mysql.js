@@ -131,6 +131,36 @@ module.exports = {
     );
   },
 
+  insertRow: async (tableName, data) => {
+    if (!module.exports.client) throw new Error("Not connected to database");
+    const safeTable = `\`${tableName.replace(/`/g, '``')}\``;
+    const cols = Object.keys(data);
+    if (cols.length === 0) {
+      const [result] = await module.exports.client.execute(`INSERT INTO ${safeTable} () VALUES ()`);
+      const [rows] = await module.exports.client.execute(`SELECT * FROM ${safeTable} WHERE id = ?`, [result.insertId]);
+      return rows[0];
+    }
+    const safeCols = cols.map(c => `\`${c.replace(/`/g, '``')}\``).join(', ');
+    const placeholders = cols.map(() => '?').join(', ');
+    const values = cols.map(c => data[c]);
+    const [result] = await module.exports.client.execute(
+      `INSERT INTO ${safeTable} (${safeCols}) VALUES (${placeholders})`, values
+    );
+    const [rows] = await module.exports.client.execute(`SELECT * FROM ${safeTable} WHERE id = ?`, [result.insertId]);
+    return rows[0] || { insertId: result.insertId };
+  },
+
+  deleteRows: async (tableName, pkColumn, pkValues) => {
+    if (!module.exports.client) throw new Error("Not connected to database");
+    const safeTable = `\`${tableName.replace(/`/g, '``')}\``;
+    const safePk = `\`${pkColumn.replace(/`/g, '``')}\``;
+    const placeholders = pkValues.map(() => '?').join(', ');
+    await module.exports.client.execute(
+      `DELETE FROM ${safeTable} WHERE ${safePk} IN (${placeholders})`, pkValues
+    );
+    return true;
+  },
+
   exportToCSV: async (tableName, exportPath) => {
     if (!module.exports.client) {
       throw new Error("Not connected to database");

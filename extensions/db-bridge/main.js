@@ -159,6 +159,24 @@ ws.on('message', async (messageData) => {
           broadcast('dbBridge.exportCSVResult', { reqId, success: false, error: String(error.message || error) });
         }
       }
+      else if (action === 'insertRow') {
+        const { reqId, tableName, data } = payload;
+        try {
+          const newRow = await activeDriver.insertRow(tableName, data || {});
+          broadcast('dbBridge.insertRowResult', { reqId, success: true, row: newRow });
+        } catch (error) {
+          broadcast('dbBridge.insertRowResult', { reqId, success: false, error: String(error.message || error) });
+        }
+      }
+      else if (action === 'deleteRows') {
+        const { reqId, tableName, pkColumn, pkValues } = payload;
+        try {
+          await activeDriver.deleteRows(tableName, pkColumn, pkValues);
+          broadcast('dbBridge.deleteRowsResult', { reqId, success: true });
+        } catch (error) {
+          broadcast('dbBridge.deleteRowsResult', { reqId, success: false, error: String(error.message || error) });
+        }
+      }
     } catch (err) {
       console.error(`Error handling action ${action}:`, err);
     }

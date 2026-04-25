@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useGridStore } from '@/stores/grid'
+import { useSchemaStore } from '@/stores/schema'
 import { EditorView, basicSetup } from 'codemirror'
 import { keymap } from '@codemirror/view'
-import { EditorState } from '@codemirror/state'
+import { EditorState, Compartment } from '@codemirror/state'
 import { sql, PostgreSQL } from '@codemirror/lang-sql'
 import ResultsGrid from './ResultsGrid.vue'
 import {
@@ -15,9 +16,11 @@ import {
 } from 'lucide-vue-next'
 
 const gridStore = useGridStore()
+const schemaStore = useSchemaStore()
 const editorContainer = ref<HTMLElement>()
 const activeResultTab = ref<'results' | 'messages'>('results')
 let editorView: EditorView | null = null
+const sqlCompartment = new Compartment()
 
 const initialQuery = `SELECT u.id,
        u.name,
@@ -40,13 +43,23 @@ function handleRun() {
 onMounted(() => {
   if (!editorContainer.value) return
 
-  const initialDoc = initialQuery
+  function buildSqlExtension() {
+    // Build a schema map from current store data: { tableName: [col, col, ...] }
+    const schemaMap: Record<string, string[]> = {}
+    for (const table of schemaStore.schema.tables) {
+      schemaMap[table.name] = [] // column names can be added when we fetch them later
+    }
+    for (const view of schemaStore.schema.views) {
+      schemaMap[view.name] = []
+    }
+    return sql({ dialect: PostgreSQL, schema: schemaMap })
+  }
 
   const state = EditorState.create({
-    doc: initialDoc,
+    doc: initialQuery,
     extensions: [
       basicSetup,
-      sql({ dialect: PostgreSQL }),
+      sqlCompartment.of(buildSqlExtension()),
       keymap.of([
         {
           key: 'Mod-Enter',
@@ -91,6 +104,18 @@ onMounted(() => {
     state,
     parent: editorContainer.value,
   })
+
+  // Re-configure SQL extension when schema loads
+  watch(
+    () => schemaStore.schema,
+    () => {
+      if (!editorView) return
+      editorView.dispatch({
+        effects: sqlCompartment.reconfigure(buildSqlExtension()),
+      })
+    },
+    { deep: true }
+  )
 })
 </script>
 
@@ -167,7 +192,7 @@ onMounted(() => {
         <div v-if="activeResultTab === 'results'">
           <ResultsGrid />
         </div>
-        <div v-else class="p-3 text-[12px] font-[var(--font-mono)] text-text-secondary">
+        <div v-else class="p-3 text-[12px] font-(--font-mono) text-text-secondary">
           <div
             v-for="(msg, i) in gridStore.sqlMessages"
             :key="i"

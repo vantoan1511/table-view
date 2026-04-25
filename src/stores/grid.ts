@@ -210,6 +210,141 @@ export const useGridStore = defineStore('grid', () => {
     columnWidths.value = { ...columnWidths.value, [colName]: width }
   }
 
+  // ─── New Row Inline Adding ───────────────────────────────────────────────
+  const newRowIdx = ref<number | null>(null)
+  const newRowData = ref<Record<string, string>>({})
+
+  function createNewRow() {
+    // Insert a placeholder row at the top
+    const placeholder: GridRow = {}
+    // Fill placeholder with empty strings for each column
+    for (const col of columns.value) {
+      placeholder[col.name] = ''
+    }
+    // Prepend to rows and track its index (0 after prepend)
+    rows.value = [placeholder, ...rows.value]
+    totalRows.value += 1
+    newRowIdx.value = 0
+    // Initialize data object for binding
+    const data: Record<string, string> = {}
+    for (const col of columns.value) {
+      data[col.name] = ''
+    }
+    newRowData.value = data
+  }
+
+  function cancelNewRow() {
+    if (newRowIdx.value === null) return
+    // Remove the temporary row
+    rows.value.splice(newRowIdx.value, 1)
+    totalRows.value -= 1
+    newRowIdx.value = null
+    newRowData.value = {}
+  }
+
+  async function saveNewRow() {
+    if (newRowIdx.value === null) return
+    try {
+      // Filter out empty strings so the DB can apply default values (e.g. for Serial PKs)
+      // For UUID columns without a DB default, we generate one automatically.
+      const cleanData: Record<string, string> = {}
+      for (const col of columns.value) {
+        const val = newRowData.value[col.name]
+
+        if (!val || val === '') {
+          // If it's a primary key or UUID column and left blank, auto-generate a UUID.
+          // Note: Postgres driver returns OIDs for dataType (e.g. 2950 for uuid, 1043 for varchar, 25 for text)
+          const type = col.dataType ? col.dataType.toLowerCase() : ''
+          const isUuid = type.includes('uuid') || type === '2950'
+          const isStringPk = col.isPrimaryKey && (['1043', '25', '1042'].includes(type) || type.includes('char') || type.includes('text'))
+          if (isUuid || isStringPk) {
+            cleanData[col.name] = crypto.randomUUID()
+          }
+          // Otherwise, drop it so DB defaults or NULL apply.
+        } else {
+          cleanData[col.name] = val
+        }
+      }
+
+      const savedRow = await insertRowToDB(cleanData)
+      // Replace placeholder with actual row returned from DB
+      rows.value.splice(newRowIdx.value, 1, savedRow)
+      newRowIdx.value = null
+      newRowData.value = {}
+    } catch (err) {
+      console.error('Insert failed:', err)
+      throw err
+    }
+  }
+
+  // Internal DB insertion (used by saveNewRow and legacy calls)
+  async function insertRowToDB(data: Record<string, string> = {}): Promise<GridRow> {
+    return new Promise((resolve, reject) => {
+      if (!window.NL_PORT) return resolve({})
+      const reqId = Date.now().toString()
+
+      const onResult = (evt: any) => {
+        const payload = evt.detail
+        if (payload.reqId !== reqId) return
+        Neutralino.events.off('dbBridge.insertRowResult', onResult)
+        if (payload.success) {
+          resolve(payload.row)
+        } else {
+          reject(new Error(payload.error))
+        }
+      }
+
+      Neutralino.events.on('dbBridge.insertRowResult', onResult)
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.insertRow', {
+        reqId,
+        tableName: activeTableName.value,
+        data,
+      })
+    })
+  }
+
+  // Backwards‑compatible wrapper used by UI (old call)
+  async function insertRow(data: Record<string, string> = {}): Promise<void> {
+    await insertRowToDB(data)
+  }
+
+  function deleteRows(indices: number[]): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!window.NL_PORT) return resolve()
+      const pkCol = columns.value.find(c => c.isPrimaryKey)
+      if (!pkCol) return reject(new Error('No primary key column found'))
+
+      const pkValues = indices.map(i => rows.value[i]?.[pkCol.name]).filter(v => v !== undefined)
+      if (pkValues.length === 0) return resolve()
+
+      const reqId = Date.now().toString()
+
+      const onResult = (evt: any) => {
+        const payload = evt.detail
+        if (payload.reqId !== reqId) return
+        Neutralino.events.off('dbBridge.deleteRowsResult', onResult)
+        if (payload.success) {
+          // Remove deleted rows locally
+          const idxSet = new Set(indices)
+          rows.value = rows.value.filter((_, i) => !idxSet.has(i))
+          totalRows.value -= indices.length
+          clearSelection()
+          resolve()
+        } else {
+          reject(new Error(payload.error))
+        }
+      }
+
+      Neutralino.events.on('dbBridge.deleteRowsResult', onResult)
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.deleteRows', {
+        reqId,
+        tableName: activeTableName.value,
+        pkColumn: pkCol.name,
+        pkValues,
+      })
+    })
+  }
+
   return {
     columns,
     rows,
@@ -234,9 +369,17 @@ export const useGridStore = defineStore('grid', () => {
     loadTable,
     updateCell,
     runQuery,
+    // Inline row addition
+    newRowIdx,
+    newRowData,
+    createNewRow,
+    cancelNewRow,
+    saveNewRow,
     toggleSort,
     toggleRowSelection,
     clearSelection,
     setColumnWidth,
+    insertRow,
+    deleteRows,
   }
 })

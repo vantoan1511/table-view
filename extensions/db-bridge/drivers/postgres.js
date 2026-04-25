@@ -167,6 +167,60 @@ module.exports = {
   },
 
   /**
+   * Insert a new row into a table
+   * @param {string} tableName
+   * @param {Object} data  { colName: value, … }
+   * Returns the inserted row (with DB-generated defaults like serial IDs).
+   */
+  insertRow: async (tableName, data) => {
+    if (!module.exports.client) {
+      throw new Error("Not connected to database");
+    }
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    const cols = Object.keys(data);
+    if (cols.length === 0) {
+      // INSERT with all defaults
+      const result = await module.exports.client.query(
+        `INSERT INTO public.${safeTable} DEFAULT VALUES RETURNING *`
+      );
+      return result.rows[0];
+    }
+    const safeCols = cols.map(c => `"${c.replace(/"/g, '""')}"`).join(', ');
+    const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+    const values = cols.map(c => data[c]);
+    
+    const query = `INSERT INTO public.${safeTable} (${safeCols}) VALUES (${placeholders}) RETURNING *`;
+    console.log('[Postgres Driver] insertRow Executing:', query, 'with values:', values);
+    
+    try {
+      const result = await module.exports.client.query(query, values);
+      return result.rows[0];
+    } catch (err) {
+      throw new Error(`[Query: ${query} | Values: ${JSON.stringify(values)}] ${err.message}`);
+    }
+  },
+
+  /**
+   * Delete rows from a table by primary key values
+   * @param {string} tableName
+   * @param {string} pkColumn
+   * @param {Array}  pkValues  Array of PK values to delete
+   */
+  deleteRows: async (tableName, pkColumn, pkValues) => {
+    if (!module.exports.client) {
+      throw new Error("Not connected to database");
+    }
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    const safePk = `"${pkColumn.replace(/"/g, '""')}"`;
+    const placeholders = pkValues.map((_, i) => `$${i + 1}`).join(', ');
+    await module.exports.client.query(
+      `DELETE FROM public.${safeTable} WHERE ${safePk} = ANY(ARRAY[${placeholders}])`,
+      pkValues
+    );
+    return true;
+  },
+
+  /**
    * Export table data to CSV file
    */
   exportToCSV: async (tableName, exportPath) => {

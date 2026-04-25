@@ -129,6 +129,45 @@ module.exports = {
     });
   },
 
+  insertRow: async (tableName, data) => {
+    if (!module.exports.db) throw new Error("Not connected to database");
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    const cols = Object.keys(data);
+    if (cols.length === 0) {
+      return new Promise((res, rej) => {
+        module.exports.db.run(`INSERT INTO ${safeTable} DEFAULT VALUES`, [], function(err) {
+          if (err) return rej(err);
+          module.exports.db.get(`SELECT * FROM ${safeTable} WHERE rowid = ?`, [this.lastID], (e, row) => e ? rej(e) : res(row));
+        });
+      });
+    }
+    const safeCols = cols.map(c => `"${c.replace(/"/g, '""')}"`).join(', ');
+    const placeholders = cols.map(() => '?').join(', ');
+    const values = cols.map(c => data[c]);
+    return new Promise((res, rej) => {
+      module.exports.db.run(
+        `INSERT INTO ${safeTable} (${safeCols}) VALUES (${placeholders})`, values,
+        function(err) {
+          if (err) return rej(err);
+          module.exports.db.get(`SELECT * FROM ${safeTable} WHERE rowid = ?`, [this.lastID], (e, row) => e ? rej(e) : res(row));
+        }
+      );
+    });
+  },
+
+  deleteRows: async (tableName, pkColumn, pkValues) => {
+    if (!module.exports.db) throw new Error("Not connected to database");
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    const safePk = `"${pkColumn.replace(/"/g, '""')}"`;
+    const placeholders = pkValues.map(() => '?').join(', ');
+    return new Promise((res, rej) => {
+      module.exports.db.run(
+        `DELETE FROM ${safeTable} WHERE ${safePk} IN (${placeholders})`, pkValues,
+        (err) => err ? rej(err) : res(true)
+      );
+    });
+  },
+
   exportToCSV: async (tableName, exportPath) => {
     if (!module.exports.db) {
       throw new Error("Not connected to database");

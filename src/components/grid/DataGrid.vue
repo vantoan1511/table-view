@@ -2,7 +2,7 @@
 import { ref, nextTick } from 'vue'
 import { useGridStore } from '@/stores/grid'
 import type { GridColumn } from '@/types'
-import { ArrowUp, ArrowDown } from 'lucide-vue-next'
+import { ArrowUp, ArrowDown, Check, X } from 'lucide-vue-next'
 import GridToolbar from './GridToolbar.vue'
 import Pagination from './Pagination.vue'
 
@@ -142,7 +142,10 @@ function getCellClass(colName: string, value: unknown): string {
                 @click.stop
               ></div>
             </th>
-          </tr>
+            <th v-if="gridStore.newRowIdx !== null" class="w-32 px-3 py-1.5 text-left font-medium text-text-primary border-r border-grid-border bg-grid-header">
+            Actions
+          </th>
+        </tr>
         </thead>
 
         <!-- Body -->
@@ -171,43 +174,76 @@ function getCellClass(colName: string, value: unknown): string {
               :key="col.name"
               class="px-3 py-1.5 text-text-primary border-r border-grid-border relative"
               :style="getColStyle(col.name)"
-              @dblclick="startEdit(rowIdx, col.name, row[col.name])"
+              @dblclick="gridStore.newRowIdx !== rowIdx && startEdit(rowIdx, col.name, row[col.name])"
             >
-              <!-- Editing Input -->
-              <div
-                v-if="editingCell?.rowIdx === rowIdx && editingCell?.colName === col.name"
-                class="absolute inset-0 bg-surface z-10 border-2 border-primary"
-              >
+              <!-- New Row Input -->
+              <template v-if="gridStore.newRowIdx === rowIdx">
                 <input
-                  :ref="setInputRef"
-                  v-model="editValue"
-                  class="w-full h-full px-2 text-[12px] font-(--font-mono) outline-none bg-transparent"
-                  @blur="saveEdit"
-                  @keydown.enter="saveEdit"
-                  @keydown.esc="cancelEdit"
+                  v-model="gridStore.newRowData[col.name]"
+                  :placeholder="col.isPrimaryKey ? '(auto)' : col.isNullable ? 'NULL' : '*Required'"
+                  class="w-full px-1.5 py-0.5 text-[12px] font-(--font-mono) border border-border rounded outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-surface transition-all"
+                  @keydown.enter="gridStore.saveNewRow"
+                  @keydown.esc="gridStore.cancelNewRow"
                 />
+              </template>
+              
+              <template v-else>
+                <!-- Editing Input -->
+                <div
+                  v-if="editingCell?.rowIdx === rowIdx && editingCell?.colName === col.name"
+                  class="absolute inset-0 bg-surface z-10 border-2 border-primary"
+                >
+                  <input
+                    :ref="setInputRef"
+                    v-model="editValue"
+                    class="w-full h-full px-2 text-[12px] font-(--font-mono) outline-none bg-transparent"
+                    @blur="saveEdit"
+                    @keydown.enter="saveEdit"
+                    @keydown.esc="cancelEdit"
+                  />
+                </div>
+
+                <!-- Status badge -->
+                <span
+                  v-else-if="getCellClass(col.name, row[col.name])"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium cursor-default"
+                  :class="{
+                    'bg-success-light text-success': row[col.name] === 'active',
+                    'bg-danger-light text-danger': row[col.name] === 'inactive',
+                  }"
+                >
+                  {{ row[col.name] }}
+                </span>
+
+                <!-- Normal value -->
+                <span
+                  v-else
+                  class="tabular-nums truncate block cursor-text select-none"
+                  :class="{ 'text-text-tertiary italic': row[col.name] === null }"
+                >
+                  {{ row[col.name] === null ? 'NULL' : row[col.name] }}
+                </span>
+              </template>
+            </td>
+
+            <!-- Actions Cell -->
+            <td v-if="gridStore.newRowIdx !== null" class="px-2 py-1.5 text-center border-r border-grid-border whitespace-nowrap">
+              <div v-if="gridStore.newRowIdx === rowIdx" class="flex items-center justify-center gap-1">
+                <button
+                  @click.stop="gridStore.saveNewRow"
+                  class="p-1 text-success hover:bg-success/10 rounded transition-colors"
+                  title="Save row"
+                >
+                  <Check :size="14" />
+                </button>
+                <button
+                  @click.stop="gridStore.cancelNewRow"
+                  class="p-1 text-danger hover:bg-danger/10 rounded transition-colors"
+                  title="Cancel"
+                >
+                  <X :size="14" />
+                </button>
               </div>
-
-              <!-- Status badge -->
-              <span
-                v-else-if="getCellClass(col.name, row[col.name])"
-                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium cursor-default"
-                :class="{
-                  'bg-success-light text-success': row[col.name] === 'active',
-                  'bg-danger-light text-danger': row[col.name] === 'inactive',
-                }"
-              >
-                {{ row[col.name] }}
-              </span>
-
-              <!-- Normal value -->
-              <span
-                v-else
-                class="tabular-nums truncate block cursor-text select-none"
-                :class="{ 'text-text-tertiary italic': row[col.name] === null }"
-              >
-                {{ row[col.name] === null ? 'NULL' : row[col.name] }}
-              </span>
             </td>
           </tr>
         </tbody>
