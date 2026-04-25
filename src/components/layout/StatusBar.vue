@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
+import * as Neutralino from '@neutralinojs/lib'
 import {
   Settings,
   RefreshCw,
@@ -10,6 +12,30 @@ import {
 
 const connectionsStore = useConnectionsStore()
 const gridStore = useGridStore()
+const isDark = ref(false)
+
+onMounted(async () => {
+  // Load saved theme preference
+  if (window.NL_PORT) {
+    try {
+      const theme = await Neutralino.storage.getData('theme')
+      if (theme === 'dark') {
+        isDark.value = true
+        document.documentElement.classList.add('dark')
+      }
+    } catch {
+      // No theme stored yet, default to light
+    }
+  }
+})
+
+async function toggleDarkMode() {
+  isDark.value = !isDark.value
+  document.documentElement.classList.toggle('dark', isDark.value)
+  if (window.NL_PORT) {
+    await Neutralino.storage.setData('theme', isDark.value ? 'dark' : 'light')
+  }
+}
 </script>
 
 <template>
@@ -22,8 +48,13 @@ const gridStore = useGridStore()
       <button class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary">
         <RefreshCw :size="13" />
       </button>
-      <button class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary">
-        <Moon :size="13" />
+      <button
+        class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary"
+        @click="toggleDarkMode"
+        :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+      >
+        <Sun v-if="isDark" :size="13" />
+        <Moon v-else :size="13" />
       </button>
     </div>
 

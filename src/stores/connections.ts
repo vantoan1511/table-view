@@ -1,49 +1,35 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Connection, ConnectionColor, DbType } from '@/types'
-
-// ─── Mock Data ──────────────────────────────────────────────────────────────
-
-const mockConnections: Connection[] = [
-  {
-    id: 'conn-1',
-    name: 'Local Postgres',
-    type: 'postgresql',
-    host: 'localhost',
-    port: 5432,
-    database: 'postgres',
-    username: 'postgres',
-    password: 'postgres',
-    color: 'indigo',
-    environment: 'development',
-    connectionTimeout: 30,
-    queryTimeout: 60,
-    applicationName: 'Table View',
-    comment: '',
-    savePassword: true,
-    isConnected: true,
-  },
-  {
-    id: 'conn-2',
-    name: 'Analytics DB',
-    type: 'postgresql',
-    host: 'analytics',
-    port: 5432,
-    database: 'analytics',
-    username: 'analytics',
-    password: '',
-    color: 'teal',
-    environment: 'production',
-    connectionTimeout: 30,
-    queryTimeout: 60,
-    applicationName: 'Table View',
-    comment: '',
-    savePassword: false,
-    isConnected: false,
-  },
-]
-
 import * as Neutralino from '@neutralinojs/lib'
+
+// ─── Simple Password Obfuscation ─────────────────────────────────────────────
+// Uses a fixed key to XOR-encode passwords before storage.
+// Not military-grade crypto, but prevents plaintext passwords on disk.
+const ENCRYPT_KEY = 'TableView2026!SecretKey'
+
+function xorCipher(input: string, key: string): string {
+  let result = ''
+  for (let i = 0; i < input.length; i++) {
+    result += String.fromCharCode(input.charCodeAt(i) ^ key.charCodeAt(i % key.length))
+  }
+  return result
+}
+
+function encryptPassword(password: string): string {
+  if (!password) return ''
+  return btoa(xorCipher(password, ENCRYPT_KEY))
+}
+
+function decryptPassword(encrypted: string): string {
+  if (!encrypted) return ''
+  try {
+    return xorCipher(atob(encrypted), ENCRYPT_KEY)
+  } catch {
+    return encrypted // If it fails, assume it's already plaintext (migration)
+  }
+}
+
 
 export const useConnectionsStore = defineStore('connections', () => {
   const connections = ref<Connection[]>([])
@@ -62,9 +48,13 @@ export const useConnectionsStore = defineStore('connections', () => {
     if (window.NL_PORT) {
       try {
         const data = await Neutralino.storage.getData('connections')
-        connections.value = JSON.parse(data)
-        // Reset all isConnected states on boot
-        connections.value.forEach(c => c.isConnected = false)
+        const loaded = JSON.parse(data) as Connection[]
+        // Decrypt passwords and reset connection states on boot
+        loaded.forEach(c => {
+          c.password = decryptPassword(c.password)
+          c.isConnected = false
+        })
+        connections.value = loaded
       } catch (err) {
         // Storage not found, initialize empty
         connections.value = []
@@ -74,7 +64,12 @@ export const useConnectionsStore = defineStore('connections', () => {
 
   async function saveConnections() {
     if (window.NL_PORT) {
-      await Neutralino.storage.setData('connections', JSON.stringify(connections.value))
+      // Encrypt passwords before persisting
+      const toSave = connections.value.map(c => ({
+        ...c,
+        password: encryptPassword(c.password)
+      }))
+      await Neutralino.storage.setData('connections', JSON.stringify(toSave))
     }
   }
 

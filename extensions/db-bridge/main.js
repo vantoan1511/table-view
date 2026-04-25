@@ -107,10 +107,10 @@ ws.on('message', async (messageData) => {
         }
       }
       else if (action === 'fetchTableData') {
-        const { reqId, tableName, limit, offset } = payload;
+        const { reqId, tableName, limit, offset, sortColumn, sortDirection } = payload;
         const driver = drivers['postgres'];
         try {
-          const result = await driver.fetchTableData(tableName, limit, offset);
+          const result = await driver.fetchTableData(tableName, limit, offset, sortColumn, sortDirection);
           broadcast('dbBridge.fetchTableDataResult', { reqId, success: true, ...result });
         } catch (error) {
           broadcast('dbBridge.fetchTableDataResult', { reqId, success: false, error: String(error.message || error) });
@@ -124,6 +124,26 @@ ws.on('message', async (messageData) => {
           broadcast('dbBridge.executeQueryResult', { reqId, success: true, ...result });
         } catch (error) {
           broadcast('dbBridge.executeQueryResult', { reqId, success: false, error: String(error.message || error) });
+        }
+      }
+      else if (action === 'updateCell') {
+        const { reqId, tableName, pkColumn, pkValue, targetColumn, newValue } = payload;
+        const driver = drivers['postgres'];
+        try {
+          await driver.updateCell(tableName, pkColumn, pkValue, targetColumn, newValue);
+          broadcast('dbBridge.updateCellResult', { reqId, success: true });
+        } catch (error) {
+          broadcast('dbBridge.updateCellResult', { reqId, success: false, error: String(error.message || error) });
+        }
+      }
+      else if (action === 'exportCSV') {
+        const { reqId, tableName, exportPath } = payload;
+        const driver = drivers['postgres'];
+        try {
+          await driver.exportToCSV(tableName, exportPath);
+          broadcast('dbBridge.exportCSVResult', { reqId, success: true });
+        } catch (error) {
+          broadcast('dbBridge.exportCSVResult', { reqId, success: false, error: String(error.message || error) });
         }
       }
     } catch (err) {

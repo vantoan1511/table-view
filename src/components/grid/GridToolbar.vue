@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useGridStore } from '@/stores/grid'
+import * as Neutralino from '@neutralinojs/lib'
 import {
   Filter,
   Columns3,
@@ -10,6 +11,43 @@ import {
 } from 'lucide-vue-next'
 
 const gridStore = useGridStore()
+
+async function handleExport() {
+  if (!gridStore.activeTableName) return
+
+  try {
+    const defaultName = `${gridStore.activeTableName}_export.csv`
+    const path = await Neutralino.os.showSaveDialog('Export as CSV', {
+      defaultPath: defaultName,
+      filters: [{ name: 'CSV files', extensions: ['csv'] }]
+    })
+
+    if (path) {
+      const reqId = Date.now().toString()
+      
+      const onResult = (evt: any) => {
+        const payload = evt.detail
+        if (payload.reqId === reqId) {
+          if (payload.success) {
+            Neutralino.os.showMessageBox('Success', 'Export completed successfully.', 'OK', 'INFO')
+          } else {
+            Neutralino.os.showMessageBox('Error', 'Failed to export: ' + payload.error, 'OK', 'ERROR')
+          }
+          Neutralino.events.off('dbBridge.exportCSVResult', onResult)
+        }
+      }
+      
+      Neutralino.events.on('dbBridge.exportCSVResult', onResult)
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.exportCSV', {
+        reqId,
+        tableName: gridStore.activeTableName,
+        exportPath: path
+      })
+    }
+  } catch (err) {
+    console.error("Export cancelled or failed", err)
+  }
+}
 </script>
 
 <template>
@@ -37,7 +75,10 @@ const gridStore = useGridStore()
       </button>
 
       <!-- Export -->
-      <button class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer">
+      <button 
+        class="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-lg text-[12px] text-text-secondary hover:bg-hover hover:border-border-strong transition-colors cursor-pointer"
+        @click="handleExport"
+      >
         <Download :size="13" />
         <span>Export</span>
         <ChevronDown :size="12" />

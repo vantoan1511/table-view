@@ -16,6 +16,12 @@ export const useGridStore = defineStore('grid', () => {
   const executionTime = ref(0)
   const activeTableName = ref('')
 
+  // Row selection state
+  const selectedRowIndices = ref<Set<number>>(new Set())
+
+  // Column widths state (column name -> width in px)
+  const columnWidths = ref<Record<string, number>>({})
+
   // SQL result state
   const sqlColumns = ref<GridColumn[]>([])
   const sqlRows = ref<GridRow[]>([])
@@ -49,7 +55,7 @@ export const useGridStore = defineStore('grid', () => {
       if (payload.reqId === reqId) {
         if (payload.success) {
           rows.value = payload.rows
-          columns.value = payload.fields.map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID) }))
+          columns.value = payload.fields.map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID), isPrimaryKey: !!f.isPrimaryKey }))
           totalRows.value = payload.totalCount
           executionTime.value = Math.round(performance.now() - startTime)
         } else {
@@ -64,7 +70,51 @@ export const useGridStore = defineStore('grid', () => {
       reqId,
       tableName,
       limit: rowsPerPage.value,
-      offset
+      offset,
+      sortColumn: sortColumn.value,
+      sortDirection: sortDirection.value
+    })
+  }
+
+  async function updateCell(rowIndex: number, column: GridColumn, newValue: any) {
+    const row = rows.value[rowIndex]
+    if (!row || !window.NL_PORT) return false
+
+    // Find the primary key column
+    const pkColumn = columns.value.find(c => c.isPrimaryKey)
+    if (!pkColumn) {
+      console.warn('Cannot update cell: No primary key found for table', activeTableName.value)
+      return false
+    }
+
+    const pkValue = row[pkColumn.name]
+    const reqId = Date.now().toString()
+
+    return new Promise<boolean>((resolve) => {
+      const onResult = (evt: any) => {
+        const payload = evt.detail
+        if (payload.reqId === reqId) {
+          if (payload.success) {
+            // Update the local reactive state
+            row[column.name] = newValue
+            resolve(true)
+          } else {
+            console.error('Failed to update cell:', payload.error)
+            resolve(false)
+          }
+          Neutralino.events.off('dbBridge.updateCellResult', onResult)
+        }
+      }
+
+      Neutralino.events.on('dbBridge.updateCellResult', onResult)
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.updateCell', {
+        reqId,
+        tableName: activeTableName.value,
+        pkColumn: pkColumn.name,
+        pkValue,
+        targetColumn: column.name,
+        newValue
+      })
     })
   }
 
@@ -81,7 +131,7 @@ export const useGridStore = defineStore('grid', () => {
         sqlExecutionTime.value = Math.round(performance.now() - startTime)
         if (payload.success) {
           sqlRows.value = payload.rows || []
-          sqlColumns.value = (payload.fields || []).map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID) }))
+          sqlColumns.value = (payload.fields || []).map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID), isPrimaryKey: !!f.isPrimaryKey }))
           sqlRowCount.value = payload.rowCount || 0
           
           sqlMessages.value.push({
@@ -107,6 +157,57 @@ export const useGridStore = defineStore('grid', () => {
     })
   }
 
+  function toggleSort(colName: string) {
+    if (sortColumn.value === colName) {
+      if (sortDirection.value === 'asc') {
+        sortDirection.value = 'desc'
+      } else if (sortDirection.value === 'desc') {
+        sortColumn.value = undefined
+        sortDirection.value = undefined
+      }
+    } else {
+      sortColumn.value = colName
+      sortDirection.value = 'asc'
+    }
+    currentPage.value = 1
+    loadTable(activeTableName.value)
+  }
+
+  function toggleRowSelection(rowIdx: number, event: MouseEvent) {
+    const newSet = new Set(selectedRowIndices.value)
+
+    if (event.shiftKey && selectedRowIndices.value.size > 0) {
+      // Range select: find the last selected index and fill between
+      const lastIdx = Math.max(...selectedRowIndices.value)
+      const start = Math.min(lastIdx, rowIdx)
+      const end = Math.max(lastIdx, rowIdx)
+      for (let i = start; i <= end; i++) {
+        newSet.add(i)
+      }
+    } else if (event.ctrlKey || event.metaKey) {
+      // Toggle individual row
+      if (newSet.has(rowIdx)) {
+        newSet.delete(rowIdx)
+      } else {
+        newSet.add(rowIdx)
+      }
+    } else {
+      // Single select
+      newSet.clear()
+      newSet.add(rowIdx)
+    }
+
+    selectedRowIndices.value = newSet
+  }
+
+  function clearSelection() {
+    selectedRowIndices.value = new Set()
+  }
+
+  function setColumnWidth(colName: string, width: number) {
+    columnWidths.value = { ...columnWidths.value, [colName]: width }
+  }
+
   return {
     columns,
     rows,
@@ -118,6 +219,8 @@ export const useGridStore = defineStore('grid', () => {
     executionTime,
     activeTableName,
     totalPages,
+    selectedRowIndices,
+    columnWidths,
     sqlColumns,
     sqlRows,
     sqlRowCount,
@@ -126,6 +229,11 @@ export const useGridStore = defineStore('grid', () => {
     setPage,
     setRowsPerPage,
     loadTable,
+    updateCell,
     runQuery,
+    toggleSort,
+    toggleRowSelection,
+    clearSelection,
+    setColumnWidth,
   }
 })

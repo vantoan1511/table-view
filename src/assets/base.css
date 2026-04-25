@@ -66,3 +66,39 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
   --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
 }
+
+/* ─── Dark Mode Overrides ──────────────────────────────────────────────────── */
+.dark {
+  --color-primary: #818CF8;
+  --color-primary-hover: #6366F1;
+  --color-primary-light: rgba(99, 102, 241, 0.15);
+
+  --color-success: #34D399;
+  --color-success-light: rgba(16, 185, 129, 0.15);
+  --color-danger: #FB7185;
+  --color-danger-light: rgba(244, 63, 94, 0.15);
+  --color-warning: #FBBF24;
+
+  --color-surface: #1E1E2E;
+  --color-sidebar: #181825;
+  --color-border: #313244;
+  --color-border-strong: #45475A;
+  --color-hover: #313244;
+  --color-active: rgba(99, 102, 241, 0.15);
+  --color-muted: #181825;
+
+  --color-text-primary: #CDD6F4;
+  --color-text-secondary: #A6ADC8;
+  --color-text-tertiary: #6C7086;
+  --color-text-inverse: #1E1E2E;
+
+  --color-grid-header: #1E1E2E;
+  --color-grid-row-alt: #181825;
+  --color-grid-row-hover: rgba(99, 102, 241, 0.08);
+  --color-grid-border: #313244;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
