@@ -6,6 +6,7 @@ import TitleBar from '@/components/layout/TitleBar.vue'
 import NewConnectionModal from '@/components/modals/NewConnectionModal.vue'
 import SqlEditor from '@/components/sql/SqlEditor.vue'
 import GlobalErrorDialog from '@/components/ui/GlobalErrorDialog.vue'
+import ToastContainer from '@/components/ui/ToastContainer.vue'
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
 import { useTabsStore } from '@/stores/tabs'
@@ -103,5 +104,6 @@ onMounted(async () => {
     <!-- Modals -->
     <NewConnectionModal />
     <GlobalErrorDialog />
+    <ToastContainer />
   </div>
 </template>

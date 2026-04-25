@@ -2,8 +2,10 @@
 import AlterTableDialog from '@/components/ui/AlterTableDialog.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useGridStore } from '@/stores/grid'
+import { useToastStore } from '@/stores/toast'
 import * as Neutralino from '@neutralinojs/lib'
 import { Icon, MessageBoxChoice } from '@neutralinojs/lib'
+
 import {
   ChevronDown,
   Columns3,
@@ -18,6 +20,7 @@ import {
 import { computed, ref } from 'vue'
 
 const gridStore = useGridStore()
+const toastStore = useToastStore()
 
 const selectedCount = computed(() => gridStore.selectedRowIndices.size)
 const showDeleteConfirm = ref(false)
@@ -51,9 +54,21 @@ async function confirmAlterTable(operations: any[]) {
     await gridStore.alterTable(gridStore.activeTableName, operations)
     gridStore.showAlterTableDialog = false
     gridStore.loadTable(gridStore.activeTableName)
-    Neutralino.os.showMessageBox('Success', 'Table altered successfully.', MessageBoxChoice.OK, Icon.INFO)
+    toastStore.addToast({
+      title: 'Table Altered',
+      message: 'Table altered successfully.',
+      severity: 'success',
+      variation: 'filled',
+      position: 'bottom-center',
+    })
   } catch (err: any) {
-    Neutralino.os.showMessageBox('Error', 'Failed to alter table: ' + err.message, MessageBoxChoice.OK, Icon.ERROR)
+    toastStore.addToast({
+      title: 'Table Alteration Failed',
+      message: err.message,
+      severity: 'error',
+      variation: 'filled',
+      position: 'bottom-center'
+    })
   }
 }
 
