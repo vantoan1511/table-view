@@ -18,7 +18,7 @@ const gridStore = useGridStore()
 const connectionsStore = useConnectionsStore()
 
 // ─── Drop Zone ────────────────────────────────────────────────────────────────
-function onDrop() {
+const onDrop = () => {
   if (tabsStore.draggingTabId) {
     tabsStore.moveTabToBottom(tabsStore.draggingTabId)
     tabsStore.draggingTabId = null
@@ -26,7 +26,7 @@ function onDrop() {
 }
 
 // ─── Bottom Panel Actions ─────────────────────────────────────────────────────
-function minimizeBottomPanel() {
+const minimizeBottomPanel = () => {
   if (tabsStore.bottomTabId) {
     const id = tabsStore.bottomTabId
     tabsStore.closeBottomPanel()

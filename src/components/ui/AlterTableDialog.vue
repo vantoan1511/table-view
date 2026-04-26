@@ -54,7 +54,7 @@ onMounted(async () => {
 
 const visibleColumns = computed(() => columns.value.filter(c => !c._deleted))
 
-function addColumn() {
+const addColumn = () => {
   columns.value.push({
     id: crypto.randomUUID(),
     name: 'new_column',
@@ -66,19 +66,19 @@ function addColumn() {
   })
 }
 
-function removeColumn(col: ColumnDef) {
+const removeColumn = (col: ColumnDef) => {
   col._deleted = true
 }
 
-function editColumn(col: ColumnDef) {
+const editColumn = (col: ColumnDef) => {
   col._editing = true
 }
 
-function saveColumn(col: ColumnDef) {
+const saveColumn = (col: ColumnDef) => {
   col._editing = false
 }
 
-async function applyChanges() {
+const applyChanges = async () => {
   const operations: any[] = []
   
   for (const col of columns.value) {

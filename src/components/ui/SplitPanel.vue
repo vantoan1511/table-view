@@ -40,7 +40,7 @@ const emit = defineEmits<{
 // ─── Resizable Divider ────────────────────────────────────────────────────────
 const containerRef = ref<HTMLElement | null>(null)
 
-function onDividerMouseDown(e: MouseEvent) {
+const onDividerMouseDown = (e: MouseEvent) => {
   e.preventDefault()
   const container = containerRef.value
   if (!container) return

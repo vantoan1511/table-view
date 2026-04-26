@@ -23,13 +23,13 @@ const activeResultTab = ref<'results' | 'messages'>('results')
 const showLimitMenu = ref(false)
 const limitMenuPos = ref({ x: 0, y: 0 })
 
-function toggleLimitMenu(e: MouseEvent) {
+const toggleLimitMenu = (e: MouseEvent) => {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   limitMenuPos.value = { x: rect.left, y: rect.bottom + 5 }
   showLimitMenu.value = !showLimitMenu.value
 }
 
-function setSqlLimit(limit: number) {
+const setSqlLimit = (limit: number) => {
   gridStore.sqlLimit = limit
   showLimitMenu.value = false
 }
@@ -41,7 +41,7 @@ const sqlCompartment = new Compartment()
  * Splits the document by semicolons, maps each statement to its
  * character range, and returns the one the cursor falls within.
  */
-function getQueryAtCursor(): string {
+const getQueryAtCursor = () : string => {
   if (!editorView) return ''
   const doc = editorView.state.doc.toString()
   const cursor = editorView.state.selection.main.head
@@ -76,7 +76,7 @@ function getQueryAtCursor(): string {
   return statements[statements.length - 1]?.text ?? ''
 }
 
-function handleRun() {
+const handleRun = () => {
   if (!editorView) return
 
   const selection = editorView.state.sliceDoc(
@@ -97,7 +97,7 @@ function handleRun() {
 onMounted(() => {
   if (!editorContainer.value) return
 
-  function buildSqlExtension() {
+  const buildSqlExtension = () => {
     // Build a schema map from current store data: { tableName: [col, col, ...] }
     const schemaMap: Record<string, string[]> = {}
     for (const table of schemaStore.schema.tables) {

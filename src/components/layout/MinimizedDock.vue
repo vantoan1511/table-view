@@ -5,11 +5,11 @@ import { LayoutGrid, X } from 'lucide-vue-next'
 
 const tabsStore = useTabsStore()
 
-function restoreTab(id: string) {
+const restoreTab = (id: string) => {
   tabsStore.restoreTab(id)
 }
 
-function closeTab(id: string) {
+const closeTab = (id: string) => {
   tabsStore.closeTab(id)
 }
 </script>

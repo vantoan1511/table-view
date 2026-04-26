@@ -25,7 +25,7 @@ const groupedToasts = computed(() => {
   return groups
 })
 
-function getPositionClass(pos: string) {
+const getPositionClass = (pos: string) => {
   switch (pos) {
     case 'top-right': return 'top-4 right-4 items-end'
     case 'top-left': return 'top-4 left-4 items-start'

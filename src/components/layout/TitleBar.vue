@@ -20,23 +20,23 @@ const showMenu = ref(false)
 const menuPos = ref({ x: 0, y: 0 })
 const menuTargetTabId = ref<string | null>(null)
 
-function onContextMenu(e: MouseEvent, tabId: string) {
+const onContextMenu = (e: MouseEvent, tabId: string) => {
   e.preventDefault()
   showMenu.value = true
   menuPos.value = { x: e.clientX, y: e.clientY }
   menuTargetTabId.value = tabId
 }
 
-function closeMenu() {
+const closeMenu = () => {
   showMenu.value = false
 }
 
-function closeTab() {
+const closeTab = () => {
   if (menuTargetTabId.value) tabsStore.closeTab(menuTargetTabId.value)
   closeMenu()
 }
 
-function closeOthers() {
+const closeOthers = () => {
   if (menuTargetTabId.value) {
     const toClose = tabsStore.tabs.filter(t => t.id !== menuTargetTabId.value).map(t => t.id)
     toClose.forEach(id => tabsStore.closeTab(id))
@@ -44,22 +44,22 @@ function closeOthers() {
   closeMenu()
 }
 
-function closeAll() {
+const closeAll = () => {
   const toClose = tabsStore.tabs.map(t => t.id)
   toClose.forEach(id => tabsStore.closeTab(id))
   closeMenu()
 }
 
-function openNewQueryConsole() {
+const openNewQueryConsole = () => {
   tabsStore.openSqlEditor()
 }
 
-function minimizeTab() {
+const minimizeTab = () => {
   if (menuTargetTabId.value) tabsStore.minimizeTab(menuTargetTabId.value)
   closeMenu()
 }
 
-function onDragStart(event: DragEvent, tabId: string) {
+const onDragStart = (event: DragEvent, tabId: string) => {
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
     // Set some data to make it draggable in Firefox, though we rely on draggingTabId
@@ -68,7 +68,7 @@ function onDragStart(event: DragEvent, tabId: string) {
   tabsStore.draggingTabId = tabId
 }
 
-function onDragEnd() {
+const onDragEnd = () => {
   tabsStore.draggingTabId = null
 }
 

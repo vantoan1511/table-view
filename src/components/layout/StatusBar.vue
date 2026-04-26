@@ -29,7 +29,7 @@ onMounted(async () => {
   }
 })
 
-async function toggleDarkMode() {
+const toggleDarkMode = async () => {
   isDark.value = !isDark.value
   document.documentElement.classList.toggle('dark', isDark.value)
   if (window.NL_PORT) {

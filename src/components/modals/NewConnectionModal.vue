@@ -84,12 +84,12 @@ const portDefaults: Partial<Record<DbType, number>> = {
 
 import * as Neutralino from '@neutralinojs/lib'
 
-function selectDbType(type: DbType) {
+const selectDbType = (type: DbType) => {
   form.type = type
   form.port = portDefaults[type] ?? 5432
 }
 
-function handleTestConnection() {
+const handleTestConnection = () => {
   testStatus.value = 'testing'
   
   if (window.NL_PORT) {
@@ -123,7 +123,7 @@ function handleTestConnection() {
   }
 }
 
-function handleSave() {
+const handleSave = () => {
   if (connectionsStore.connectionToEdit) {
     connectionsStore.updateConnection(connectionsStore.connectionToEdit.id, { ...form })
   } else {
@@ -137,7 +137,7 @@ function handleSave() {
   connectionsStore.toggleConnectionModal(false)
 }
 
-function handleClose() {
+const handleClose = () => {
   connectionsStore.toggleConnectionModal(false)
 }
 </script>

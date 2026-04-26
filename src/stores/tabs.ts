@@ -23,11 +23,11 @@ export const useTabsStore = defineStore('tabs', () => {
   const mainTabs = computed(() => tabs.value.filter(t => !t.minimized))
   const minimizedTabs = computed(() => tabs.value.filter(t => t.minimized))
 
-  function setActiveTab(id: string) {
+  const setActiveTab = (id: string) => {
     activeTabId.value = id
   }
 
-  function minimizeTab(id: string) {
+  const minimizeTab = (id: string) => {
     const tab = tabs.value.find(t => t.id === id)
     if (tab && !tab.minimized) {
       // If the tab is currently in the bottom panel, clear it
@@ -43,7 +43,7 @@ export const useTabsStore = defineStore('tabs', () => {
     }
   }
 
-  function restoreTab(id: string) {
+  const restoreTab = (id: string) => {
     const tab = tabs.value.find(t => t.id === id)
     if (tab && tab.minimized) {
       tab.minimized = false
@@ -52,7 +52,7 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   // ─── Split View Actions ─────────────────────────────────────────────────────
-  function moveTabToBottom(id: string) {
+  const moveTabToBottom = (id: string) => {
     const tab = tabs.value.find(t => t.id === id)
     if (!tab) return
 
@@ -70,18 +70,18 @@ export const useTabsStore = defineStore('tabs', () => {
     bottomTabId.value = id
   }
 
-  function closeBottomPanel() {
+  const closeBottomPanel = () => {
     bottomTabId.value = null
   }
 
-  function moveBottomToTop() {
+  const moveBottomToTop = () => {
     if (bottomTabId.value) {
       activeTabId.value = bottomTabId.value
       bottomTabId.value = null
     }
   }
 
-  function openTable(tableName: string) {
+  const openTable = (tableName: string) => {
     const existing = tabs.value.find(
       (t) => t.type === 'table' && t.tableName === tableName,
     )
@@ -99,7 +99,7 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTabId.value = tab.id
   }
 
-  function openSqlEditor() {
+  const openSqlEditor = () => {
     const tab: Tab = {
       id: `tab-sql-${Date.now()}`,
       type: 'sql',
@@ -109,7 +109,7 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTabId.value = tab.id
   }
 
-  function closeTab(id: string) {
+  const closeTab = (id: string) => {
     // If closing the bottom panel tab, clear it
     if (bottomTabId.value === id) {
       bottomTabId.value = null

@@ -6,7 +6,7 @@ import { ref } from 'vue'
 const errorStore = useErrorStore()
 const showDetails = ref(false)
 
-function handleClose() {
+const handleClose = () => {
   errorStore.clearError()
   showDetails.value = false
 }

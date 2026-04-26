@@ -8,7 +8,7 @@ import { computed, ref } from 'vue'
 // Not military-grade crypto, but prevents plaintext passwords on disk.
 const ENCRYPT_KEY = 'TableView2026!SecretKey'
 
-function xorCipher(input: string, key: string): string {
+const xorCipher = (input: string, key: string) : string => {
   let result = ''
   for (let i = 0; i < input.length; i++) {
     result += String.fromCharCode(input.charCodeAt(i) ^ key.charCodeAt(i % key.length))
@@ -16,12 +16,12 @@ function xorCipher(input: string, key: string): string {
   return result
 }
 
-function encryptPassword(password: string): string {
+const encryptPassword = (password: string) : string => {
   if (!password) return ''
   return btoa(xorCipher(password, ENCRYPT_KEY))
 }
 
-function decryptPassword(encrypted: string): string {
+const decryptPassword = (encrypted: string) : string => {
   if (!encrypted) return ''
   try {
     return xorCipher(atob(encrypted), ENCRYPT_KEY)
@@ -44,7 +44,7 @@ export const useConnectionsStore = defineStore('connections', () => {
     connections.value.filter((c) => c.isConnected),
   )
 
-  async function loadConnections() {
+  const loadConnections = async () => {
     if (window.NL_PORT) {
       try {
         const data = await Neutralino.storage.getData('connections')
@@ -62,7 +62,7 @@ export const useConnectionsStore = defineStore('connections', () => {
     }
   }
 
-  async function saveConnections() {
+  const saveConnections = async () => {
     if (window.NL_PORT) {
       // Encrypt passwords before persisting
       const toSave = connections.value.map(c => ({
@@ -73,7 +73,7 @@ export const useConnectionsStore = defineStore('connections', () => {
     }
   }
 
-  async function setActiveConnection(id: string): Promise<any> {
+  const setActiveConnection = async (id: string) : Promise<any> => {
     const previousActiveConnection = activeConnection.value
     activeConnectionId.value = id
     // Connect to the actual database using the db-bridge
@@ -115,12 +115,12 @@ export const useConnectionsStore = defineStore('connections', () => {
     }
   }
 
-  async function addConnection(conn: Connection) {
+  const addConnection = async (conn: Connection) => {
     connections.value.push(conn)
     await saveConnections()
   }
 
-  async function removeConnection(id: string) {
+  const removeConnection = async (id: string) => {
     connections.value = connections.value.filter((c) => c.id !== id)
     if (activeConnectionId.value === id) {
       activeConnectionId.value = connections.value[0]?.id ?? null
@@ -130,16 +130,16 @@ export const useConnectionsStore = defineStore('connections', () => {
 
   const connectionToEdit = ref<Connection | null>(null)
 
-  function toggleConnectionModal(show?: boolean, conn?: Connection) {
+  const toggleConnectionModal = (show?: boolean, conn?: Connection) => {
     showNewConnectionModal.value = show ?? !showNewConnectionModal.value
     connectionToEdit.value = conn ?? null
   }
 
-  function generateId(): string {
+  const generateId = () : string => {
     return `conn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   }
 
-  async function updateConnection(id: string, updates: Partial<Connection>) {
+  const updateConnection = async (id: string, updates: Partial<Connection>) => {
     const conn = connections.value.find(c => c.id === id)
     if (conn) {
       Object.assign(conn, updates)

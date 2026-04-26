@@ -19,7 +19,7 @@ export interface ToastOptions {
 export const useToastStore = defineStore('toast', () => {
   const toasts = ref<ToastOptions[]>([])
 
-  function addToast(options: Omit<ToastOptions, 'id'>) {
+  const addToast = (options: Omit<ToastOptions, 'id'>) => {
     const id = crypto.randomUUID()
     const toast: ToastOptions = {
       id,
@@ -39,14 +39,14 @@ export const useToastStore = defineStore('toast', () => {
     return id
   }
 
-  function removeToast(id: string) {
+  const removeToast = (id: string) => {
     const idx = toasts.value.findIndex(t => t.id === id)
     if (idx !== -1) {
       toasts.value.splice(idx, 1)
     }
   }
 
-  function clearAll() {
+  const clearAll = () => {
     toasts.value = []
   }
 

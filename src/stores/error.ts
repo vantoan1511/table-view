@@ -6,7 +6,7 @@ export const useErrorStore = defineStore('error', () => {
   const message = ref('')
   const details = ref('')
 
-  function showError(msg: string, det?: string | Error | unknown) {
+  const showError = (msg: string, det?: string | Error | unknown) => {
     message.value = msg
     if (det instanceof Error) {
       details.value = det.stack || det.message
@@ -24,7 +24,7 @@ export const useErrorStore = defineStore('error', () => {
     show.value = true
   }
 
-  function clearError() {
+  const clearError = () => {
     show.value = false
     message.value = ''
     details.value = ''

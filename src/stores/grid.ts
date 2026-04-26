@@ -33,18 +33,18 @@ export const useGridStore = defineStore('grid', () => {
 
   const totalPages = computed(() => Math.max(1, Math.ceil(totalRows.value / rowsPerPage.value)))
 
-  function setPage(page: number) {
+  const setPage = (page: number) => {
     currentPage.value = page
     loadTable(activeTableName.value)
   }
 
-  function setRowsPerPage(count: number) {
+  const setRowsPerPage = (count: number) => {
     rowsPerPage.value = count
     currentPage.value = 1
     loadTable(activeTableName.value)
   }
 
-  async function loadTable(tableName: string) {
+  const loadTable = async (tableName: string) => {
     if (activeTableName.value === tableName) {
       sortColumn.value = undefined
       sortDirection.value = undefined
@@ -86,7 +86,7 @@ export const useGridStore = defineStore('grid', () => {
     })
   }
 
-  async function updateCell(rowIndex: number, column: GridColumn, newValue: any) {
+  const updateCell = async (rowIndex: number, column: GridColumn, newValue: any) => {
     const row = rows.value[rowIndex]
     if (!row || !window.NL_PORT) return false
 
@@ -128,7 +128,7 @@ export const useGridStore = defineStore('grid', () => {
     })
   }
 
-  async function runQuery(sql: string) {
+  const runQuery = async (sql: string) => {
     if (!sql || !window.NL_PORT) return
 
     const reqId = Date.now().toString()
@@ -167,7 +167,7 @@ export const useGridStore = defineStore('grid', () => {
     })
   }
 
-  function toggleSort(colName: string) {
+  const toggleSort = (colName: string) => {
     if (sortColumn.value === colName) {
       if (sortDirection.value === 'asc') {
         sortDirection.value = 'desc'
@@ -183,7 +183,7 @@ export const useGridStore = defineStore('grid', () => {
     loadTable(activeTableName.value)
   }
 
-  function toggleRowSelection(rowIdx: number, event: MouseEvent) {
+  const toggleRowSelection = (rowIdx: number, event: MouseEvent) => {
     const newSet = new Set(selectedRowIndices.value)
 
     if (event.shiftKey && selectedRowIndices.value.size > 0) {
@@ -214,7 +214,7 @@ export const useGridStore = defineStore('grid', () => {
     selectedRowIndices.value = newSet
   }
 
-  function toggleSelectAllRows() {
+  const toggleSelectAllRows = () => {
     if (selectedRowIndices.value.size === rows.value.length) {
       clearSelection()
     } else {
@@ -222,11 +222,11 @@ export const useGridStore = defineStore('grid', () => {
     }
   }
 
-  function clearSelection() {
+  const clearSelection = () => {
     selectedRowIndices.value = new Set()
   }
 
-  function selectAllRows() {
+  const selectAllRows = () => {
     const newSet = new Set<number>()
     for (let i = 0; i < rows.value.length; i++) {
       newSet.add(i)
@@ -234,7 +234,7 @@ export const useGridStore = defineStore('grid', () => {
     selectedRowIndices.value = newSet
   }
 
-  function setColumnWidth(colName: string, width: number) {
+  const setColumnWidth = (colName: string, width: number) => {
     columnWidths.value = { ...columnWidths.value, [colName]: width }
   }
 
@@ -242,7 +242,7 @@ export const useGridStore = defineStore('grid', () => {
   const newRowIdx = ref<number | null>(null)
   const newRowData = ref<Record<string, string>>({})
 
-  function createNewRow() {
+  const createNewRow = () => {
     // Insert a placeholder row at the top
     const placeholder: GridRow = {}
     // Fill placeholder with empty strings for each column
@@ -261,7 +261,7 @@ export const useGridStore = defineStore('grid', () => {
     newRowData.value = data
   }
 
-  function cancelNewRow() {
+  const cancelNewRow = () => {
     if (newRowIdx.value === null) return
     // Remove the temporary row
     rows.value.splice(newRowIdx.value, 1)
@@ -273,11 +273,11 @@ export const useGridStore = defineStore('grid', () => {
   const showAlterTableDialog = ref(false)
   const columnVisibility = ref<Record<string, boolean>>({})
 
-  function toggleColumnVisibility(colName: string) {
+  const toggleColumnVisibility = (colName: string) => {
     columnVisibility.value[colName] = !columnVisibility.value[colName]
   }
 
-  async function saveNewRow() {
+  const saveNewRow = async () => {
     if (newRowIdx.value === null) return
     try {
       // Filter out empty strings so the DB can apply default values (e.g. for Serial PKs)
@@ -313,7 +313,7 @@ export const useGridStore = defineStore('grid', () => {
   }
 
   // Internal DB insertion (used by saveNewRow and legacy calls)
-  async function insertRowToDB(data: Record<string, string> = {}): Promise<GridRow> {
+  const insertRowToDB = async (data: Record<string, string> = {}) : Promise<GridRow> => {
     return new Promise((resolve, reject) => {
       if (!window.NL_PORT) return resolve({})
       const reqId = Date.now().toString()
@@ -339,11 +339,11 @@ export const useGridStore = defineStore('grid', () => {
   }
 
   // Backwards‑compatible wrapper used by UI (old call)
-  async function insertRow(data: Record<string, string> = {}): Promise<void> {
+  const insertRow = async (data: Record<string, string> = {}) : Promise<void> => {
     await insertRowToDB(data)
   }
 
-  function deleteRows(indices: number[]): Promise<void> {
+  const deleteRows = (indices: number[]) : Promise<void> => {
     return new Promise((resolve, reject) => {
       if (!window.NL_PORT) return resolve()
       const pkCol = columns.value.find(c => c.isPrimaryKey)
@@ -380,7 +380,7 @@ export const useGridStore = defineStore('grid', () => {
     })
   }
 
-  function getTableColumns(tableName: string): Promise<any[]> {
+  const getTableColumns = (tableName: string) : Promise<any[]> => {
     return new Promise((resolve, reject) => {
       if (!window.NL_PORT) return resolve([])
       const reqId = Date.now().toString()
@@ -396,7 +396,7 @@ export const useGridStore = defineStore('grid', () => {
     })
   }
 
-  function alterTable(tableName: string, operations: any[]): Promise<void> {
+  const alterTable = (tableName: string, operations: any[]) : Promise<void> => {
     return new Promise((resolve, reject) => {
       if (!window.NL_PORT) return resolve()
       const reqId = Date.now().toString()

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import { useGridStore } from '@/stores/grid'
-import { ArrowDown, ArrowUp, Check, X } from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, Check, X, Plus, Trash2, Wrench, RefreshCw } from 'lucide-vue-next'
 import { nextTick, ref } from 'vue'
 import GridToolbar from './GridToolbar.vue'
 import Pagination from './Pagination.vue'
@@ -13,11 +13,11 @@ const editingCell = ref<{ rowIdx: number; colName: string } | null>(null)
 const editValue = ref<any>('')
 const inputRef = ref<HTMLInputElement | null>(null)
 
-function setInputRef(el: any) {
+const setInputRef = (el: any) => {
   if (el) inputRef.value = el
 }
 
-function startEdit(rowIdx: number, colName: string, value: any) {
+const startEdit = (rowIdx: number, colName: string, value: any) => {
   const col = gridStore.columns.find((c) => c.name === colName)
   if (col?.isPrimaryKey) return
   editingCell.value = { rowIdx, colName }
@@ -28,7 +28,7 @@ function startEdit(rowIdx: number, colName: string, value: any) {
   })
 }
 
-async function saveEdit() {
+const saveEdit = async () => {
   if (!editingCell.value) return
   const { rowIdx, colName } = editingCell.value
   const column = gridStore.columns.find((c) => c.name === colName)
@@ -39,14 +39,14 @@ async function saveEdit() {
   editingCell.value = null
 }
 
-function cancelEdit() {
+const cancelEdit = () => {
   editingCell.value = null
 }
 
 // ─── Column Resizing ───────────────────────────────────────────────────────
 const resizing = ref<{ colName: string; startX: number; startWidth: number } | null>(null)
 
-function onResizeStart(colName: string, event: MouseEvent) {
+const onResizeStart = (colName: string, event: MouseEvent) => {
   event.preventDefault()
   event.stopPropagation()
   const th = (event.target as HTMLElement).closest('th')
@@ -71,14 +71,14 @@ function onResizeStart(colName: string, event: MouseEvent) {
   document.addEventListener('mouseup', onMouseUp)
 }
 
-function getColStyle(colName: string) {
+const getColStyle = (colName: string) => {
   const w = gridStore.columnWidths[colName]
   if (w) return { width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px` }
   return { minWidth: '120px' }
 }
 
 // ─── Status badge helper ───────────────────────────────────────────────────
-function getCellClass(colName: string, value: unknown): string {
+const getCellClass = (colName: string, value: unknown) : string => {
   if (colName === 'status') {
     if (value === 'active') return 'status-active'
     if (value === 'inactive') return 'status-inactive'
@@ -87,7 +87,7 @@ function getCellClass(colName: string, value: unknown): string {
 }
 
 // ─── Data Type helper ──────────────────────────────────────────────────────
-function formatDataType(dt: string): string {
+const formatDataType = (dt: string) : string => {
   const pgOids: Record<string, string> = {
     '16': 'boolean',
     '17': 'bytea',
@@ -114,7 +114,7 @@ function formatDataType(dt: string): string {
 // ─── Context Menu ──────────────────────────────────────────────────────────
 const contextMenu = ref({ show: false, x: 0, y: 0, rowIdx: -1 })
 
-function onContextMenu(event: MouseEvent, rowIdx: number) {
+const onContextMenu = (event: MouseEvent, rowIdx: number) => {
   event.preventDefault()
 
   // Keep the menu fully on-screen
@@ -135,13 +135,13 @@ function onContextMenu(event: MouseEvent, rowIdx: number) {
   }
 }
 
-function closeContextMenu() {
+const closeContextMenu = () => {
   if (contextMenu.value.show) {
     contextMenu.value.show = false
   }
 }
 
-function handleContextAction(action: string) {
+const handleContextAction = (action: string) => {
   closeContextMenu()
   if (action === 'addRow') {
     gridStore.createNewRow()

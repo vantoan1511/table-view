@@ -20,11 +20,11 @@ const expandedSections = ref<Record<string, boolean>>({
   schemas: false,
 })
 
-function toggleSection(key: string) {
+const toggleSection = (key: string) => {
   expandedSections.value[key] = !expandedSections.value[key]
 }
 
-function handleTableClick(tableName: string) {
+const handleTableClick = (tableName: string) => {
   tabsStore.openTable(tableName)
 }
 </script>

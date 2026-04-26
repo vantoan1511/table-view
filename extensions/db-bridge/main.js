@@ -40,7 +40,7 @@ const drivers = {
 };
 
 // Lazy load other drivers when needed to keep startup fast
-function getDriver(type) {
+const getDriver = (type) => {
   if (type === 'postgres') type = 'postgresql'; // normalization
   if (!drivers[type]) {
     try {
@@ -59,7 +59,7 @@ const WS_URL = `ws://localhost:${authInfo.nlPort}?extensionId=${authInfo.nlExtId
 const ws = new WebSocket(WS_URL);
 
 // Helper to send messages back to the Vue app
-function broadcast(event, data) {
+const broadcast = (event, data) => {
   if (ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       id: crypto.randomUUID(),

@@ -23,7 +23,7 @@
   "extensions": [
     {
       "id": "com.github.vantoan1511.table-view.db-bridge",
-      "command": "node ${NL_PATH}/extensions/db-bridge/main.js"
+      "command": "${NL_PATH}\\extensions\\db-bridge\\db-bridge.exe"
     }
   ],
   "modes": {

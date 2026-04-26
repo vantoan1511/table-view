@@ -45,35 +45,35 @@ watch(() => gridStore.columns, (cols) => {
   })
 }, { immediate: true })
 
-function toggleColumnsMenu(e: MouseEvent) {
+const toggleColumnsMenu = (e: MouseEvent) => {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   columnsMenuPos.value = { x: rect.left, y: rect.bottom + 5 }
   showColumnsMenu.value = !showColumnsMenu.value
 }
 
-function toggleRowsMenu(e: MouseEvent) {
+const toggleRowsMenu = (e: MouseEvent) => {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   rowsMenuPos.value = { x: rect.left, y: rect.bottom + 5 }
   showRowsMenu.value = !showRowsMenu.value
 }
 
-function setRowsPerPage(count: number) {
+const setRowsPerPage = (count: number) => {
   gridStore.setRowsPerPage(count)
   showRowsMenu.value = false
 }
 
 // ─── Add Row Inline ────────────────────────────────────────────────────────
-async function handleInsert() {
+const handleInsert = async () => {
   gridStore.createNewRow()
 }
 
 // ─── Delete Confirmation ──────────────────────────────────────────────────────
-function promptDelete() {
+const promptDelete = () => {
   if (selectedCount.value === 0) return
   showDeleteConfirm.value = true
 }
 
-async function confirmDelete() {
+const confirmDelete = async () => {
   showDeleteConfirm.value = false
   try {
     await gridStore.deleteRows([...gridStore.selectedRowIndices])
@@ -82,7 +82,7 @@ async function confirmDelete() {
   }
 }
 
-async function confirmAlterTable(operations: any[]) {
+const confirmAlterTable = async (operations: any[]) => {
   if (operations.length === 0) {
     gridStore.showAlterTableDialog = false
     return
@@ -109,7 +109,7 @@ async function confirmAlterTable(operations: any[]) {
   }
 }
 
-async function handleExport() {
+const handleExport = async () => {
   if (!gridStore.activeTableName) return
 
   try {

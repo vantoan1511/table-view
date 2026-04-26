@@ -64,15 +64,15 @@ export const useSchemaStore = defineStore('schema', () => {
     )
   })
 
-  function setFilter(query: string) {
+  const setFilter = (query: string) => {
     filterQuery.value = query
   }
 
-  function setSelectedSchema(s: string) {
+  const setSelectedSchema = (s: string) => {
     selectedSchema.value = s
   }
 
-  async function loadSchema() {
+  const loadSchema = async () => {
     if (window.NL_PORT) {
       const reqId = Date.now().toString()
       
@@ -81,9 +81,9 @@ export const useSchemaStore = defineStore('schema', () => {
         if (payload.reqId === reqId) {
           if (payload.success) {
             schema.value = {
-              tables: payload.schema.tables.map((t: any) => ({ name: t.name, schema: 'public' })),
-              views: payload.schema.views.map((v: any) => ({ name: v.name, schema: 'public' })),
-              functions: payload.schema.functions.map((f: any) => ({ name: f.name, schema: 'public', returnType: 'unknown' })),
+              tables: (payload.schema.tables || []).map((t: any) => ({ name: t.name, schema: 'public' })),
+              views: (payload.schema.views || []).map((v: any) => ({ name: v.name, schema: 'public' })),
+              functions: (payload.schema.functions || []).map((f: any) => ({ name: f.name, schema: 'public', returnType: 'unknown' })),
               schemas: ['public']
             }
           } else {

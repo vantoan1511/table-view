@@ -14,13 +14,13 @@ const emit = defineEmits<{
 
 const menuRef = ref<HTMLElement | null>(null)
 
-function handleClickOutside(e: MouseEvent) {
+const handleClickOutside = (e: MouseEvent) => {
   if (props.show && menuRef.value && !menuRef.value.contains(e.target as Node)) {
     emit('close')
   }
 }
 
-function handleEscape(e: KeyboardEvent) {
+const handleEscape = (e: KeyboardEvent) => {
   if (props.show && e.key === 'Escape') {
     emit('close')
   }

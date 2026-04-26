@@ -52,14 +52,14 @@ const handleSelectConnection = (id: string) => {
   })
 }
 
-function closeContextMenu() {
+const closeContextMenu = () => {
   if (contextMenu.value.show) {
     contextMenu.value.show = false
     contextMenu.value.connId = null
   }
 }
 
-function handleContextAction(action: string) {
+const handleContextAction = (action: string) => {
   const id = contextMenu.value.connId
   closeContextMenu()
   if (!id) return
@@ -90,7 +90,7 @@ function handleContextAction(action: string) {
   }
 }
 
-function confirmDelete() {
+const confirmDelete = () => {
   if (!idToDelete.value) return
   const id = idToDelete.value
   const idx = connectionsStore.connections.findIndex(c => c.id === id)
@@ -110,7 +110,7 @@ function confirmDelete() {
   idToDelete.value = null
 }
 
-function onContextMenu(event: MouseEvent, id: string) {
+const onContextMenu = (event: MouseEvent, id: string) => {
   event.preventDefault()
   event.stopPropagation() // Prevent immediate close from document contextmenu listener
 

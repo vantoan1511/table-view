@@ -3,7 +3,7 @@ import { useGridStore } from '@/stores/grid'
 
 const gridStore = useGridStore()
 
-function getCellClass(colName: string, value: unknown): string {
+const getCellClass = (colName: string, value: unknown) : string => {
   if (colName === 'status') {
     if (value === 'active') return 'status-active'
     if (value === 'inactive') return 'status-inactive'
