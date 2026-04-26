@@ -36,7 +36,6 @@ jobs:
       - name: Install Tools
         run: |
           npm install -g @neutralinojs/neu
-          npm install -g rcedit
 
       - name: Build Go Extension (Windows)
         shell: bash
@@ -49,7 +48,7 @@ jobs:
 
       - name: Fix Windows Executable Icon
         run: |
-          rcedit "dist/table-view/table-view-win_x64.exe" --set-icon "public/favicon.ico"
+          npx rcedit "dist/table-view/table-view-win_x64.exe" --set-icon "public/favicon.ico"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
