@@ -48,6 +48,7 @@ jobs:
 
       - name: Fix Windows Executable Icon
         run: |
+          npm install rcedit --no-save
           npx rcedit "dist/table-view/table-view-win_x64.exe" --set-icon "public/favicon.ico"
 
       - name: Create GitHub Release
