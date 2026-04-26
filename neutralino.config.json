@@ -18,7 +18,9 @@
     "storage.*",
     "extensions.*",
     "events.*",
-    "window.*"
+    "window.*",
+    "updater.*",
+    "app.restartProcess"
   ],
   "extensions": [
     {

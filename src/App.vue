@@ -8,6 +8,7 @@ import SplitPanel from '@/components/ui/SplitPanel.vue'
 import NewConnectionModal from '@/components/modals/NewConnectionModal.vue'
 import GlobalErrorDialog from '@/components/ui/GlobalErrorDialog.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
+import UpdaterDialog from '@/components/ui/UpdaterDialog.vue'
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
 import { useTabsStore } from '@/stores/tabs'
@@ -131,5 +132,6 @@ onMounted(async () => {
     <NewConnectionModal />
     <GlobalErrorDialog />
     <ToastContainer />
+    <UpdaterDialog />
   </div>
 </template>

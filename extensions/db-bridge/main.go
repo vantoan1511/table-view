@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -98,6 +100,7 @@ func main() {
 			Data          map[string]interface{}   `json:"data"`
 			PKValues      []interface{}            `json:"pkValues"`
 			Operations    []drivers.AlterOperation `json:"operations"`
+			DownloadUrl   string                   `json:"downloadUrl"`
 		}
 
 		if err := json.Unmarshal(msg.Data, &payload); err != nil {
@@ -181,9 +184,54 @@ func main() {
 			case "alterTable":
 				err := activeDriver.AlterTable(payload.TableName, payload.Operations)
 				handleResult(b, "dbBridge.alterTableResult", payload.ReqId, nil, err)
+
+			case "updateExtension":
+				err := updateSelf(payload.DownloadUrl)
+				handleResult(b, "dbBridge.updateExtensionResult", payload.ReqId, nil, err)
 			}
 		}()
 	})
+}
+
+func updateSelf(url string) error {
+	log.Printf("Starting extension update from: %s\n", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	exePath, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	oldPath := exePath + ".old"
+	// Rename current exe to .old (works on Windows while running)
+	// Ignore error if .old already exists or use Remove first
+	os.Remove(oldPath)
+	if err := os.Rename(exePath, oldPath); err != nil {
+		return err
+	}
+
+	out, err := os.Create(exePath)
+	if err != nil {
+		// Try to restore if create fails
+		os.Rename(oldPath, exePath)
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	// On Unix-like systems, ensure it's executable
+	os.Chmod(exePath, 0755)
+
+	log.Println("Extension updated successfully. Ready for restart.")
+	return nil
 }
 
 func getDriver(driverType string) drivers.DatabaseDriver {

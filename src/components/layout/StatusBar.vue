@@ -2,16 +2,20 @@
 import { ref, onMounted } from 'vue'
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
+import { useUpdaterStore } from '@/stores/updater'
 import * as Neutralino from '@neutralinojs/lib'
 import {
   Settings,
   RefreshCw,
   Moon,
-  Sun
+  Sun,
+  ArrowUpCircle,
+  Loader2
 } from 'lucide-vue-next'
 
 const connectionsStore = useConnectionsStore()
 const gridStore = useGridStore()
+const updaterStore = useUpdaterStore()
 const isDark = ref(false)
 
 onMounted(async () => {
@@ -45,8 +49,13 @@ const toggleDarkMode = async () => {
       <button class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary">
         <Settings :size="13" />
       </button>
-      <button class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary">
-        <RefreshCw :size="13" />
+      <button class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary"
+        @click="updaterStore.checkForUpdates(true)"
+        :title="updaterStore.isChecking ? 'Checking for updates...' : 'Check for updates'"
+      >
+        <Loader2 v-if="updaterStore.isChecking" :size="13" class="animate-spin" />
+        <ArrowUpCircle v-else-if="updaterStore.updateAvailable" :size="13" class="text-primary" />
+        <RefreshCw v-else :size="13" />
       </button>
       <button
         class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary"
