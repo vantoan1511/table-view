@@ -2,7 +2,7 @@
   "applicationId": "com.github.vantoan1511.table-view",
   "applicationName": "Table View",
   "author": "Toan Nguyen",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "defaultMode": "window",
   "documentRoot": "/build/",
   "url": "/",
