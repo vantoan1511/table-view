@@ -29,7 +29,7 @@
 - **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
 - **Icons**: [Lucide Vue Next](https://lucide.dev/)
 - **Editor**: [CodeMirror 6](https://codemirror.net/)
-- **Backend Bridge**: Node.js based Neutralino extension for database drivers (pg, mysql2, sqlite3).
+- **Backend Bridge**: High-performance Go-based Neutralino extension for database drivers (pgx, mysql, modernc-sqlite).
 
 ## 🚀 Getting Started
 
@@ -73,7 +73,7 @@ The binaries will be available in the `dist/` directory.
   - `stores/`: Pinia state management modules.
   - `assets/`: Global styles and static assets.
 - `extensions/`: Neutralino extensions.
-  - `db-bridge/`: The core database connector running as a Node.js process.
+  - `db-bridge/`: The core database connector written in Go.
 - `neutralino.config.json`: Neutralino application configuration.
 
 ## 📄 License
