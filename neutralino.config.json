@@ -36,7 +36,7 @@
       "minWidth": 640,
       "minHeight": 480,
       "center": true,
-      "icon": "/favicon.ico",
+      "icon": "/public/favicon.ico",
       "enableInspector": false
     }
   },
