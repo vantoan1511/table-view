@@ -2,7 +2,7 @@
 
 **Table View** is a lightweight, high-performance desktop database management tool built with [NeutralinoJS](https://neutralino.js.org/) and [Vue 3](https://vuejs.org/). It provides a unified interface to browse, edit, and manage multiple database types (PostgreSQL, MySQL, SQLite) with a focus on speed and a premium user experience.
 
-![Table View Preview](https://raw.githubusercontent.com/vantoan1511/table-view/main/screenshots/preview.png)
+![Table View Preview](screenshots/preview.png)
 
 ## ✨ Features
 
