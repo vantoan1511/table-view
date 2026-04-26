@@ -32,6 +32,7 @@ All core database management features are functional. The application has a robu
 - [x] Setup GitHub Actions for automated building and releasing.
 - [x] Implement automated `manifest.json` updates in the CI pipeline.
 - [x] Configure automated release asset zipping (`neu build --release`).
+- [x] Implement structured `CHANGELOG.md` following Keep a Changelog.
 
 ## Upcoming Tasks
 
