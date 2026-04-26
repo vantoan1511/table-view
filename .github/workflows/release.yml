@@ -49,7 +49,7 @@ jobs:
       - name: Fix Windows Executable Icon
         run: |
           npm install rcedit --no-save
-          npx rcedit "dist/table-view/table-view-win_x64.exe" --set-icon "public/favicon.ico"
+          node -e "require('rcedit')('dist/table-view/table-view-win_x64.exe', { icon: 'public/favicon.ico' }).then(() => console.log('Icon updated successfully')).catch(err => { console.error(err); process.exit(1); })"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
