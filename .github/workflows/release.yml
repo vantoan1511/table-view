@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       contents: write
 
@@ -33,16 +33,23 @@ jobs:
       - name: Install Dependencies
         run: npm install --no-fund --no-audit --legacy-peer-deps
 
-      - name: Install Neutralino CLI
-        run: npm install -g @neutralinojs/neu
+      - name: Install Tools
+        run: |
+          npm install -g @neutralinojs/neu
+          npm install -g rcedit
 
       - name: Build Go Extension (Windows)
+        shell: bash
         run: |
           cd extensions/db-bridge
           GOOS=windows GOARCH=amd64 go build -o db-bridge.exe ./main.go
 
       - name: Build Application (Neutralino)
         run: neu build --release
+
+      - name: Fix Windows Executable Icon
+        run: |
+          rcedit "dist/table-view/table-view-win_x64.exe" --set-icon "public/favicon.ico"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -54,6 +61,7 @@ jobs:
           generate_release_notes: true
 
       - name: Update manifest.json and Auto-Update Assets on Main
+        shell: bash
         run: |
           # Extract version from tag or config
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
@@ -64,8 +72,8 @@ jobs:
           
           echo "Updating manifest to version $VERSION"
           
-          # Use jq to update the version in manifest.json
-          jq ".version = \"$VERSION\"" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json
+          # Use node to update manifest.json (since jq might not be on windows by default)
+          node -e "const fs = require('fs'); const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8')); manifest.version = '$VERSION'; fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));"
           
           # Copy resources.neu to root for auto-updater
           cp dist/table-view/resources.neu resources.neu
