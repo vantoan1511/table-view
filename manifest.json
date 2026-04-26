@@ -1,6 +1,6 @@
 {
   "applicationId": "com.github.vantoan1511.tableview",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "resourcesURL": "https://raw.githubusercontent.com/vantoan1511/table-view/main/resources.neu",
   "data": {
     "extensionUrl": "https://raw.githubusercontent.com/vantoan1511/table-view/main/extensions/db-bridge/db-bridge.exe",
