@@ -42,7 +42,9 @@
   "cli": {
     "binaryName": "table-view",
     "resourcesPath": "/build/",
+    "resourcesExclude" : ".*\\.ts$|.*\\.tsx$|.*\\.map$",
     "extensionsPath": "/extensions/",
+    "extensionsExclude" : "^(?!.*\\.exe$).*",
     "binaryVersion": "6.5.0",
     "clientVersion": "6.5.0",
     "frontendLibrary": {
