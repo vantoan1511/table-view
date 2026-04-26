@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-04-26
+
 ### Added
 - New agent skill: `changelog-automation` for structured change tracking.
 - New agent rule: `changelog.md` to mandate enriched release notes.
