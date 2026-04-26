@@ -22,7 +22,7 @@ export const useUpdaterStore = defineStore('updater', () => {
   const updateStatus = ref('')
   const error = ref<string | null>(null)
 
-  const MANIFEST_URL = 'https://raw.githubusercontent.com/vantoan1511/table-view/main/manifest.json'
+  const MANIFEST_URL = 'https://cdn.jsdelivr.net/gh/vantoan1511/table-view@main/manifest.json'
 
   const init = async () => {
     // Cleanup old extension binaries from previous updates
@@ -50,7 +50,10 @@ export const useUpdaterStore = defineStore('updater', () => {
 
     try {
       // 1. Check manifest
+      console.log('App ID:', window.NL_APPID)
+      console.log('Checking for updates at:', MANIFEST_URL)
       const manifest = await Neutralino.updater.checkForUpdates(MANIFEST_URL) as UpdateManifest
+      console.log('Manifest received:', manifest)
 
       const currentAppVersion = window.NL_APPVERSION
       const currentExtVersion = localStorage.getItem('db_extension_version') || '0.0.0'

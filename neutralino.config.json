@@ -1,5 +1,5 @@
 {
-  "applicationId": "com.github.vantoan1511.table-view",
+  "applicationId": "com.github.vantoan1511.tableview",
   "applicationName": "Table View",
   "author": "Toan Nguyen",
   "version": "0.0.2",
@@ -37,8 +37,7 @@
       "minHeight": 480,
       "center": true,
       "icon": "/public/favicon.ico",
-      "enableInspector": false,
-      "openInspectorOnStartup": false
+      "enableInspector": false
     }
   },
   "cli": {
