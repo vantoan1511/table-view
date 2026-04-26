@@ -42,18 +42,13 @@ jobs:
           GOOS=windows GOARCH=amd64 go build -o db-bridge.exe ./main.go
 
       - name: Build Application (Neutralino)
-        run: neu build
-
-      - name: Zip Release Assets
-        run: |
-          cd dist/table-view
-          zip -r ../../table-view-release.zip ./*
+        run: neu build --release
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            table-view-release.zip
+            dist/**/*.zip
             dist/table-view/resources.neu
             extensions/db-bridge/db-bridge.exe
           generate_release_notes: true
