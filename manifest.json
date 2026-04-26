@@ -1,12 +1,1 @@
-{
-  "applicationId": "com.github.vantoan1511.table-view",
-  "version": "0.0.2",
-  "resourcesURL": "https://github.com/vantoan1511/table-view/releases/latest/download/resources.neu",
-  "data": {
-    "extensionVersion": "0.0.1",
-    "extensionUrlWin": "https://github.com/vantoan1511/table-view/releases/latest/download/db-bridge-win.exe",
-    "extensionUrlMac": "https://github.com/vantoan1511/table-view/releases/latest/download/db-bridge-mac",
-    "extensionUrlLinux": "https://github.com/vantoan1511/table-view/releases/latest/download/db-bridge-linux",
-    "releaseNotes": "Initial release with Go-based backend bridge."
-  }
-}
+{"applicationId":"com.github.vantoan1511.table-view","version":"0.0.2","resourcesURL":"https://github.com/vantoan1511/table-view/releases/latest/download/resources.neu","data":{"extensionVersion":"0.0.1","extensionUrlWin":"https://github.com/vantoan1511/table-view/releases/latest/download/db-bridge-win.exe","extensionUrlMac":"https://github.com/vantoan1511/table-view/releases/latest/download/db-bridge-mac","extensionUrlLinux":"https://github.com/vantoan1511/table-view/releases/latest/download/db-bridge-linux","releaseNotes":"Initial release with Go-based backend bridge."}}
