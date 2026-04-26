@@ -7,10 +7,7 @@ export interface UpdateManifest {
   version: string
   resourcesURL: string
   data: {
-    extensionVersion: string
-    extensionUrlWin: string
-    extensionUrlMac: string
-    extensionUrlLinux: string
+    extensionUrl: string
     releaseNotes?: string
   }
 }
@@ -22,7 +19,7 @@ export const useUpdaterStore = defineStore('updater', () => {
   const updateStatus = ref('')
   const error = ref<string | null>(null)
 
-  const MANIFEST_URL = 'https://cdn.jsdelivr.net/gh/vantoan1511/table-view@main/manifest.json'
+  const MANIFEST_URL = 'https://raw.githack.com/vantoan1511/table-view/main/manifest.json'
 
   const init = async () => {
     // Cleanup old extension binaries from previous updates
@@ -56,15 +53,12 @@ export const useUpdaterStore = defineStore('updater', () => {
       console.log('Manifest received:', manifest)
 
       const currentAppVersion = window.NL_APPVERSION
-      const currentExtVersion = localStorage.getItem('db_extension_version') || '0.0.0'
-
       const appNeedsUpdate = isNewerVersion(manifest.version, currentAppVersion)
-      const extNeedsUpdate = isNewerVersion(manifest.data.extensionVersion, currentExtVersion)
 
-      if (appNeedsUpdate || extNeedsUpdate) {
+      if (appNeedsUpdate) {
         updateAvailable.value = manifest
       } else if (manual) {
-        // Notify user they are up to date
+        // Handle manual check where user is already up to date if needed
       }
     } catch (err: any) {
       console.error('Update check failed:', err)
@@ -82,30 +76,16 @@ export const useUpdaterStore = defineStore('updater', () => {
 
     try {
       const manifest = updateAvailable.value
-      const currentAppVersion = window.NL_APPVERSION
-      const currentExtVersion = localStorage.getItem('db_extension_version') || '0.0.0'
 
-      // 1. Update Extension first (custom updater)
-      if (isNewerVersion(manifest.data.extensionVersion, currentExtVersion)) {
-        updateStatus.value = 'Downloading database engine update...'
-
-        let downloadUrl = ''
-        const platform = window.NL_OS.toLowerCase()
-        if (platform === 'windows') downloadUrl = manifest.data.extensionUrlWin
-        else if (platform === 'darwin') downloadUrl = manifest.data.extensionUrlMac
-        else downloadUrl = manifest.data.extensionUrlLinux
-
-        if (downloadUrl) {
-          await triggerExtensionUpdate(downloadUrl)
-          localStorage.setItem('db_extension_version', manifest.data.extensionVersion)
-        }
+      // 1. Update Extension first
+      if (manifest.data.extensionUrl) {
+        updateStatus.value = 'Updating database engine...'
+        await triggerExtensionUpdate(manifest.data.extensionUrl)
       }
 
       // 2. Update Frontend (.neu file)
-      if (isNewerVersion(manifest.version, currentAppVersion)) {
-        updateStatus.value = 'Installing UI updates...'
-        await Neutralino.updater.install()
-      }
+      updateStatus.value = 'Installing UI updates...'
+      await Neutralino.updater.install()
 
       updateStatus.value = 'Update complete! Restarting application...'
 

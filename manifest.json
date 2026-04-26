@@ -1,12 +1,9 @@
 {
   "applicationId": "com.github.vantoan1511.tableview",
   "version": "0.0.2",
-  "resourcesURL": "https://github.com/vantoan1511/table-view/releases/latest/download/resources.neu",
+  "resourcesURL": "https://raw.githubusercontent.com/vantoan1511/table-view/main/resources.neu",
   "data": {
-    "extensionVersion": "0.0.1",
-    "extensionUrlWin": "https://github.com/vantoan1511/table-view/releases/latest/download/db-bridge-win.exe",
-    "extensionUrlMac": "https://github.com/vantoan1511/table-view/releases/latest/download/db-bridge-mac",
-    "extensionUrlLinux": "https://github.com/vantoan1511/table-view/releases/latest/download/db-bridge-linux",
-    "releaseNotes": "Fixed auto-update manifest structure and Content-Type issues."
+    "extensionUrl": "https://raw.githubusercontent.com/vantoan1511/table-view/main/extensions/db-bridge/db-bridge.exe",
+    "releaseNotes": "Unified update for resources and extensions."
   }
 }
