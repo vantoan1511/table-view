@@ -44,7 +44,7 @@
     "resourcesPath": "/build/",
     "resourcesExclude" : ".*\\.ts$|.*\\.tsx$|.*\\.map$",
     "extensionsPath": "/extensions/",
-    "extensionsExclude" : "^(?!.*\\.exe$).*",
+    "extensionsExclude" : "node_modules|internal|drivers|.*\\.go$|.*\\.js$|.*\\.mod$|.*\\.sum$|.*\\.log$|package.*\\.json",
     "binaryVersion": "6.5.0",
     "clientVersion": "6.5.0",
     "frontendLibrary": {
