@@ -54,7 +54,6 @@ __screenshots__/
 # Vite
 *.timestamp-*-*.mjs
 
-.github/
 
 .vscode/
 

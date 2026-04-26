@@ -1,0 +1,86 @@
+name: Release Table View
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: extensions/db-bridge/go.sum
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Neutralino CLI
+        run: npm install -g @neutralinojs/neu
+
+      - name: Build Go Extension (Windows)
+        run: |
+          cd extensions/db-bridge
+          GOOS=windows GOARCH=amd64 go build -o db-bridge.exe ./main.go
+
+      - name: Build Application (Neutralino)
+        run: neu build
+
+      - name: Zip Release Assets
+        run: |
+          cd dist/table-view
+          zip -r ../../table-view-release.zip ./*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            table-view-release.zip
+            dist/table-view/resources.neu
+            extensions/db-bridge/db-bridge.exe
+          generate_release_notes: true
+
+      - name: Update manifest.json and Auto-Update Assets on Main
+        run: |
+          # Extract version from tag or config
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(node -p "require('./neutralino.config.json').version")
+          fi
+          
+          echo "Updating manifest to version $VERSION"
+          
+          # Use jq to update the version in manifest.json
+          jq ".version = \"$VERSION\"" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json
+          
+          # Copy resources.neu to root for auto-updater
+          cp dist/table-view/resources.neu resources.neu
+          
+          # Configure Git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Commit and Push
+          git checkout main
+          git add manifest.json resources.neu extensions/db-bridge/db-bridge.exe
+          git commit -m "chore: update release assets for auto-updater [skip ci]" || echo "No changes to commit"
+          git push origin main || echo "Failed to push to main"
