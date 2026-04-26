@@ -31,7 +31,7 @@ jobs:
           cache-dependency-path: extensions/db-bridge/go.sum
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install --no-fund --no-audit --legacy-peer-deps
 
       - name: Install Neutralino CLI
         run: npm install -g @neutralinojs/neu
