@@ -9,8 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.8] - 2026-04-27
 
-### Fixed
-- Assets: Fixed application icon for taskbar and Windows executable using `rcedit` in CI.
+### Added
+- UI/UX: Implemented professional 3-panel layout system with resizable and dockable panels.
+- UI/UX: Introduced responsive Grid Toolbar with adaptive visibility levels (Level 1-3).
+- Components: New `PanelRail` for minimized panels and `Tooltip` component for enhanced interactivity.
+- Layout Store: Dedicated Pinia store for dynamic layout orchestration.
+
+### Changed
+- CI/CD: Streamlined release pipeline by removing redundant Windows icon patching.
+- Security: Tightened NeutralinoJS security settings and refined global keyboard shortcuts.
 
 
 ## [0.0.7] - 2026-04-26
