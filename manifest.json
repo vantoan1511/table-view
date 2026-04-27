@@ -1,9 +1,9 @@
 {
   "applicationId": "com.github.vantoan1511.tableview",
   "version": "0.0.10",
-  "resourcesURL": "https://raw.githubusercontent.com/vantoan1511/table-view/main/resources.neu",
+  "resourcesURL": "https://github.com/vantoan1511/table-view/releases/download/v0.0.10/resources.neu",
   "data": {
-    "extensionUrl": "https://raw.githubusercontent.com/vantoan1511/table-view/main/extensions/db-bridge/db-bridge.exe",
+    "extensionUrl": "https://github.com/vantoan1511/table-view/releases/download/v0.0.10/db-bridge.exe",
     "releaseNotes": "Unified update for resources and extensions."
   }
 }
