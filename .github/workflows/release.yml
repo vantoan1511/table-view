@@ -46,19 +46,6 @@ jobs:
       - name: Build Application (Neutralino)
         run: neu build --release
 
-      - name: Fix Windows Executable Icon
-        run: |
-          npm install rcedit --no-save
-          $exe = (Get-ChildItem -Path dist -Filter "*-win_x64.exe" -Recurse | Select-Object -First 1).FullName
-          if ($exe) {
-            echo "Found executable at: $exe"
-            node -e "require('rcedit')(process.argv[1], { icon: 'public/favicon.ico' }).then(() => console.log('Icon updated successfully')).catch(err => { console.error(err); process.exit(1); })" "$exe"
-          } else {
-            echo "Error: Could not find Windows executable in dist directory"
-            ls -R dist
-            exit 1
-          }
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
