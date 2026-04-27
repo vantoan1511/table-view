@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/vanto/table-view/db-bridge/internal/bridge"
 	"github.com/vanto/table-view/db-bridge/internal/drivers"
@@ -106,6 +106,7 @@ func main() {
 			PKValues      []interface{}            `json:"pkValues"`
 			Operations    []drivers.AlterOperation `json:"operations"`
 			DownloadUrl   string                   `json:"downloadUrl"`
+			ResourcesUrl  string                   `json:"resourcesUrl"`
 		}
 
 		if err := json.Unmarshal(msg.Data, &payload); err != nil {
@@ -197,59 +198,99 @@ func main() {
 					logFileHandle.Close()
 					logFileHandle = nil
 				}
-				err := updateSelf(payload.DownloadUrl)
+				err := updateSelf(payload.DownloadUrl, payload.ResourcesUrl)
 				handleResult(b, "dbBridge.updateExtensionResult", payload.ReqId, nil, err)
 			}
 		}()
 	})
 }
 
-func updateSelf(url string) error {
-	log.Printf("Starting extension update from: %s\n", url)
+func updateSelf(url string, resourcesUrl string) error {
+	log.Printf("Starting atomic update. Ext: %s, Resources: %s\n", url, resourcesUrl)
+
+	exePath, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	baseDir := strings.TrimSuffix(exePath, "extensions\\db-bridge\\db-bridge.exe")
+	if strings.HasSuffix(exePath, "db-bridge") {
+		baseDir = strings.TrimSuffix(exePath, "extensions/db-bridge/db-bridge")
+	}
+
+	// 1. Download Extension to .new
+	if err := downloadFile(url, exePath+".new"); err != nil {
+		return err
+	}
+
+	// 2. Download Resources to .new (if provided)
+	resPath := baseDir + "resources.neu"
+	if resourcesUrl != "" {
+		if err := downloadFile(resourcesUrl, resPath+".new"); err != nil {
+			return err
+		}
+	}
+
+	// 3. Create Swapper Script (Windows .bat)
+	// This script waits for the processes to exit, swaps files, and deletes itself
+	swapperPath := baseDir + "updater.bat"
+	batContent := `@echo off
+echo Finalizing update... Please wait.
+timeout /t 2 /nobreak > nul
+
+:retry_ext
+move /y "` + exePath + `.new" "` + exePath + `" > nul
+if errorlevel 1 (
+    echo Waiting for extension to release lock...
+    timeout /t 1 /nobreak > nul
+    goto retry_ext
+)
+
+`
+	if resourcesUrl != "" {
+		batContent += `
+:retry_res
+move /y "` + resPath + `.new" "` + resPath + `" > nul
+if errorlevel 1 (
+    echo Waiting for app to release lock...
+    timeout /t 1 /nobreak > nul
+    goto retry_res
+)
+`
+	}
+
+	batContent += `
+echo Update complete! Restarting...
+start "" "` + strings.TrimSuffix(exePath, "extensions\\db-bridge\\db-bridge.exe") + "table-view-win_x64.exe" + `"
+del "%~f0" & exit
+`
+	os.WriteFile(swapperPath, []byte(batContent), 0755)
+
+	log.Println("Update staged. Starting swapper and exiting...")
+
+	// Start the swapper detached
+	// On Windows, we use 'cmd /c start'
+	cmd := exec.Command("cmd", "/c", "start", "/min", swapperPath)
+	cmd.Start()
+
+	// The app should now exit to allow the swapper to work
+	return nil
+}
+
+func downloadFile(url string, filepath string) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	exePath, err := os.Executable()
+	out, err := os.Create(filepath)
 	if err != nil {
-		return err
-	}
-
-	oldPath := exePath + ".old"
-
-	// Attempt to rename with retries (important for Windows/OneDrive locks)
-	var renameErr error
-	for i := 0; i < 5; i++ {
-		os.Remove(oldPath) // Try to remove existing .old
-		renameErr = os.Rename(exePath, oldPath)
-		if renameErr == nil {
-			break
-		}
-		log.Printf("Rename attempt %d failed: %v. Retrying...\n", i+1, renameErr)
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	if renameErr != nil {
-		return renameErr
-	}
-
-	out, err := os.Create(exePath)
-	if err != nil {
-		os.Rename(oldPath, exePath) // Try to restore
 		return err
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	os.Chmod(exePath, 0755)
-	log.Println("Extension updated successfully. Ready for restart.")
-	return nil
+	return err
 }
 
 func getDriver(driverType string) drivers.DatabaseDriver {

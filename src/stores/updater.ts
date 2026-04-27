@@ -72,26 +72,20 @@ export const useUpdaterStore = defineStore('updater', () => {
     if (!updateAvailable.value || isUpdating.value) return
 
     isUpdating.value = true
-    updateStatus.value = 'Initializing update...'
+    updateStatus.value = 'Downloading updates...'
 
     try {
       const manifest = updateAvailable.value
 
-      // 1. Update Extension first
-      if (manifest.data.extensionUrl) {
-        updateStatus.value = 'Updating database engine...'
-        await triggerExtensionUpdate(manifest.data.extensionUrl)
-      }
+      // Use the extension to perform an atomic update (bypasses CORS and file locks)
+      updateStatus.value = 'Installing updates (App & Engine)...'
+      await triggerExtensionUpdate(manifest.data.extensionUrl, manifest.resourcesURL)
 
-      // 2. Update Frontend (.neu file)
-      updateStatus.value = 'Installing UI updates...'
-      await Neutralino.updater.install()
+      updateStatus.value = 'Update staged! Closing application to finalize...'
 
-      updateStatus.value = 'Update complete! Restarting application...'
-
-      // Give the user a moment to see the completion message
+      // Give the user a moment
       setTimeout(async () => {
-        await Neutralino.app.restartProcess()
+        await Neutralino.app.exit()
       }, 2000)
 
     } catch (err: any) {
@@ -101,7 +95,7 @@ export const useUpdaterStore = defineStore('updater', () => {
     }
   }
 
-  const triggerExtensionUpdate = (downloadUrl: string): Promise<void> => {
+  const triggerExtensionUpdate = (downloadUrl: string, resourcesUrl: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       const reqId = Date.now().toString()
 
@@ -117,7 +111,8 @@ export const useUpdaterStore = defineStore('updater', () => {
       Neutralino.events.on('dbBridge.updateExtensionResult', onResult)
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.updateExtension', {
         reqId,
-        downloadUrl
+        downloadUrl,
+        resourcesUrl
       })
     })
   }

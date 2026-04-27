@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.14] - 2026-04-27
+
+### Fixed
+- Auto-Updater: Completely redesigned the update process to use a native atomic swapper (Windows Batch). This resolves CORS errors and "Access Denied" file lock issues by performing the swap after the application exits.
+
 ## [0.0.13] - 2026-04-27
 
 ### Fixed
