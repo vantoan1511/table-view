@@ -118,11 +118,17 @@ export const useUpdaterStore = defineStore('updater', () => {
 echo Finalizing update... Please wait.
 timeout /t 2 /nobreak > nul
 
+echo Stopping running processes...
+taskkill /f /im db-bridge.exe >nul 2>&1
+taskkill /f /im ${exeName} >nul 2>&1
+timeout /t 2 /nobreak > nul
+
 :retry_ext
 move /y "extensions\\db-bridge\\db-bridge.exe.new" "extensions\\db-bridge\\db-bridge.exe" > nul
 if errorlevel 1 (
     echo Waiting for engine to release lock...
-    timeout /t 1 /nobreak > nul
+    taskkill /f /im db-bridge.exe >nul 2>&1
+    timeout /t 2 /nobreak > nul
     goto retry_ext
 )
 
@@ -130,7 +136,7 @@ if errorlevel 1 (
 move /y "resources.neu.new" "resources.neu" > nul
 if errorlevel 1 (
     echo Waiting for app to release lock...
-    timeout /t 1 /nobreak > nul
+    timeout /t 2 /nobreak > nul
     goto retry_res
 )
 

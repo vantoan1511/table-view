@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.16] - 2026-04-27
+
+### Fixed
+- Auto-Updater: Batch swapper now forcefully kills `db-bridge.exe` before attempting to replace the binary, resolving infinite "Access is denied" loop on Windows.
+
 ## [0.0.15] - 2026-04-27
 
 ### Changed
