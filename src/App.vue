@@ -15,12 +15,15 @@ import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
 import { useTabsStore } from '@/stores/tabs'
 import { useLayoutStore } from '@/stores/layout'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import { onMounted, watch } from 'vue'
 
 const tabsStore = useTabsStore()
 const gridStore = useGridStore()
 const connectionsStore = useConnectionsStore()
 const layoutStore = useLayoutStore()
+
+useKeyboardShortcuts()
 
 // ─── Drop Zone ────────────────────────────────────────────────────────────────
 const onDrop = () => {
@@ -52,31 +55,6 @@ watch(
 
 onMounted(async () => {
   await connectionsStore.loadConnections()
-
-  // Global Keyboard Shortcuts
-  window.addEventListener('keydown', (e) => {
-    e.preventDefault()
-    const isMod = e.ctrlKey || e.metaKey
-
-    // Ctrl+W: Close active tab
-    if (isMod && e.key === 'w') {
-      if (tabsStore.activeTabId) {
-        tabsStore.closeTab(tabsStore.activeTabId)
-      }
-    }
-
-    // Ctrl+K: Focus search (placeholder for now)
-    if (isMod && e.key === 'k') {
-      // TODO: focus search input
-    }
-
-    // Ctrl+R: Refresh data
-    if (isMod && e.key === 'r') {
-      if (tabsStore.activeTab?.type === 'table') {
-        gridStore.loadTable(tabsStore.activeTab.tableName!)
-      }
-    }
-  })
 })
 </script>
 

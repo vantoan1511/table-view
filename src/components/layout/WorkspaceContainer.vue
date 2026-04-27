@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useLayoutStore } from '@/stores/layout'
 import ResizeHandle from '@/components/ui/ResizeHandle.vue'
 import PanelHeader from '@/components/layout/PanelHeader.vue'
+import Skeleton from '@/components/ui/Skeleton.vue'
 
 const layoutStore = useLayoutStore()
 
@@ -31,7 +32,7 @@ const isRightVisible = computed(() => rightPanel.value && rightPanel.value.isVis
           @update:model-value="layoutStore.updatePanelSize(rightPanel.id, $event)"
         />
         <div 
-          class="flex flex-col bg-sidebar border-l border-border"
+          class="flex flex-col bg-sidebar border-l border-border animate-slide-in-right"
           :style="{ width: `${rightPanel.size}px` }"
         >
           <PanelHeader 
@@ -46,7 +47,7 @@ const isRightVisible = computed(() => rightPanel.value && rightPanel.value.isVis
             </div>
             <!-- Placeholder for panel content -->
             <div class="flex flex-col gap-3">
-              <div v-for="i in 5" :key="i" class="h-8 rounded bg-white/5 animate-pulse" />
+              <Skeleton v-for="i in 5" :key="i" height="2rem" />
             </div>
           </div>
         </div>
@@ -62,7 +63,7 @@ const isRightVisible = computed(() => rightPanel.value && rightPanel.value.isVis
         @update:model-value="layoutStore.updatePanelSize(bottomPanel.id, $event)"
       />
       <div 
-        class="flex flex-col bg-sidebar border-t border-border"
+        class="flex flex-col bg-sidebar border-t border-border animate-slide-in-up"
         :style="{ height: `${bottomPanel.size}px` }"
       >
         <PanelHeader 

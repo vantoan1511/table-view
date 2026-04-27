@@ -9,7 +9,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex flex-col flex-1 min-w-0 min-h-0">
+  <div :key="tab?.id" class="flex flex-col flex-1 min-w-0 min-h-0 animate-fade-in-scale">
     <!-- Table -->
     <template v-if="tab?.type === 'table'">
       <DataGrid />
