@@ -46,14 +46,44 @@ jobs:
       - name: Build Application (Neutralino)
         run: neu build --release
 
+      - name: Extract Release Notes
+        id: extract_notes
+        shell: bash
+        run: |
+          # Get version from ref or config
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(node -p "require('./neutralino.config.json').version")
+          fi
+          
+          echo "Extracting notes for version $VERSION"
+          
+          # Extract section between the current version header and the next header
+          # Matches lines starting with ## [VERSION] and stops at the next ## [
+          # We use sed to extract the range and then remove the last line (the next header)
+          sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d' > release_notes.md
+          
+          # If file is empty (version not found or it's the last entry), handle it
+          if [ ! -s release_notes.md ]; then
+            # Try to match until end of file if it's the last version
+            sed -n "/## \[$VERSION\]/,\$p" CHANGELOG.md > release_notes.md
+          fi
+          
+          # Final check
+          if [ ! -s release_notes.md ]; then
+            echo "No notes found for version $VERSION in CHANGELOG.md" > release_notes.md
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/**/*.zip
+            dist/*.zip
             dist/table-view/resources.neu
             extensions/db-bridge/db-bridge.exe
-          generate_release_notes: true
+          body_path: release_notes.md
+          generate_release_notes: false
 
       - name: Update manifest.json and Auto-Update Assets on Main
         shell: bash
