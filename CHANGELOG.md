@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-04-27
+
+### Added
+- UI/UX: Integrated `Skeleton` loaders with shimmer animations for better perceived performance.
+- UI/UX: Added micro-animations (fade, scale, slide) for smoother transitions in tabs and panels.
+- Architecture: Centralized keyboard shortcuts into a dedicated `useKeyboardShortcuts` composable.
+- Shortcuts: New `Ctrl+N` for connections and improved `Ctrl+K` for focusing search.
+
+### Fixed
+- UI/UX: Resolved an issue where global keyboard shortcuts blocked standard input typing.
+
 ## [0.0.8] - 2026-04-27
 
 ### Added
