@@ -36,6 +36,7 @@ jobs:
       - name: Install Tools
         run: |
           npm install -g @neutralinojs/neu
+          neu update
 
       - name: Build Go Extension (Windows)
         shell: bash
@@ -60,13 +61,10 @@ jobs:
           echo "Extracting notes for version $VERSION"
           
           # Extract section between the current version header and the next header
-          # Matches lines starting with ## [VERSION] and stops at the next ## [
-          # We use sed to extract the range and then remove the last line (the next header)
           sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d' > release_notes.md
           
           # If file is empty (version not found or it's the last entry), handle it
           if [ ! -s release_notes.md ]; then
-            # Try to match until end of file if it's the last version
             sed -n "/## \[$VERSION\]/,\$p" CHANGELOG.md > release_notes.md
           fi
           
@@ -85,7 +83,7 @@ jobs:
           body_path: release_notes.md
           generate_release_notes: false
 
-      - name: Update manifest.json and Auto-Update Assets on Main
+      - name: Update manifest.json for Auto-Updater
         shell: bash
         run: |
           # Extract version from tag or config
@@ -95,20 +93,18 @@ jobs:
             VERSION=$(node -p "require('./neutralino.config.json').version")
           fi
           
-          echo "Updating manifest to version $VERSION"
+          echo "Updating manifest to version $VERSION pointing to Release Assets"
           
-          # Use node to update manifest.json (since jq might not be on windows by default)
-          node -e "const fs = require('fs'); const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8')); manifest.version = '$VERSION'; fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));"
-          
-          # Copy resources.neu to root for auto-updater
-          cp dist/table-view/resources.neu resources.neu
+          # Use node to update manifest.json to point to Release Assets instead of main branch
+          RELEASE_URL="https://github.com/vantoan1511/table-view/releases/download/v$VERSION"
+          node -e "const fs = require('fs'); const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8')); manifest.version = '$VERSION'; manifest.resourcesURL = '$RELEASE_URL/resources.neu'; manifest.data.extensionUrl = '$RELEASE_URL/db-bridge.exe'; fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));"
           
           # Configure Git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          # Commit and Push
+          # Commit and Push manifest.json only back to main
           git checkout main
-          git add manifest.json resources.neu extensions/db-bridge/db-bridge.exe
-          git commit -m "chore: update release assets for auto-updater [skip ci]" || echo "No changes to commit"
+          git add manifest.json
+          git commit -m "chore: update manifest.json for release v$VERSION [skip ci]" || echo "No changes to commit"
           git push origin main || echo "Failed to push to main"
