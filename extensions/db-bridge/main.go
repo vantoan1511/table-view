@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/vanto/table-view/db-bridge/internal/bridge"
 	"github.com/vanto/table-view/db-bridge/internal/drivers"
@@ -23,11 +24,15 @@ func main() {
 		logFile = "db-bridge.log"
 	}
 
-	f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	logFileHandle, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err == nil {
-		log.SetOutput(f)
-		defer f.Close()
+		log.SetOutput(logFileHandle)
 	}
+	defer func() {
+		if logFileHandle != nil {
+			logFileHandle.Close()
+		}
+	}()
 	log.Println("--- db-bridge extension starting ---")
 	log.Println("Working directory:", func() string { wd, _ := os.Getwd(); return wd }())
 	log.Println("Executable path:", exePath)
@@ -186,6 +191,12 @@ func main() {
 				handleResult(b, "dbBridge.alterTableResult", payload.ReqId, nil, err)
 
 			case "updateExtension":
+				// Close log file handle so it doesn't block the update
+				if logFileHandle != nil {
+					log.Println("Closing log file for update...")
+					logFileHandle.Close()
+					logFileHandle = nil
+				}
 				err := updateSelf(payload.DownloadUrl)
 				handleResult(b, "dbBridge.updateExtensionResult", payload.ReqId, nil, err)
 			}
@@ -207,17 +218,26 @@ func updateSelf(url string) error {
 	}
 
 	oldPath := exePath + ".old"
-	// Rename current exe to .old (works on Windows while running)
-	// Ignore error if .old already exists or use Remove first
-	os.Remove(oldPath)
-	if err := os.Rename(exePath, oldPath); err != nil {
-		return err
+
+	// Attempt to rename with retries (important for Windows/OneDrive locks)
+	var renameErr error
+	for i := 0; i < 5; i++ {
+		os.Remove(oldPath) // Try to remove existing .old
+		renameErr = os.Rename(exePath, oldPath)
+		if renameErr == nil {
+			break
+		}
+		log.Printf("Rename attempt %d failed: %v. Retrying...\n", i+1, renameErr)
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	if renameErr != nil {
+		return renameErr
 	}
 
 	out, err := os.Create(exePath)
 	if err != nil {
-		// Try to restore if create fails
-		os.Rename(oldPath, exePath)
+		os.Rename(oldPath, exePath) // Try to restore
 		return err
 	}
 	defer out.Close()
@@ -227,9 +247,7 @@ func updateSelf(url string) error {
 		return err
 	}
 
-	// On Unix-like systems, ensure it's executable
 	os.Chmod(exePath, 0755)
-
 	log.Println("Extension updated successfully. Ready for restart.")
 	return nil
 }

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.13] - 2026-04-27
+
+### Fixed
+- Auto-Updater: Improved robustness of extension updates on Windows by properly managing file handles and adding retry logic to handle file locks from OneDrive/Antivirus.
+
 ## [0.0.12] - 2026-04-27
 
 ### Added
