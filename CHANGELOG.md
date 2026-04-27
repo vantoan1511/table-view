@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.15] - 2026-04-27
+
+### Changed
+- Architecture: Refactored the auto-update system to be Core-Led. The frontend now orchestrates downloads via native OS commands (PowerShell), bypassing CORS and keeping the extension clean of update logic.
+
 ## [0.0.14] - 2026-04-27
 
 ### Fixed

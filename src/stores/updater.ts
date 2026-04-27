@@ -22,17 +22,15 @@ export const useUpdaterStore = defineStore('updater', () => {
   const MANIFEST_URL = 'https://raw.githubusercontent.com/vantoan1511/table-view/main/manifest.json'
 
   const init = async () => {
-    // Cleanup old extension binaries from previous updates
+    // Cleanup update-related files on startup
     if (window.NL_PORT) {
       try {
         const platform = window.NL_OS.toLowerCase()
-        const extPath = platform === 'windows'
-          ? 'extensions\\db-bridge\\db-bridge.exe.old'
-          : 'extensions/db-bridge/db-bridge.old'
-
-        await Neutralino.filesystem.remove(extPath).catch(() => {
-          // Ignore error if file doesn't exist
-        })
+        if (platform === 'windows') {
+          await Neutralino.filesystem.remove('updater.bat').catch(() => {})
+          await Neutralino.filesystem.remove('resources.neu.new').catch(() => {})
+          await Neutralino.filesystem.remove('extensions\\db-bridge\\db-bridge.exe.new').catch(() => {})
+        }
       } catch (err) {
         console.warn('Cleanup failed:', err)
       }
@@ -46,19 +44,12 @@ export const useUpdaterStore = defineStore('updater', () => {
     error.value = null
 
     try {
-      // 1. Check manifest
-      console.log('App ID:', window.NL_APPID)
-      console.log('Checking for updates at:', MANIFEST_URL)
       const manifest = await Neutralino.updater.checkForUpdates(MANIFEST_URL) as UpdateManifest
-      console.log('Manifest received:', manifest)
-
       const currentAppVersion = window.NL_APPVERSION
       const appNeedsUpdate = isNewerVersion(manifest.version, currentAppVersion)
 
       if (appNeedsUpdate) {
         updateAvailable.value = manifest
-      } else if (manual) {
-        // Handle manual check where user is already up to date if needed
       }
     } catch (err: any) {
       console.error('Update check failed:', err)
@@ -72,21 +63,38 @@ export const useUpdaterStore = defineStore('updater', () => {
     if (!updateAvailable.value || isUpdating.value) return
 
     isUpdating.value = true
-    updateStatus.value = 'Downloading updates...'
+    updateStatus.value = 'Preparing update...'
 
     try {
       const manifest = updateAvailable.value
+      const platform = window.NL_OS.toLowerCase()
 
-      // Use the extension to perform an atomic update (bypasses CORS and file locks)
-      updateStatus.value = 'Installing updates (App & Engine)...'
-      await triggerExtensionUpdate(manifest.data.extensionUrl, manifest.resourcesURL)
+      if (platform !== 'windows') {
+        throw new Error('Native atomic update is currently only optimized for Windows.')
+      }
 
-      updateStatus.value = 'Update staged! Closing application to finalize...'
+      // 1. Download Resources (.neu)
+      updateStatus.value = 'Downloading application resources...'
+      const resPath = 'resources.neu.new'
+      await downloadFileNative(manifest.resourcesURL, resPath)
 
-      // Give the user a moment
+      // 2. Download Extension (.exe)
+      updateStatus.value = 'Downloading database engine...'
+      const extPath = 'extensions\\db-bridge\\db-bridge.exe.new'
+      await downloadFileNative(manifest.data.extensionUrl, extPath)
+
+      // 3. Create Swapper Batch Script
+      updateStatus.value = 'Staging installation...'
+      const batContent = createSwapperBat()
+      await Neutralino.filesystem.writeFile('updater.bat', batContent)
+
+      updateStatus.value = 'Update staged! Restarting in 3 seconds...'
+
+      // 4. Trigger swapper and exit
       setTimeout(async () => {
+        await Neutralino.os.execCommand('cmd /c start /min updater.bat')
         await Neutralino.app.exit()
-      }, 2000)
+      }, 3000)
 
     } catch (err: any) {
       console.error('Update failed:', err)
@@ -95,26 +103,41 @@ export const useUpdaterStore = defineStore('updater', () => {
     }
   }
 
-  const triggerExtensionUpdate = (downloadUrl: string, resourcesUrl: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const reqId = Date.now().toString()
+  const downloadFileNative = async (url: string, dest: string) => {
+    // Use PowerShell to bypass CORS and handle redirects reliably
+    const cmd = `powershell -Command "Invoke-WebRequest -Uri '${url}' -OutFile '${dest}'"`
+    const res = await Neutralino.os.execCommand(cmd)
+    if (res.exitCode !== 0) {
+      throw new Error(`Download failed (PowerShell): ${res.stdErr}`)
+    }
+  }
 
-      const onResult = (evt: any) => {
-        const payload = evt.detail
-        if (payload.reqId !== reqId) return
+  const createSwapperBat = () => {
+    const exeName = 'table-view-win_x64.exe'
+    return `@echo off
+echo Finalizing update... Please wait.
+timeout /t 2 /nobreak > nul
 
-        Neutralino.events.off('dbBridge.updateExtensionResult', onResult)
-        if (payload.success) resolve()
-        else reject(new Error(payload.error))
-      }
+:retry_ext
+move /y "extensions\\db-bridge\\db-bridge.exe.new" "extensions\\db-bridge\\db-bridge.exe" > nul
+if errorlevel 1 (
+    echo Waiting for engine to release lock...
+    timeout /t 1 /nobreak > nul
+    goto retry_ext
+)
 
-      Neutralino.events.on('dbBridge.updateExtensionResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.updateExtension', {
-        reqId,
-        downloadUrl,
-        resourcesUrl
-      })
-    })
+:retry_res
+move /y "resources.neu.new" "resources.neu" > nul
+if errorlevel 1 (
+    echo Waiting for app to release lock...
+    timeout /t 1 /nobreak > nul
+    goto retry_res
+)
+
+echo Update complete! Restarting...
+start "" "${exeName}"
+del "%~f0" & exit
+`
   }
 
   const isNewerVersion = (latest: string, current: string) => {

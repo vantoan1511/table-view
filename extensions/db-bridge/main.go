@@ -3,11 +3,8 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"io"
 	"log"
-	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/vanto/table-view/db-bridge/internal/bridge"
@@ -24,15 +21,11 @@ func main() {
 		logFile = "db-bridge.log"
 	}
 
-	logFileHandle, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err == nil {
-		log.SetOutput(logFileHandle)
+		log.SetOutput(f)
+		defer f.Close()
 	}
-	defer func() {
-		if logFileHandle != nil {
-			logFileHandle.Close()
-		}
-	}()
 	log.Println("--- db-bridge extension starting ---")
 	log.Println("Working directory:", func() string { wd, _ := os.Getwd(); return wd }())
 	log.Println("Executable path:", exePath)
@@ -105,8 +98,6 @@ func main() {
 			Data          map[string]interface{}   `json:"data"`
 			PKValues      []interface{}            `json:"pkValues"`
 			Operations    []drivers.AlterOperation `json:"operations"`
-			DownloadUrl   string                   `json:"downloadUrl"`
-			ResourcesUrl  string                   `json:"resourcesUrl"`
 		}
 
 		if err := json.Unmarshal(msg.Data, &payload); err != nil {
@@ -190,107 +181,9 @@ func main() {
 			case "alterTable":
 				err := activeDriver.AlterTable(payload.TableName, payload.Operations)
 				handleResult(b, "dbBridge.alterTableResult", payload.ReqId, nil, err)
-
-			case "updateExtension":
-				// Close log file handle so it doesn't block the update
-				if logFileHandle != nil {
-					log.Println("Closing log file for update...")
-					logFileHandle.Close()
-					logFileHandle = nil
-				}
-				err := updateSelf(payload.DownloadUrl, payload.ResourcesUrl)
-				handleResult(b, "dbBridge.updateExtensionResult", payload.ReqId, nil, err)
 			}
 		}()
 	})
-}
-
-func updateSelf(url string, resourcesUrl string) error {
-	log.Printf("Starting atomic update. Ext: %s, Resources: %s\n", url, resourcesUrl)
-
-	exePath, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	baseDir := strings.TrimSuffix(exePath, "extensions\\db-bridge\\db-bridge.exe")
-	if strings.HasSuffix(exePath, "db-bridge") {
-		baseDir = strings.TrimSuffix(exePath, "extensions/db-bridge/db-bridge")
-	}
-
-	// 1. Download Extension to .new
-	if err := downloadFile(url, exePath+".new"); err != nil {
-		return err
-	}
-
-	// 2. Download Resources to .new (if provided)
-	resPath := baseDir + "resources.neu"
-	if resourcesUrl != "" {
-		if err := downloadFile(resourcesUrl, resPath+".new"); err != nil {
-			return err
-		}
-	}
-
-	// 3. Create Swapper Script (Windows .bat)
-	// This script waits for the processes to exit, swaps files, and deletes itself
-	swapperPath := baseDir + "updater.bat"
-	batContent := `@echo off
-echo Finalizing update... Please wait.
-timeout /t 2 /nobreak > nul
-
-:retry_ext
-move /y "` + exePath + `.new" "` + exePath + `" > nul
-if errorlevel 1 (
-    echo Waiting for extension to release lock...
-    timeout /t 1 /nobreak > nul
-    goto retry_ext
-)
-
-`
-	if resourcesUrl != "" {
-		batContent += `
-:retry_res
-move /y "` + resPath + `.new" "` + resPath + `" > nul
-if errorlevel 1 (
-    echo Waiting for app to release lock...
-    timeout /t 1 /nobreak > nul
-    goto retry_res
-)
-`
-	}
-
-	batContent += `
-echo Update complete! Restarting...
-start "" "` + strings.TrimSuffix(exePath, "extensions\\db-bridge\\db-bridge.exe") + "table-view-win_x64.exe" + `"
-del "%~f0" & exit
-`
-	os.WriteFile(swapperPath, []byte(batContent), 0755)
-
-	log.Println("Update staged. Starting swapper and exiting...")
-
-	// Start the swapper detached
-	// On Windows, we use 'cmd /c start'
-	cmd := exec.Command("cmd", "/c", "start", "/min", swapperPath)
-	cmd.Start()
-
-	// The app should now exit to allow the swapper to work
-	return nil
-}
-
-func downloadFile(url string, filepath string) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, resp.Body)
-	return err
 }
 
 func getDriver(driverType string) drivers.DatabaseDriver {
@@ -314,18 +207,12 @@ func handleResult(b *bridge.Bridge, event, reqId string, res interface{}, err er
 	if err != nil {
 		resp["error"] = err.Error()
 	} else if res != nil {
-		// Based on the frontend:
-		// schema.ts expects payload.schema
-		// grid.ts expects payload.rows, payload.fields directly (flattened)
-		
 		if strings.HasPrefix(event, "dbBridge.get") {
 			key := strings.TrimPrefix(event, "dbBridge.get")
 			key = strings.TrimSuffix(key, "Result")
-			// Lowercase the first letter
 			key = strings.ToLower(key[:1]) + key[1:]
 			resp[key] = res
 		} else {
-			// Flatten the result into resp
 			data, _ := json.Marshal(res)
 			json.Unmarshal(data, &resp)
 		}
