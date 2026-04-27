@@ -19,7 +19,7 @@ export const useUpdaterStore = defineStore('updater', () => {
   const updateStatus = ref('')
   const error = ref<string | null>(null)
 
-  const MANIFEST_URL = 'https://raw.githack.com/vantoan1511/table-view/main/manifest.json'
+  const MANIFEST_URL = 'https://raw.githubusercontent.com/vantoan1511/table-view/main/manifest.json'
 
   const init = async () => {
     // Cleanup old extension binaries from previous updates

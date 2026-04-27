@@ -1,7 +1,7 @@
-import { onMounted, onUnmounted } from 'vue'
-import { useTabsStore } from '@/stores/tabs'
-import { useGridStore } from '@/stores/grid'
 import { useConnectionsStore } from '@/stores/connections'
+import { useGridStore } from '@/stores/grid'
+import { useTabsStore } from '@/stores/tabs'
+import { onMounted, onUnmounted } from 'vue'
 
 export function useKeyboardShortcuts() {
   const tabsStore = useTabsStore()
@@ -10,44 +10,59 @@ export function useKeyboardShortcuts() {
 
   const handleKeydown = (e: KeyboardEvent) => {
     const isMod = e.ctrlKey || e.metaKey
+    const isFKey = e.key.startsWith('F') && e.key.length > 1
     const target = e.target as HTMLElement
     const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
 
-    // Global shortcuts that should work even in inputs (if any)
-    // ...
+    // Whitelist for essential system shortcuts (Copy, Paste, etc.)
+    const systemShortcuts = ['c', 'v', 'x', 'a', 'z', 'y']
+    if (isMod && systemShortcuts.includes(e.key.toLowerCase())) {
+      return
+    }
 
-    // Shortcuts that should NOT work when typing
-    if (isInput) return
+    // ─── App Shortcuts ────────────────────────────────────────────────────────
 
     // Ctrl+W: Close active tab
-    if (isMod && e.key === 'w') {
+    if (isMod && e.key.toLowerCase() === 'w') {
       e.preventDefault()
       if (tabsStore.activeTabId) {
         tabsStore.closeTab(tabsStore.activeTabId)
       }
+      return
     }
 
     // Ctrl+K: Focus search
-    if (isMod && e.key === 'k') {
+    if (isMod && e.key.toLowerCase() === 'k') {
       e.preventDefault()
       const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement
       if (searchInput) {
         searchInput.focus()
       }
+      return
     }
 
     // Ctrl+R: Refresh data
-    if (isMod && e.key === 'r') {
+    if (isMod && e.key.toLowerCase() === 'r') {
       e.preventDefault()
       if (tabsStore.activeTab?.type === 'table' && tabsStore.activeTab.tableName) {
         gridStore.loadTable(tabsStore.activeTab.tableName)
       }
+      return
     }
 
     // Ctrl+N: New Connection
-    if (isMod && e.key === 'n') {
+    if (isMod && e.key.toLowerCase() === 'n') {
       e.preventDefault()
       connectionsStore.toggleConnectionModal(true)
+      return
+    }
+
+    // ─── Block All Other Defaults ─────────────────────────────────────────────
+
+    // Disable all other browser shortcuts (e.g., Ctrl+P, Ctrl+S, F-keys)
+    // but allow normal typing and navigation (Arrows, Enter, etc.)
+    if (isMod || isFKey) {
+      e.preventDefault()
     }
   }
 
