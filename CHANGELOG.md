@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.12] - 2026-04-27
+
+### Added
+- Testing: Triggered new version to verify the auto-update mechanism using static Release Asset URLs.
+
 ## [0.0.11] - 2026-04-27
 
 ### Added
