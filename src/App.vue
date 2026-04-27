@@ -4,7 +4,9 @@ import StatusBar from '@/components/layout/StatusBar.vue'
 import TitleBar from '@/components/layout/TitleBar.vue'
 import MinimizedDock from '@/components/layout/MinimizedDock.vue'
 import TabContent from '@/components/layout/TabContent.vue'
-import SplitPanel from '@/components/ui/SplitPanel.vue'
+import WorkspaceContainer from '@/components/layout/WorkspaceContainer.vue'
+import PanelRail from '@/components/layout/PanelRail.vue'
+import ResizeHandle from '@/components/ui/ResizeHandle.vue'
 import NewConnectionModal from '@/components/modals/NewConnectionModal.vue'
 import GlobalErrorDialog from '@/components/ui/GlobalErrorDialog.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
@@ -12,11 +14,13 @@ import UpdaterDialog from '@/components/ui/UpdaterDialog.vue'
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
 import { useTabsStore } from '@/stores/tabs'
+import { useLayoutStore } from '@/stores/layout'
 import { onMounted, watch } from 'vue'
 
 const tabsStore = useTabsStore()
 const gridStore = useGridStore()
 const connectionsStore = useConnectionsStore()
+const layoutStore = useLayoutStore()
 
 // ─── Drop Zone ────────────────────────────────────────────────────────────────
 const onDrop = () => {
@@ -51,11 +55,11 @@ onMounted(async () => {
 
   // Global Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
+    e.preventDefault()
     const isMod = e.ctrlKey || e.metaKey
 
     // Ctrl+W: Close active tab
     if (isMod && e.key === 'w') {
-      e.preventDefault()
       if (tabsStore.activeTabId) {
         tabsStore.closeTab(tabsStore.activeTabId)
       }
@@ -63,13 +67,11 @@ onMounted(async () => {
 
     // Ctrl+K: Focus search (placeholder for now)
     if (isMod && e.key === 'k') {
-      e.preventDefault()
       // TODO: focus search input
     }
 
     // Ctrl+R: Refresh data
     if (isMod && e.key === 'r') {
-      e.preventDefault()
       if (tabsStore.activeTab?.type === 'table') {
         gridStore.loadTable(tabsStore.activeTab.tableName!)
       }
@@ -79,39 +81,42 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div id="app-shell" class="flex flex-col h-screen overflow-hidden bg-surface" @contextmenu.prevent>
+  <div 
+    id="app-shell" 
+    class="flex flex-col h-screen overflow-hidden bg-surface" 
+    :style="{ '--sidebar-width': `${layoutStore.sidebarWidth}px` }"
+    @contextmenu.prevent
+  >
     <!-- Main Top Area -->
     <div class="flex flex-1 min-h-0">
-      <!-- Sidebar (spans full height above status bar) -->
-      <Sidebar />
+      <!-- Sidebar -->
+      <Sidebar v-if="layoutStore.isSidebarVisible" />
+      
+      <!-- Sidebar Resize Handle -->
+      <ResizeHandle
+        v-if="layoutStore.isSidebarVisible"
+        orientation="horizontal"
+        :model-value="layoutStore.sidebarWidth"
+        @update:model-value="layoutStore.setSidebarWidth($event)"
+      />
 
       <!-- Content Area (Tabs + Main View) -->
       <div class="flex flex-col flex-1 min-w-0 min-h-0 relative">
         <!-- Title Bar (Tabs) -->
         <TitleBar />
 
-        <!-- Main View (uses SplitPanel for split / single view) -->
-        <SplitPanel
-          :split="!!tabsStore.bottomTab"
-          :split-ratio="tabsStore.splitRatio"
-          :bottom-title="tabsStore.bottomTab?.title ?? ''"
-          @update:split-ratio="tabsStore.splitRatio = $event"
-          @move-to-top="tabsStore.moveBottomToTop"
-          @minimize="minimizeBottomPanel"
-          @close="tabsStore.closeBottomPanel"
-        >
-          <template #top>
+        <!-- Workspace Container (Main + Panels) -->
+        <WorkspaceContainer>
+          <template #main>
+            <!-- Primary Editor / Grid -->
             <TabContent :tab="tabsStore.activeTab" />
+            
+            <!-- Minimized Tabs Dock (Existing system) -->
+            <MinimizedDock />
           </template>
-          <template #bottom>
-            <TabContent :tab="tabsStore.bottomTab" />
-          </template>
-        </SplitPanel>
+        </WorkspaceContainer>
 
-        <!-- Minimized Tabs Dock -->
-        <MinimizedDock />
-
-        <!-- Drop Zone Overlay (scoped to content area, only visible when dragging) -->
+        <!-- Drop Zone Overlay (Existing system) -->
         <div
           v-if="tabsStore.draggingTabId"
           class="absolute bottom-0 left-0 right-0 h-1/2 z-50 bg-primary/5 border-t-2 border-primary border-dashed flex items-center justify-center pointer-events-auto transition-all"
@@ -123,6 +128,9 @@ onMounted(async () => {
           </div>
         </div>
       </div>
+
+      <!-- Minimized Panel Rail -->
+      <PanelRail />
     </div>
 
     <!-- Status Bar -->

@@ -105,3 +105,31 @@ export interface QueryMessage {
   text: string
   timestamp: string
 }
+
+// ─── Layout ─────────────────────────────────────────────────────────────────
+
+export type PanelPosition = 'bottom' | 'right'
+
+export interface PanelTab {
+  id: string
+  title: string
+  icon?: string
+  component: string // Component name or key
+}
+
+export interface Panel {
+  id: string
+  title: string
+  position: PanelPosition
+  isVisible: boolean
+  isMinimized: boolean
+  size: number // Height for bottom, Width for right
+  activeTabId: string
+  tabs: PanelTab[]
+}
+
+export interface LayoutState {
+  panels: Record<string, Panel>
+  sidebarWidth: number
+  isSidebarVisible: boolean
+}

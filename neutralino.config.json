@@ -31,10 +31,8 @@
   "modes": {
     "window": {
       "title": "Table View",
-      "width": 1280,
-      "height": 720,
-      "minWidth": 640,
-      "minHeight": 480,
+      "minWidth": 1280,
+      "minHeight": 720,
       "center": true,
       "icon": "/public/favicon.ico",
       "enableInspector": false
@@ -43,9 +41,9 @@
   "cli": {
     "binaryName": "table-view",
     "resourcesPath": "/build/",
-    "resourcesExclude" : ".*\\.ts$|.*\\.tsx$|.*\\.map$",
+    "resourcesExclude": ".*\\.ts$|.*\\.tsx$|.*\\.map$",
     "extensionsPath": "/extensions/",
-    "extensionsExclude" : "node_modules|internal|drivers|.*\\.go$|.*\\.js$|.*\\.mod$|.*\\.sum$|.*\\.log$|package.*\\.json",
+    "extensionsExclude": "node_modules|internal|drivers|.*\\.go$|.*\\.js$|.*\\.mod$|.*\\.sum$|.*\\.log$|package.*\\.json",
     "binaryVersion": "6.5.0",
     "clientVersion": "6.5.0",
     "frontendLibrary": {

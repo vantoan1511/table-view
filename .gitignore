@@ -57,5 +57,4 @@ __screenshots__/
 
 .vscode/
 
-# AI
-
+/docs
