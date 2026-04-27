@@ -93,11 +93,11 @@ jobs:
             VERSION=$(node -p "require('./neutralino.config.json').version")
           fi
           
-          echo "Updating manifest to version $VERSION pointing to Release Assets"
+          echo "Updating manifest version to $VERSION"
           
-          # Use node to update manifest.json to point to Release Assets instead of main branch
-          RELEASE_URL="https://github.com/vantoan1511/table-view/releases/download/v$VERSION"
-          node -e "const fs = require('fs'); const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8')); manifest.version = '$VERSION'; manifest.resourcesURL = '$RELEASE_URL/resources.neu'; manifest.data.extensionUrl = '$RELEASE_URL/db-bridge.exe'; fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));"
+          # Use node to only update the version number in manifest.json
+          # The URLs are now static pointing to 'latest/download'
+          node -e "const fs = require('fs'); const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8')); manifest.version = '$VERSION'; fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));"
           
           # Configure Git
           git config --global user.name "github-actions[bot]"
