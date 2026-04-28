@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import AlterTableDialog from '@/components/ui/AlterTableDialog.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import ContextMenu from '@/components/ui/ContextMenu.vue'
+import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
 import { useToastStore } from '@/stores/toast'
 import * as Neutralino from '@neutralinojs/lib'
+import { computed, ref, watch } from 'vue'
 
 import {
   ChevronDown,
@@ -17,12 +20,10 @@ import {
   Trash2,
   Wrench
 } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
-
-import ContextMenu from '@/components/ui/ContextMenu.vue'
 
 const gridStore = useGridStore()
 const toastStore = useToastStore()
+const connectionsStore = useConnectionsStore()
 
 const selectedCount = computed(() => gridStore.selectedRowIndices.size)
 const showDeleteConfirm = ref(false)
@@ -167,6 +168,7 @@ const handleExport = async () => {
       Neutralino.events.on('dbBridge.exportCSVResult', onResult)
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.exportCSV', {
         reqId,
+        connectionId: connectionsStore.activeConnectionId,
         tableName: gridStore.activeTableName,
         exportPath: path
       })

@@ -44,6 +44,7 @@ const form = reactive<Omit<Connection, 'id' | 'isConnected'>>({
   applicationName: 'Table View',
   comment: '',
   savePassword: false,
+  displayAllSchemas: false,
 })
 
 // Initialize form if editing
@@ -69,6 +70,7 @@ watch(
         applicationName: 'Table View',
         comment: '',
         savePassword: false,
+        displayAllSchemas: false,
       })
     }
   },
@@ -146,6 +148,7 @@ const handleImportConnection = async () => {
       applicationName: conn.applicationName || 'Table View',
       comment: conn.comment || '',
       savePassword: conn.savePassword ?? false,
+      displayAllSchemas: conn.displayAllSchemas ?? false,
     })
   } catch (err: any) {
     importError.value = err.message || 'Failed to import connection'
@@ -364,6 +367,11 @@ const handleClose = () => {
                     <ToggleSwitch v-model="form.savePassword" />
                     <span class="text-[12px] text-text-secondary">Save password</span>
                     <CircleHelp :size="13" class="text-text-tertiary" />
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-2">
+                    <ToggleSwitch v-model="form.displayAllSchemas" />
+                    <span class="text-[12px] text-text-secondary">Display all schemas</span>
+                    <CircleHelp :size="13" class="text-text-tertiary" title="If enabled, loads all schemas instead of just the default public schema." />
                   </div>
                 </div>
 

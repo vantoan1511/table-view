@@ -37,7 +37,7 @@ func (d *SqliteDriver) Disconnect() error {
 	return nil
 }
 
-func (d *SqliteDriver) GetSchema() (*SchemaResult, error) {
+func (d *SqliteDriver) GetSchema(allSchemas bool) (*SchemaResult, error) {
 	tablesRows, err := d.db.Query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
 	if err != nil {
 		return nil, err

@@ -2,7 +2,12 @@ import type { Tab } from '@/types'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { useConnectionsStore } from './connections'
+import { useSchemaStore } from './schema'
+
 export const useTabsStore = defineStore('tabs', () => {
+  const connectionsStore = useConnectionsStore()
+  const schemaStore = useSchemaStore()
   // Only table tabs in the main tab strip
   const tabs = ref<Tab[]>([])
   const activeTabId = ref<string>('')
@@ -94,6 +99,8 @@ export const useTabsStore = defineStore('tabs', () => {
       type: 'table',
       title: tableName,
       tableName,
+      connectionId: connectionsStore.activeConnectionId ?? undefined,
+      schema: schemaStore.selectedSchema,
     }
     tabs.value.push(tab)
     activeTabId.value = tab.id
@@ -104,6 +111,8 @@ export const useTabsStore = defineStore('tabs', () => {
       id: `tab-sql-${Date.now()}`,
       type: 'sql',
       title: 'Query Console',
+      connectionId: connectionsStore.activeConnectionId ?? undefined,
+      schema: schemaStore.selectedSchema,
     }
     tabs.value.push(tab)
     activeTabId.value = tab.id

@@ -62,7 +62,7 @@ type AlterOperation struct {
 type DatabaseDriver interface {
 	Connect(config Config) error
 	Disconnect() error
-	GetSchema() (*SchemaResult, error)
+	GetSchema(allSchemas bool) (*SchemaResult, error)
 	FetchTableData(tableName string, limit, offset int, sortColumn, sortDirection string) (*TableDataResult, error)
 	Query(sql string) (*QueryResult, error)
 	UpdateCell(tableName, pkColumn string, pkValue interface{}, targetColumn string, newValue interface{}) error

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import ContextMenu from '@/components/ui/ContextMenu.vue'
+import Skeleton from '@/components/ui/Skeleton.vue'
 import { useGridStore } from '@/stores/grid'
-import { ArrowDown, ArrowUp, Check, X, Plus, Trash2, Wrench, RefreshCw } from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, Check, Plus, RefreshCw, Trash2, Wrench, X } from 'lucide-vue-next'
 import { nextTick, ref } from 'vue'
 import GridToolbar from './GridToolbar.vue'
 import Pagination from './Pagination.vue'
@@ -78,7 +79,7 @@ const getColStyle = (colName: string) => {
 }
 
 // ─── Status badge helper ───────────────────────────────────────────────────
-const getCellClass = (colName: string, value: unknown) : string => {
+const getCellClass = (colName: string, value: unknown): string => {
   if (colName === 'status') {
     if (value === 'active') return 'status-active'
     if (value === 'inactive') return 'status-inactive'
@@ -87,7 +88,7 @@ const getCellClass = (colName: string, value: unknown) : string => {
 }
 
 // ─── Data Type helper ──────────────────────────────────────────────────────
-const formatDataType = (dt: string) : string => {
+const formatDataType = (dt: string): string => {
   const pgOids: Record<string, string> = {
     '16': 'boolean',
     '17': 'bytea',
@@ -185,7 +186,8 @@ const handleContextAction = (action: string) => {
               :style="getColStyle(col.name)" @click="gridStore.toggleSort(col.name)">
               <div class="flex items-center gap-1.5 overflow-hidden">
                 <span class="text-[12px] truncate">{{ col.name }}</span>
-                <span v-if="col.isPrimaryKey" class="text-[10px] text-amber-500 font-bold shrink-0" title="Primary Key">PK</span>
+                <span v-if="col.isPrimaryKey" class="text-[10px] text-amber-500 font-bold shrink-0"
+                  title="Primary Key">PK</span>
                 <!-- Sort indicator -->
                 <ArrowUp v-if="gridStore.sortColumn === col.name && gridStore.sortDirection === 'asc'" :size="12"
                   class="text-primary shrink-0" />
@@ -197,7 +199,8 @@ const handleContextAction = (action: string) => {
               </div>
 
               <!-- Resize handle -->
-              <div class="absolute top-0 right-0 w-[4px] h-full cursor-col-resize hover:bg-primary/30 transition-colors z-30"
+              <div
+                class="absolute top-0 right-0 w-[4px] h-full cursor-col-resize hover:bg-primary/30 transition-colors z-30"
                 @mousedown="onResizeStart(col.name, $event)" @click.stop></div>
             </th>
             <th v-if="gridStore.newRowIdx !== null"
@@ -207,8 +210,20 @@ const handleContextAction = (action: string) => {
           </tr>
         </thead>
 
-        <!-- Body -->
-        <tbody>
+        <!-- Loading Skeleton -->
+        <template v-if="gridStore.isLoading">
+          <tr v-for="i in 10" :key="'skel-' + i" class="border-b border-grid-border">
+            <td class="px-3 py-1.5 border-r border-grid-border bg-inherit sticky left-0 z-10">
+              <Skeleton height="1.25rem" />
+            </td>
+            <td v-for="col in gridStore.columns.filter(c => gridStore.columnVisibility[c.name] !== false)"
+              :key="'skel-' + col.name" class="px-3 py-1.5 border-r border-grid-border">
+              <Skeleton height="1.25rem" />
+            </td>
+          </tr>
+        </template>
+
+        <template v-else>
           <tr v-for="(row, rowIdx) in gridStore.rows" :key="rowIdx"
             class="border-b border-grid-border hover:bg-grid-row-hover transition-colors" :class="{
               'bg-grid-row-alt': rowIdx % 2 === 1 && !gridStore.selectedRowIndices.has(rowIdx),
@@ -277,7 +292,7 @@ const handleContextAction = (action: string) => {
               </div>
             </td>
           </tr>
-        </tbody>
+        </template>
       </table>
     </div>
 

@@ -42,11 +42,26 @@ const minimizeBottomPanel = () => {
   }
 }
 
-// When active tab changes to a table tab, load its data only if it's a different table
+// When active tab changes, sync global connection/schema and load table data
 watch(
   () => tabsStore.activeTab,
-  (tab) => {
-    if (tab?.type === 'table' && tab.tableName && tab.tableName !== gridStore.activeTableName) {
+  async (tab) => {
+    if (!tab) return
+    
+    // Sync UI to tab's connection context
+    if (tab.connectionId && tab.connectionId !== connectionsStore.activeConnectionId) {
+      connectionsStore.activeConnectionId = tab.connectionId
+      // Dynamically import to avoid circular dependency
+      const { useSchemaStore } = await import('@/stores/schema')
+      const schemaStore = useSchemaStore()
+      if (tab.schema) {
+        schemaStore.setSelectedSchema(tab.schema)
+      }
+      const conn = connectionsStore.connections.find(c => c.id === tab.connectionId)
+      schemaStore.loadSchema(conn?.displayAllSchemas ?? false)
+    }
+
+    if (tab.type === 'table' && tab.tableName && tab.tableName !== gridStore.activeTableName) {
       gridStore.loadTable(tab.tableName)
     }
   },

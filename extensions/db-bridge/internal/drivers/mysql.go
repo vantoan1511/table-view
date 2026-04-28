@@ -36,12 +36,17 @@ func (d *MySqlDriver) Disconnect() error {
 	return nil
 }
 
-func (d *MySqlDriver) GetSchema() (*SchemaResult, error) {
-	tablesRows, err := d.db.Query(`
-		SELECT TABLE_NAME as name, 'table' as type
+func (d *MySqlDriver) GetSchema(allSchemas bool) (*SchemaResult, error) {
+	whereClause := "WHERE TABLE_SCHEMA = DATABASE()"
+	if allSchemas {
+		whereClause = "WHERE TABLE_SCHEMA NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')"
+	}
+
+	tablesRows, err := d.db.Query(fmt.Sprintf(`
+		SELECT TABLE_NAME as name, TABLE_SCHEMA as schema_name, 'table' as type
 		FROM information_schema.TABLES
-		WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
-	`)
+		%s AND TABLE_TYPE = 'BASE TABLE'
+	`, whereClause))
 	if err != nil {
 		return nil, err
 	}
@@ -49,18 +54,18 @@ func (d *MySqlDriver) GetSchema() (*SchemaResult, error) {
 
 	var tables []SchemaObject = []SchemaObject{}
 	for tablesRows.Next() {
-		var name, ttype string
-		if err := tablesRows.Scan(&name, &ttype); err != nil {
+		var name, schemaName, ttype string
+		if err := tablesRows.Scan(&name, &schemaName, &ttype); err != nil {
 			return nil, err
 		}
-		tables = append(tables, SchemaObject{Name: name, Schema: "public"})
+		tables = append(tables, SchemaObject{Name: name, Schema: schemaName})
 	}
 
-	viewsRows, err := d.db.Query(`
-		SELECT TABLE_NAME as name, 'view' as type
+	viewsRows, err := d.db.Query(fmt.Sprintf(`
+		SELECT TABLE_NAME as name, TABLE_SCHEMA as schema_name, 'view' as type
 		FROM information_schema.TABLES
-		WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'VIEW'
-	`)
+		%s AND TABLE_TYPE = 'VIEW'
+	`, whereClause))
 	if err != nil {
 		return nil, err
 	}
@@ -68,18 +73,18 @@ func (d *MySqlDriver) GetSchema() (*SchemaResult, error) {
 
 	var views []SchemaObject = []SchemaObject{}
 	for viewsRows.Next() {
-		var name, ttype string
-		if err := viewsRows.Scan(&name, &ttype); err != nil {
+		var name, schemaName, ttype string
+		if err := viewsRows.Scan(&name, &schemaName, &ttype); err != nil {
 			return nil, err
 		}
-		views = append(views, SchemaObject{Name: name, Schema: "public"})
+		views = append(views, SchemaObject{Name: name, Schema: schemaName})
 	}
 
-	routinesRows, err := d.db.Query(`
-		SELECT ROUTINE_NAME as name, ROUTINE_TYPE as type
+	routinesRows, err := d.db.Query(fmt.Sprintf(`
+		SELECT ROUTINE_NAME as name, ROUTINE_SCHEMA as schema_name, ROUTINE_TYPE as type
 		FROM information_schema.ROUTINES
-		WHERE ROUTINE_SCHEMA = DATABASE()
-	`)
+		%s
+	`, strings.Replace(whereClause, "TABLE_SCHEMA", "ROUTINE_SCHEMA", 1)))
 	if err != nil {
 		return nil, err
 	}
@@ -87,17 +92,37 @@ func (d *MySqlDriver) GetSchema() (*SchemaResult, error) {
 
 	var funcs []SchemaObject = []SchemaObject{}
 	for routinesRows.Next() {
-		var name, rtype string
-		if err := routinesRows.Scan(&name, &rtype); err != nil {
+		var name, schemaName, rtype string
+		if err := routinesRows.Scan(&name, &schemaName, &rtype); err != nil {
 			return nil, err
 		}
-		funcs = append(funcs, SchemaObject{Name: name, Schema: "public", Type: rtype})
+		funcs = append(funcs, SchemaObject{Name: name, Schema: schemaName, Type: rtype})
+	}
+
+	schemasRows, err := d.db.Query(fmt.Sprintf(`
+		SELECT SCHEMA_NAME as name
+		FROM information_schema.SCHEMATA
+		%s
+	`, strings.Replace(whereClause, "TABLE_SCHEMA", "SCHEMA_NAME", 1)))
+	if err != nil {
+		return nil, err
+	}
+	defer schemasRows.Close()
+
+	var schemas []SchemaObject = []SchemaObject{}
+	for schemasRows.Next() {
+		var name string
+		if err := schemasRows.Scan(&name); err != nil {
+			return nil, err
+		}
+		schemas = append(schemas, SchemaObject{Name: name})
 	}
 
 	return &SchemaResult{
 		Tables:    tables,
 		Views:     views,
 		Functions: funcs,
+		Schemas:   schemas,
 	}, nil
 }
 

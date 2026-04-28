@@ -91,7 +91,7 @@ export const useConnectionsStore = defineStore('connections', () => {
               // Import dynamically to avoid circular dependency
               const { useSchemaStore } = await import('./schema')
               const schemaStore = useSchemaStore()
-              schemaStore.loadSchema()
+              schemaStore.loadSchema(conn.displayAllSchemas)
               resolve(true)
             } else {
               conn.isConnected = false
@@ -109,6 +109,7 @@ export const useConnectionsStore = defineStore('connections', () => {
         Neutralino.events.on('dbBridge.connectResult', onConnectResult)
         Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.connect', {
           reqId,
+          connectionId: id,
           config: conn
         })
       })

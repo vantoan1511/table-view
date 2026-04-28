@@ -3,7 +3,10 @@ import { computed } from 'vue'
 import { useLayoutStore } from '@/stores/layout'
 import ResizeHandle from '@/components/ui/ResizeHandle.vue'
 import PanelHeader from '@/components/layout/PanelHeader.vue'
-import Skeleton from '@/components/ui/Skeleton.vue'
+import OutputPanel from '@/components/panels/OutputPanel.vue'
+import TimelinePanel from '@/components/panels/TimelinePanel.vue'
+import PropertiesPanel from '@/components/panels/PropertiesPanel.vue'
+import IndexesPanel from '@/components/panels/IndexesPanel.vue'
 
 const layoutStore = useLayoutStore()
 
@@ -41,13 +44,12 @@ const isRightVisible = computed(() => rightPanel.value && rightPanel.value.isVis
             @close="layoutStore.togglePanel(rightPanel.id)"
             @reposition="layoutStore.movePanel(rightPanel.id, $event)"
           />
-          <div class="flex-1 overflow-auto p-4">
-            <div class="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-4">
-              {{ rightPanel?.tabs.find(t => t.id === rightPanel?.activeTabId)?.title }}
-            </div>
-            <!-- Placeholder for panel content -->
-            <div class="flex flex-col gap-3">
-              <Skeleton v-for="i in 5" :key="i" height="2rem" />
+          <div class="flex-1 overflow-hidden flex flex-col">
+            <PropertiesPanel v-if="rightPanel.activeTabId === 'properties'" />
+            <IndexesPanel v-else-if="rightPanel.activeTabId === 'indexes'" />
+            <!-- Fallback if tab ID is unknown -->
+            <div v-else class="flex-1 p-4 text-sm text-muted-foreground">
+              Select a tab to view content.
             </div>
           </div>
         </div>
@@ -72,12 +74,12 @@ const isRightVisible = computed(() => rightPanel.value && rightPanel.value.isVis
           @close="layoutStore.togglePanel(bottomPanel.id)"
           @reposition="layoutStore.movePanel(bottomPanel.id, $event)"
         />
-        <div class="flex-1 overflow-auto p-4 font-mono text-sm">
-           <div class="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">
-            {{ bottomPanel?.tabs.find(t => t.id === bottomPanel?.activeTabId)?.title }}
+        <div class="flex-1 overflow-hidden flex flex-col bg-background">
+          <OutputPanel v-if="bottomPanel.activeTabId === 'output'" />
+          <TimelinePanel v-else-if="bottomPanel.activeTabId === 'timeline'" />
+          <div v-else class="flex-1 p-4 text-sm text-muted-foreground">
+            Select a tab to view content.
           </div>
-          <div class="text-green-400/80">$ Query executed successfully in 42ms</div>
-          <div class="text-muted-foreground">SELECT * FROM users LIMIT 100;</div>
         </div>
       </div>
     </template>

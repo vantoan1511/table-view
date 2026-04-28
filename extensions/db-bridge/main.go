@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/vanto/table-view/db-bridge/internal/bridge"
 	"github.com/vanto/table-view/db-bridge/internal/drivers"
+	"github.com/vanto/table-view/db-bridge/internal/pool"
 )
 
 func main() {
@@ -70,7 +72,9 @@ func main() {
 	}
 	defer b.Close()
 
-	var activeDriver drivers.DatabaseDriver
+	// ─── Connection Pool ─────────────────────────────────────────────────────
+	connPool := pool.New()
+	defer connPool.CloseAll()
 
 	log.Printf("Extension %s connected to NeutralinoJS.\n", auth.NLExtId)
 
@@ -83,12 +87,14 @@ func main() {
 
 		var payload struct {
 			ReqId         string                   `json:"reqId"`
+			ConnectionId  string                   `json:"connectionId"`
 			Config        drivers.Config           `json:"config"`
 			TableName     string                   `json:"tableName"`
 			Limit         int                      `json:"limit"`
 			Offset        int                      `json:"offset"`
 			SortColumn    string                   `json:"sortColumn"`
 			SortDirection string                   `json:"sortDirection"`
+			Filter        string                   `json:"filter"`
 			SQL           string                   `json:"sql"`
 			PKColumn      string                   `json:"pkColumn"`
 			PKValue       interface{}              `json:"pkValue"`
@@ -98,6 +104,7 @@ func main() {
 			Data          map[string]interface{}   `json:"data"`
 			PKValues      []interface{}            `json:"pkValues"`
 			Operations    []drivers.AlterOperation `json:"operations"`
+			AllSchemas    bool                     `json:"allSchemas"`
 		}
 
 		if err := json.Unmarshal(msg.Data, &payload); err != nil {
@@ -107,8 +114,16 @@ func main() {
 
 		go func() {
 			switch action {
+
+			// ── testConnection: doesn't touch the pool (ephemeral) ────────────
 			case "testConnection":
 				d := getDriver(payload.Config.Type)
+				if d == nil {
+					b.Broadcast("dbBridge.testConnectionResult", map[string]interface{}{
+						"reqId": payload.ReqId, "success": false, "error": "unsupported driver type",
+					})
+					return
+				}
 				err := d.Connect(payload.Config)
 				if err == nil {
 					d.Disconnect()
@@ -121,10 +136,23 @@ func main() {
 					})
 				}
 
+			// ── connect: open a new connection and register in pool ───────────
 			case "connect":
-				activeDriver = getDriver(payload.Config.Type)
-				err := activeDriver.Connect(payload.Config)
+				d := getDriver(payload.Config.Type)
+				if d == nil {
+					b.Broadcast("dbBridge.connectResult", map[string]interface{}{
+						"reqId": payload.ReqId, "success": false, "error": "unsupported driver type",
+					})
+					return
+				}
+				connId := payload.ConnectionId
+				if connId == "" {
+					connId = payload.Config.Type + "-default"
+				}
+				err := d.Connect(payload.Config)
 				if err == nil {
+					connPool.Put(connId, d)
+					log.Printf("pool: registered connection %s", connId)
 					b.Broadcast("dbBridge.connectResult", map[string]interface{}{
 						"reqId": payload.ReqId, "success": true,
 					})
@@ -134,53 +162,68 @@ func main() {
 					})
 				}
 
-			case "getSchema":
-				res, err := activeDriver.GetSchema()
-				handleResult(b, "dbBridge.getSchemaResult", payload.ReqId, res, err)
-
-			case "fetchTableData":
-				res, err := activeDriver.FetchTableData(payload.TableName, payload.Limit, payload.Offset, payload.SortColumn, payload.SortDirection)
-				handleResult(b, "dbBridge.fetchTableDataResult", payload.ReqId, res, err)
-
-			case "executeQuery":
-				res, err := activeDriver.Query(payload.SQL)
-				handleResult(b, "dbBridge.executeQueryResult", payload.ReqId, res, err)
-
-			case "updateCell":
-				err := activeDriver.UpdateCell(payload.TableName, payload.PKColumn, payload.PKValue, payload.TargetColumn, payload.NewValue)
-				handleResult(b, "dbBridge.updateCellResult", payload.ReqId, nil, err)
-
-			case "exportCSV":
-				err := activeDriver.ExportToCSV(payload.TableName, payload.ExportPath)
-				handleResult(b, "dbBridge.exportCSVResult", payload.ReqId, nil, err)
-
-			case "insertRow":
-				res, err := activeDriver.InsertRow(payload.TableName, payload.Data)
-				if err == nil {
-					b.Broadcast("dbBridge.insertRowResult", map[string]interface{}{
-						"reqId": payload.ReqId, "success": true, "row": res,
-					})
-				} else {
-					handleResult(b, "dbBridge.insertRowResult", payload.ReqId, nil, err)
+			// ── all other actions: route via pool ─────────────────────────────
+			default:
+				driver := connPool.Get(payload.ConnectionId)
+				if driver == nil {
+					log.Printf("pool: no driver for connectionId=%q (action=%s)", payload.ConnectionId, action)
+					handleResult(b, "dbBridge."+action+"Result", payload.ReqId, nil,
+						fmt.Errorf("not connected (connectionId=%q)", payload.ConnectionId))
+					return
 				}
 
-			case "deleteRows":
-				err := activeDriver.DeleteRows(payload.TableName, payload.PKColumn, payload.PKValues)
-				handleResult(b, "dbBridge.deleteRowsResult", payload.ReqId, nil, err)
+				switch action {
+				case "getSchema":
+					res, err := driver.GetSchema(payload.AllSchemas)
+					handleResult(b, "dbBridge.getSchemaResult", payload.ReqId, res, err)
 
-			case "getTableColumns":
-				res, err := activeDriver.GetTableColumns(payload.TableName)
-				if err == nil {
-					b.Broadcast("dbBridge.getTableColumnsResult", map[string]interface{}{
-						"reqId": payload.ReqId, "success": true, "columns": res,
-					})
-				} else {
-					handleResult(b, "dbBridge.getTableColumnsResult", payload.ReqId, nil, err)
+				case "fetchTableData":
+					res, err := driver.FetchTableData(payload.TableName, payload.Limit, payload.Offset, payload.SortColumn, payload.SortDirection)
+					handleResult(b, "dbBridge.fetchTableDataResult", payload.ReqId, res, err)
+
+				case "executeQuery":
+					res, err := driver.Query(payload.SQL)
+					handleResult(b, "dbBridge.executeQueryResult", payload.ReqId, res, err)
+
+				case "updateCell":
+					err := driver.UpdateCell(payload.TableName, payload.PKColumn, payload.PKValue, payload.TargetColumn, payload.NewValue)
+					handleResult(b, "dbBridge.updateCellResult", payload.ReqId, nil, err)
+
+				case "exportCSV":
+					err := driver.ExportToCSV(payload.TableName, payload.ExportPath)
+					handleResult(b, "dbBridge.exportCSVResult", payload.ReqId, nil, err)
+
+				case "insertRow":
+					res, err := driver.InsertRow(payload.TableName, payload.Data)
+					if err == nil {
+						b.Broadcast("dbBridge.insertRowResult", map[string]interface{}{
+							"reqId": payload.ReqId, "success": true, "row": res,
+						})
+					} else {
+						handleResult(b, "dbBridge.insertRowResult", payload.ReqId, nil, err)
+					}
+
+				case "deleteRows":
+					err := driver.DeleteRows(payload.TableName, payload.PKColumn, payload.PKValues)
+					handleResult(b, "dbBridge.deleteRowsResult", payload.ReqId, nil, err)
+
+				case "getTableColumns":
+					res, err := driver.GetTableColumns(payload.TableName)
+					if err == nil {
+						b.Broadcast("dbBridge.getTableColumnsResult", map[string]interface{}{
+							"reqId": payload.ReqId, "success": true, "columns": res,
+						})
+					} else {
+						handleResult(b, "dbBridge.getTableColumnsResult", payload.ReqId, nil, err)
+					}
+
+				case "alterTable":
+					err := driver.AlterTable(payload.TableName, payload.Operations)
+					handleResult(b, "dbBridge.alterTableResult", payload.ReqId, nil, err)
+
+				default:
+					log.Printf("Unknown action: %s", action)
 				}
-
-			case "alterTable":
-				err := activeDriver.AlterTable(payload.TableName, payload.Operations)
-				handleResult(b, "dbBridge.alterTableResult", payload.ReqId, nil, err)
 			}
 		}()
 	})

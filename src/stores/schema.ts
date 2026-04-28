@@ -37,8 +37,10 @@ const mockSchema: SchemaInfo = {
 }
 
 import * as Neutralino from '@neutralinojs/lib'
+import { useConnectionsStore } from './connections'
 
 export const useSchemaStore = defineStore('schema', () => {
+  const connectionsStore = useConnectionsStore()
   const schema = ref<SchemaInfo>({ tables: [], views: [], functions: [], schemas: ['public'] })
   const selectedSchema = ref('public')
   const filterQuery = ref('')
@@ -72,7 +74,7 @@ export const useSchemaStore = defineStore('schema', () => {
     selectedSchema.value = s
   }
 
-  const loadSchema = async () => {
+  const loadSchema = async (allSchemas: boolean = false) => {
     if (window.NL_PORT) {
       const reqId = Date.now().toString()
       
@@ -80,11 +82,12 @@ export const useSchemaStore = defineStore('schema', () => {
         const payload = evt.detail
         if (payload.reqId === reqId) {
           if (payload.success) {
+            const backendSchemas = payload.schema.schemas || []
             schema.value = {
-              tables: (payload.schema.tables || []).map((t: any) => ({ name: t.name, schema: 'public' })),
-              views: (payload.schema.views || []).map((v: any) => ({ name: v.name, schema: 'public' })),
-              functions: (payload.schema.functions || []).map((f: any) => ({ name: f.name, schema: 'public', returnType: 'unknown' })),
-              schemas: ['public']
+              tables: (payload.schema.tables || []).map((t: any) => ({ name: t.name, schema: t.schema || 'public' })),
+              views: (payload.schema.views || []).map((v: any) => ({ name: v.name, schema: v.schema || 'public' })),
+              functions: (payload.schema.functions || []).map((f: any) => ({ name: f.name, schema: f.schema || 'public', returnType: f.type || 'unknown' })),
+              schemas: backendSchemas.length > 0 ? backendSchemas.map((s: any) => s.name || s) : ['public']
             }
           } else {
             console.error("Failed to load schema:", payload.error)
@@ -94,7 +97,11 @@ export const useSchemaStore = defineStore('schema', () => {
       }
       
       Neutralino.events.on('dbBridge.getSchemaResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getSchema', { reqId })
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getSchema', { 
+        reqId,
+        connectionId: connectionsStore.activeConnectionId,
+        allSchemas 
+      })
     }
   }
 

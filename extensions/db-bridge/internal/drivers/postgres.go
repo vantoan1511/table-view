@@ -41,13 +41,18 @@ func (d *PostgresDriver) Disconnect() error {
 	return nil
 }
 
-func (d *PostgresDriver) GetSchema() (*SchemaResult, error) {
-	tablesRows, err := d.db.Query(`
-		SELECT table_name 
+func (d *PostgresDriver) GetSchema(allSchemas bool) (*SchemaResult, error) {
+	whereClause := "WHERE table_schema = 'public'"
+	if allSchemas {
+		whereClause = "WHERE table_schema NOT IN ('information_schema', 'pg_catalog')"
+	}
+
+	tablesRows, err := d.db.Query(fmt.Sprintf(`
+		SELECT table_name, table_schema
 		FROM information_schema.tables 
-		WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+		%s AND table_type = 'BASE TABLE'
 		ORDER BY table_name;
-	`)
+	`, whereClause))
 	if err != nil {
 		return nil, err
 	}
@@ -55,19 +60,19 @@ func (d *PostgresDriver) GetSchema() (*SchemaResult, error) {
 
 	var tables []SchemaObject = []SchemaObject{}
 	for tablesRows.Next() {
-		var name string
-		if err := tablesRows.Scan(&name); err != nil {
+		var name, schemaName string
+		if err := tablesRows.Scan(&name, &schemaName); err != nil {
 			return nil, err
 		}
-		tables = append(tables, SchemaObject{Name: name})
+		tables = append(tables, SchemaObject{Name: name, Schema: schemaName})
 	}
 
-	viewsRows, err := d.db.Query(`
-		SELECT table_name 
+	viewsRows, err := d.db.Query(fmt.Sprintf(`
+		SELECT table_name, table_schema
 		FROM information_schema.views 
-		WHERE table_schema = 'public'
+		%s
 		ORDER BY table_name;
-	`)
+	`, whereClause))
 	if err != nil {
 		return nil, err
 	}
@@ -75,19 +80,19 @@ func (d *PostgresDriver) GetSchema() (*SchemaResult, error) {
 
 	var views []SchemaObject = []SchemaObject{}
 	for viewsRows.Next() {
-		var name string
-		if err := viewsRows.Scan(&name); err != nil {
+		var name, schemaName string
+		if err := viewsRows.Scan(&name, &schemaName); err != nil {
 			return nil, err
 		}
-		views = append(views, SchemaObject{Name: name})
+		views = append(views, SchemaObject{Name: name, Schema: schemaName})
 	}
 
-	funcsRows, err := d.db.Query(`
-		SELECT routine_name 
+	funcsRows, err := d.db.Query(fmt.Sprintf(`
+		SELECT routine_name, routine_schema
 		FROM information_schema.routines 
-		WHERE routine_schema = 'public' AND routine_type = 'FUNCTION'
+		%s AND routine_type = 'FUNCTION'
 		ORDER BY routine_name;
-	`)
+	`, strings.Replace(whereClause, "table_schema", "routine_schema", 1)))
 	if err != nil {
 		return nil, err
 	}
@@ -95,18 +100,38 @@ func (d *PostgresDriver) GetSchema() (*SchemaResult, error) {
 
 	var funcs []SchemaObject = []SchemaObject{}
 	for funcsRows.Next() {
-		var name string
-		if err := funcsRows.Scan(&name); err != nil {
+		var name, schemaName string
+		if err := funcsRows.Scan(&name, &schemaName); err != nil {
 			return nil, err
 		}
-		funcs = append(funcs, SchemaObject{Name: name})
+		funcs = append(funcs, SchemaObject{Name: name, Schema: schemaName})
+	}
+
+	schemasRows, err := d.db.Query(fmt.Sprintf(`
+		SELECT schema_name 
+		FROM information_schema.schemata
+		%s
+		ORDER BY schema_name;
+	`, strings.Replace(whereClause, "table_schema", "schema_name", 1)))
+	if err != nil {
+		return nil, err
+	}
+	defer schemasRows.Close()
+
+	var schemas []SchemaObject = []SchemaObject{}
+	for schemasRows.Next() {
+		var name string
+		if err := schemasRows.Scan(&name); err != nil {
+			return nil, err
+		}
+		schemas = append(schemas, SchemaObject{Name: name})
 	}
 
 	return &SchemaResult{
 		Tables:    tables,
 		Views:     views,
 		Functions: funcs,
-		Schemas:   []SchemaObject{{Name: "public"}},
+		Schemas:   schemas,
 	}, nil
 }
 

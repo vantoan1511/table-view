@@ -22,6 +22,7 @@ export interface Connection {
   applicationName: string
   comment: string
   savePassword: boolean
+  displayAllSchemas: boolean
   isConnected: boolean
 }
 
@@ -37,6 +38,8 @@ export interface Tab {
   query?: string
   scrollPosition?: number
   minimized?: boolean
+  connectionId?: string
+  schema?: string
 }
 
 // ─── Schema ─────────────────────────────────────────────────────────────────

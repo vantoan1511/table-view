@@ -3,8 +3,10 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import * as Neutralino from '@neutralinojs/lib'
+import { useConnectionsStore } from './connections'
 
 export const useGridStore = defineStore('grid', () => {
+  const connectionsStore = useConnectionsStore()
   // Table data grid state
   const columns = ref<GridColumn[]>([])
   const rows = ref<GridRow[]>([])
@@ -16,6 +18,7 @@ export const useGridStore = defineStore('grid', () => {
   const executionTime = ref(0)
   const activeTableName = ref('')
   const filterText = ref('')
+  const isLoading = ref(false)
 
   // Row selection state
   const selectedRowIndices = ref<Set<number>>(new Set())
@@ -51,6 +54,7 @@ export const useGridStore = defineStore('grid', () => {
     const reqId = Date.now().toString()
     const offset = (currentPage.value - 1) * rowsPerPage.value
     const startTime = performance.now()
+    isLoading.value = true
 
     const onResult = (evt: any) => {
       const payload = evt.detail
@@ -63,6 +67,7 @@ export const useGridStore = defineStore('grid', () => {
         } else {
           console.error("Failed to fetch table data:", payload.error)
         }
+        isLoading.value = false
         Neutralino.events.off('dbBridge.fetchTableDataResult', onResult)
       }
     }
@@ -70,6 +75,7 @@ export const useGridStore = defineStore('grid', () => {
     Neutralino.events.on('dbBridge.fetchTableDataResult', onResult)
     Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.fetchTableData', {
       reqId,
+      connectionId: connectionsStore.activeConnectionId,
       tableName,
       limit: rowsPerPage.value,
       offset,
@@ -113,6 +119,7 @@ export const useGridStore = defineStore('grid', () => {
       Neutralino.events.on('dbBridge.updateCellResult', onResult)
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.updateCell', {
         reqId,
+        connectionId: connectionsStore.activeConnectionId,
         tableName: activeTableName.value,
         pkColumn: pkColumn.name,
         pkValue,
@@ -128,6 +135,7 @@ export const useGridStore = defineStore('grid', () => {
     const reqId = Date.now().toString()
     const startTime = performance.now()
     sqlMessages.value = [] // clear previous messages
+    isLoading.value = true
 
     const onResult = (evt: any) => {
       const payload = evt.detail
@@ -150,6 +158,7 @@ export const useGridStore = defineStore('grid', () => {
             timestamp: new Date().toISOString(),
           })
         }
+        isLoading.value = false
         Neutralino.events.off('dbBridge.executeQueryResult', onResult)
       }
     }
@@ -157,6 +166,7 @@ export const useGridStore = defineStore('grid', () => {
     Neutralino.events.on('dbBridge.executeQueryResult', onResult)
     Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.executeQuery', {
       reqId,
+      connectionId: connectionsStore.activeConnectionId,
       sql
     })
   }
@@ -326,6 +336,7 @@ export const useGridStore = defineStore('grid', () => {
       Neutralino.events.on('dbBridge.insertRowResult', onResult)
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.insertRow', {
         reqId,
+        connectionId: connectionsStore.activeConnectionId,
         tableName: activeTableName.value,
         data,
       })
@@ -367,6 +378,7 @@ export const useGridStore = defineStore('grid', () => {
       Neutralino.events.on('dbBridge.deleteRowsResult', onResult)
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.deleteRows', {
         reqId,
+        connectionId: connectionsStore.activeConnectionId,
         tableName: activeTableName.value,
         pkColumn: pkCol.name,
         pkValues,
@@ -386,7 +398,7 @@ export const useGridStore = defineStore('grid', () => {
         else reject(new Error(payload.error))
       }
       Neutralino.events.on('dbBridge.getTableColumnsResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getTableColumns', { reqId, tableName })
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getTableColumns', { reqId, connectionId: connectionsStore.activeConnectionId, tableName })
     })
   }
 
@@ -402,7 +414,7 @@ export const useGridStore = defineStore('grid', () => {
         else reject(new Error(payload.error))
       }
       Neutralino.events.on('dbBridge.alterTableResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.alterTable', { reqId, tableName, operations })
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.alterTable', { reqId, connectionId: connectionsStore.activeConnectionId, tableName, operations })
     })
   }
 
@@ -417,6 +429,7 @@ export const useGridStore = defineStore('grid', () => {
     executionTime,
     activeTableName,
     filterText,
+    isLoading,
     totalPages,
     selectedRowIndices,
     columnWidths,
