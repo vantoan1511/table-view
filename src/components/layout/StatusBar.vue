@@ -1,21 +1,23 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
+import { useToastStore } from '@/stores/toast'
 import { useUpdaterStore } from '@/stores/updater'
 import * as Neutralino from '@neutralinojs/lib'
 import {
-  Settings,
-  RefreshCw,
-  Moon,
-  Sun,
   ArrowUpCircle,
-  Loader2
+  Loader2,
+  Moon,
+  RefreshCw,
+  Settings,
+  Sun
 } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
 
 const connectionsStore = useConnectionsStore()
 const gridStore = useGridStore()
 const updaterStore = useUpdaterStore()
+const toastStore = useToastStore()
 const isDark = ref(false)
 
 onMounted(async () => {
@@ -33,6 +35,22 @@ onMounted(async () => {
   }
 })
 
+// ─── Row Count ────────────────────────────────────────────────────────────
+// Show the total rows from the active table grid, or SQL row count if a query was run
+const displayRowCount = computed(() => {
+  if (gridStore.sqlRowCount > 0 && gridStore.activeTableName === '') {
+    return gridStore.sqlRowCount
+  }
+  return gridStore.totalRows
+})
+
+const displayExecTime = computed(() => {
+  if (gridStore.sqlExecutionTime > 0 && gridStore.activeTableName === '') {
+    return gridStore.sqlExecutionTime
+  }
+  return gridStore.executionTime
+})
+
 const toggleDarkMode = async () => {
   isDark.value = !isDark.value
   document.documentElement.classList.toggle('dark', isDark.value)
@@ -40,28 +58,54 @@ const toggleDarkMode = async () => {
     await Neutralino.storage.setData('theme', isDark.value ? 'dark' : 'light')
   }
 }
+
+const handleCheckForUpdates = async () => {
+  const hadUpdate = !!updaterStore.updateAvailable
+  await updaterStore.checkForUpdates(true)
+  // If no update was found after checking, show a friendly toast
+  if (!updaterStore.updateAvailable && !hadUpdate) {
+    toastStore.addToast({
+      title: 'Up to date',
+      message: `You are running the latest version.`,
+      severity: 'success',
+      variation: 'filled',
+      position: 'bottom-center',
+    })
+  }
+}
+
+const openSettings = () => {
+  toastStore.addToast({
+    title: 'Settings',
+    message: 'Settings panel coming soon.',
+    severity: 'info',
+    variation: 'outlined',
+    position: 'bottom-center',
+  })
+}
 </script>
 
 <template>
-  <footer class="flex items-center h-[var(--statusbar-height)] bg-surface border-t border-border px-3 text-[11px] text-text-secondary shrink-0">
+  <footer
+    class="flex items-center h-(--statusbar-height) bg-surface border-t border-border px-3 text-[11px] text-text-secondary shrink-0">
     <!-- Left: icons -->
     <div class="flex items-center gap-2">
-      <button class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary">
+      <button
+        class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary cursor-pointer transition-colors"
+        @click="openSettings" title="Settings">
         <Settings :size="13" />
       </button>
-      <button class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary"
-        @click="updaterStore.checkForUpdates(true)"
-        :title="updaterStore.isChecking ? 'Checking for updates...' : 'Check for updates'"
-      >
+      <button
+        class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary cursor-pointer transition-colors"
+        @click="handleCheckForUpdates"
+        :title="updaterStore.isChecking ? 'Checking for updates...' : updaterStore.updateAvailable ? 'Update available!' : 'Check for updates'">
         <Loader2 v-if="updaterStore.isChecking" :size="13" class="animate-spin" />
         <ArrowUpCircle v-else-if="updaterStore.updateAvailable" :size="13" class="text-primary" />
         <RefreshCw v-else :size="13" />
       </button>
       <button
         class="flex items-center justify-center w-6 h-6 rounded hover:bg-hover text-text-tertiary hover:text-text-secondary"
-        @click="toggleDarkMode"
-        :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-      >
+        @click="toggleDarkMode" :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
         <Sun v-if="isDark" :size="13" />
         <Moon v-else :size="13" />
       </button>
@@ -96,13 +140,13 @@ const toggleDarkMode = async () => {
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
         </svg>
-        {{ gridStore.executionTime }} ms
+        {{ displayExecTime }} ms
       </span>
       <span class="flex items-center gap-1">
         <svg class="w-3 h-3 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="20 6 9 17 4 12" />
         </svg>
-        {{ gridStore.sqlRowCount }} rows returned
+        {{ displayRowCount.toLocaleString() }} rows
       </span>
     </div>
   </footer>

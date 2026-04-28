@@ -45,16 +45,9 @@ export const useGridStore = defineStore('grid', () => {
   }
 
   const loadTable = async (tableName: string) => {
-    if (activeTableName.value === tableName) {
-      sortColumn.value = undefined
-      sortDirection.value = undefined
-      currentPage.value = 1
-      return;
-    }
-
-    activeTableName.value = tableName
     if (!tableName || !window.NL_PORT) return
 
+    activeTableName.value = tableName
     const reqId = Date.now().toString()
     const offset = (currentPage.value - 1) * rowsPerPage.value
     const startTime = performance.now()
@@ -85,6 +78,7 @@ export const useGridStore = defineStore('grid', () => {
       filter: filterText.value
     })
   }
+
 
   const updateCell = async (rowIndex: number, column: GridColumn, newValue: any) => {
     const row = rows.value[rowIndex]
@@ -313,7 +307,7 @@ export const useGridStore = defineStore('grid', () => {
   }
 
   // Internal DB insertion (used by saveNewRow and legacy calls)
-  const insertRowToDB = async (data: Record<string, string> = {}) : Promise<GridRow> => {
+  const insertRowToDB = async (data: Record<string, string> = {}): Promise<GridRow> => {
     return new Promise((resolve, reject) => {
       if (!window.NL_PORT) return resolve({})
       const reqId = Date.now().toString()
@@ -339,11 +333,11 @@ export const useGridStore = defineStore('grid', () => {
   }
 
   // Backwards‑compatible wrapper used by UI (old call)
-  const insertRow = async (data: Record<string, string> = {}) : Promise<void> => {
+  const insertRow = async (data: Record<string, string> = {}): Promise<void> => {
     await insertRowToDB(data)
   }
 
-  const deleteRows = (indices: number[]) : Promise<void> => {
+  const deleteRows = (indices: number[]): Promise<void> => {
     return new Promise((resolve, reject) => {
       if (!window.NL_PORT) return resolve()
       const pkCol = columns.value.find(c => c.isPrimaryKey)
@@ -380,7 +374,7 @@ export const useGridStore = defineStore('grid', () => {
     })
   }
 
-  const getTableColumns = (tableName: string) : Promise<any[]> => {
+  const getTableColumns = (tableName: string): Promise<any[]> => {
     return new Promise((resolve, reject) => {
       if (!window.NL_PORT) return resolve([])
       const reqId = Date.now().toString()
@@ -396,7 +390,7 @@ export const useGridStore = defineStore('grid', () => {
     })
   }
 
-  const alterTable = (tableName: string, operations: any[]) : Promise<void> => {
+  const alterTable = (tableName: string, operations: any[]): Promise<void> => {
     return new Promise((resolve, reject) => {
       if (!window.NL_PORT) return resolve()
       const reqId = Date.now().toString()

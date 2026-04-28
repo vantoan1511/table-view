@@ -37,13 +37,11 @@ const moreMenuPos = ref({ x: 0, y: 0 })
 const showSearchPopup = ref(false)
 const searchPopupPos = ref({ x: 0, y: 0 })
 
-const columnVisibility = ref<Record<string, boolean>>({})
-
-// Initialize column visibility
+// Initialize column visibility tracking in the store
 watch(() => gridStore.columns, (cols) => {
   cols.forEach(c => {
-    if (columnVisibility.value[c.name] === undefined) {
-      columnVisibility.value[c.name] = true
+    if (gridStore.columnVisibility[c.name] === undefined) {
+      gridStore.columnVisibility[c.name] = true
     }
   })
 }, { immediate: true })
@@ -64,7 +62,6 @@ const toggleRowsMenu = (e: MouseEvent) => {
 
 const toggleMoreMenu = (e: MouseEvent) => {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  // Align to the right of the button
   moreMenuPos.value = { x: rect.right - 180, y: rect.bottom + 5 }
   showMoreMenu.value = !showMoreMenu.value
   showSearchPopup.value = false
@@ -72,7 +69,6 @@ const toggleMoreMenu = (e: MouseEvent) => {
 
 const toggleSearchPopup = (e: MouseEvent) => {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  // Try to center it or align it reasonably
   searchPopupPos.value = { x: Math.max(10, rect.left - 150), y: rect.bottom + 5 }
   showSearchPopup.value = !showSearchPopup.value
   showMoreMenu.value = false
@@ -83,9 +79,14 @@ const setRowsPerPage = (count: number) => {
   showRowsMenu.value = false
 }
 
-// ─── Add Row Inline ────────────────────────────────────────────────────────
+// ─── Add Row Inline ──────────────────────────────────────────────────────
 const handleInsert = async () => {
   gridStore.createNewRow()
+}
+
+// ─── Refresh ──────────────────────────────────────────────────────────────────────
+const handleRefresh = () => {
+  gridStore.loadTable(gridStore.activeTableName)
 }
 
 // ─── Delete Confirmation ──────────────────────────────────────────────────────
@@ -270,7 +271,7 @@ const vFocus = {
           class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary group-focus-within:text-primary transition-colors" />
         <input v-model="gridStore.filterText" type="text" placeholder="Search..."
           class="w-full pl-8 pr-3 py-1.5 border border-border rounded-lg text-[12px] bg-muted focus:bg-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-          @keydown.enter="gridStore.loadTable(gridStore.activeTableName)" />
+          @keydown.enter="handleRefresh" />
       </div>
 
       <!-- Search: Level 3 (Popup Icon) -->
@@ -296,7 +297,7 @@ const vFocus = {
               <Filter :size="13" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary" />
               <input v-model="gridStore.filterText" v-focus type="text" placeholder="Search rows..."
                 class="w-full pl-8 pr-3 py-1.5 border border-border rounded-lg text-[12px] outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                @keydown.enter="gridStore.loadTable(gridStore.activeTableName); showSearchPopup = false" />
+                @keydown.enter="handleRefresh(); showSearchPopup = false" />
             </div>
           </div>
         </ContextMenu>
@@ -366,7 +367,7 @@ const vFocus = {
         <!-- Refresh -->
         <button
           class="flex items-center justify-center w-8 h-8 border border-border rounded-lg text-text-secondary hover:bg-hover transition-colors cursor-pointer group relative"
-          @click="gridStore.loadTable(gridStore.activeTableName)">
+          @click="handleRefresh">
           <RefreshCw :size="14" />
           <!-- Tooltip -->
           <div
@@ -401,7 +402,7 @@ const vFocus = {
             <Plus :size="14" class="text-success" /> <span>Add Row</span>
           </button>
           <button class="w-full flex items-center gap-2 px-3 py-2 hover:bg-hover text-[12px]"
-            @click="gridStore.loadTable(gridStore.activeTableName); showMoreMenu = false">
+            @click="handleRefresh(); showMoreMenu = false">
             <RefreshCw :size="14" /> <span>Refresh</span>
           </button>
           <button class="w-full flex items-center gap-2 px-3 py-2 hover:bg-hover text-[12px]"
@@ -438,4 +439,35 @@ const vFocus = {
   <!-- Alter Table Dialog -->
   <AlterTableDialog v-if="gridStore.showAlterTableDialog" :tableName="gridStore.activeTableName"
     @close="gridStore.showAlterTableDialog = false" @apply="confirmAlterTable" />
+
+  <!-- Columns Visibility ContextMenu -->
+  <ContextMenu :show="showColumnsMenu" :x="columnsMenuPos.x" :y="columnsMenuPos.y" @close="showColumnsMenu = false">
+    <div class="px-3 py-1.5 text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Columns</div>
+    <div class="max-h-64 overflow-y-auto">
+      <button v-for="col in gridStore.columns" :key="col.name"
+        class="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-hover text-[12px] text-left cursor-pointer"
+        @click="gridStore.toggleColumnVisibility(col.name)">
+        <span class="w-3 h-3 border border-border rounded flex items-center justify-center shrink-0"
+          :class="gridStore.columnVisibility[col.name] !== false ? 'bg-primary border-primary' : 'bg-surface'">
+          <svg v-if="gridStore.columnVisibility[col.name] !== false" class="w-2 h-2 text-white" viewBox="0 0 12 12"
+            fill="none">
+            <polyline points="1,6 4,9 11,2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="truncate">{{ col.name }}</span>
+        <span class="ml-auto text-[10px] text-text-tertiary">{{ col.dataType }}</span>
+      </button>
+    </div>
+  </ContextMenu>
+
+  <!-- Rows Per Page ContextMenu -->
+  <ContextMenu :show="showRowsMenu" :x="rowsMenuPos.x" :y="rowsMenuPos.y" @close="showRowsMenu = false">
+    <div class="px-3 py-1.5 text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Rows per page</div>
+    <button v-for="count in [25, 50, 100, 250, 500, 1000]" :key="count"
+      class="w-full flex items-center justify-between px-3 py-1.5 hover:bg-hover text-[12px] cursor-pointer"
+      @click="setRowsPerPage(count)">
+      <span>{{ count }}</span>
+      <span v-if="gridStore.rowsPerPage === count" class="text-primary">✓</span>
+    </button>
+  </ContextMenu>
 </template>
