@@ -70,7 +70,7 @@ impl DatabaseDriver for PostgresDriver {
 
         // Tables
         let sql = format!(
-            "SELECT table_name, table_schema FROM information_schema.tables {} AND table_type = 'BASE TABLE' ORDER BY table_name",
+            "SELECT table_name::text, table_schema::text FROM information_schema.tables {} AND table_type = 'BASE TABLE' ORDER BY table_name",
             where_clause
         );
         let (table_rows, _) = execute_query(pool, &sql, &[]).await?;
@@ -85,7 +85,7 @@ impl DatabaseDriver for PostgresDriver {
 
         // Views
         let sql = format!(
-            "SELECT table_name, table_schema FROM information_schema.views {} ORDER BY table_name",
+            "SELECT table_name::text, table_schema::text FROM information_schema.views {} ORDER BY table_name",
             where_clause
         );
         let (view_rows, _) = execute_query(pool, &sql, &[]).await?;
@@ -101,7 +101,7 @@ impl DatabaseDriver for PostgresDriver {
         // Functions
         let func_where = where_clause.replace("table_schema", "routine_schema");
         let sql = format!(
-            "SELECT routine_name, routine_schema FROM information_schema.routines {} AND routine_type = 'FUNCTION' ORDER BY routine_name",
+            "SELECT routine_name::text, routine_schema::text FROM information_schema.routines {} AND routine_type = 'FUNCTION' ORDER BY routine_name",
             func_where
         );
         let (func_rows, _) = execute_query(pool, &sql, &[]).await?;
@@ -117,7 +117,7 @@ impl DatabaseDriver for PostgresDriver {
         // Schemas
         let schema_where = where_clause.replace("table_schema", "schema_name");
         let sql = format!(
-            "SELECT schema_name FROM information_schema.schemata {} ORDER BY schema_name",
+            "SELECT schema_name::text FROM information_schema.schemata {} ORDER BY schema_name",
             schema_where
         );
         let (schema_rows, _) = execute_query(pool, &sql, &[]).await?;
@@ -150,7 +150,7 @@ impl DatabaseDriver for PostgresDriver {
         let safe_table = Self::quote(table_name);
 
         // Get PKs
-        let pk_sql = "SELECT kcu.column_name FROM information_schema.table_constraints tco \
+        let pk_sql = "SELECT kcu.column_name::text FROM information_schema.table_constraints tco \
             JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tco.constraint_name \
             AND kcu.constraint_schema = tco.constraint_schema \
             WHERE tco.constraint_type = 'PRIMARY KEY' AND kcu.table_name = $1 AND tco.table_schema = 'public'";
@@ -302,7 +302,7 @@ impl DatabaseDriver for PostgresDriver {
         let pool = self.pool()?;
         get_table_columns_generic(
             pool,
-            "SELECT column_name, data_type, is_nullable, column_default \
+            "SELECT column_name::text, data_type::text, is_nullable::text, column_default::text \
              FROM information_schema.columns \
              WHERE table_schema = 'public' AND table_name = $1 \
              ORDER BY ordinal_position",
