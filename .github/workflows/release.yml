@@ -108,6 +108,10 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
+          # Clean up any build-time modifications to tracked files (e.g. package-lock.json, binaries)
+          # to allow branch switching and pulling.
+          git reset --hard
+          
           # Switch to main branch BEFORE modifying manifest.json to avoid checkout conflicts
           git fetch origin main
           git checkout main
