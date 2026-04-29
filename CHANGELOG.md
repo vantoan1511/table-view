@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.22] - 2026-04-29
+
+### Fixed
+- CI/CD: Resolved `manifest.json` update failure in GitHub Actions by correctly sequencing branch checkouts.
+
+### Changed
+- CI/CD: Parallelized backend and frontend build steps to reduce total release time.
+- Performance: Optimized Rust release profile for faster CI builds while maintaining stripped binaries.
+
 ## [0.0.21] - 2026-04-29
 
 ### Fixed
