@@ -98,16 +98,20 @@ jobs:
           
           echo "Updating manifest version to $VERSION"
           
-          # Use node to only update the version number in manifest.json
-          # The URLs are now static pointing to 'latest/download'
-          node -e "const fs = require('fs'); const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8')); manifest.version = '$VERSION'; fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));"
-          
           # Configure Git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          # Commit and Push manifest.json only back to main
+          # Switch to main branch BEFORE modifying manifest.json to avoid checkout conflicts
+          git fetch origin main
           git checkout main
+          git pull origin main --rebase
+          
+          # Use node to only update the version number in manifest.json
+          # The URLs are now static pointing to 'latest/download'
+          node -e "const fs = require('fs'); const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8')); manifest.version = '$VERSION'; fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));"
+          
+          # Commit and Push manifest.json only back to main
           git add manifest.json
           git commit -m "chore: update manifest.json for release v$VERSION [skip ci]" || echo "No changes to commit"
           git push origin main || echo "Failed to push to main"
