@@ -30,7 +30,7 @@ impl SqliteDriver {
         pool: &SqlitePool,
         sql: &str,
         params: &[Value],
-    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>), String> {
+    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>, u64), String> {
         let mut q = sqlx::query(sql);
         for p in params {
             q = bind_json_value!(q, p);
@@ -39,10 +39,11 @@ impl SqliteDriver {
         log::info!("sqlite: executing query: {}", sql);
         let start = std::time::Instant::now();
         let rows = q.fetch_all(pool).await.map_err(|e| e.to_string())?;
-        log::info!("sqlite: query finished in {}ms", start.elapsed().as_millis());
+        let elapsed = start.elapsed().as_millis() as u64;
+        log::info!("sqlite: query finished in {}ms", elapsed);
 
         if rows.is_empty() {
-            return Ok((vec![], vec![]));
+            return Ok((vec![], vec![], elapsed));
         }
 
         let mut fields = Vec::new();
@@ -64,7 +65,7 @@ impl SqliteDriver {
             data.push(map);
         }
 
-        Ok((data, fields))
+        Ok((data, fields, elapsed))
     }
 
     fn get_column_value(row: &SqliteRow, i: usize) -> Value {
@@ -97,6 +98,7 @@ impl DatabaseDriver for SqliteDriver {
         let dsn = format!("sqlite://{}", config.database);
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
+            .acquire_timeout(std::time::Duration::from_secs(config.connection_timeout as u64))
             .connect(&dsn)
             .await
             .map_err(|e| e.to_string())?;
@@ -116,7 +118,7 @@ impl DatabaseDriver for SqliteDriver {
         let pool = self.pool()?;
 
         // Tables
-        let (table_rows, _) = Self::execute_query(
+        let (table_rows, _, _) = Self::execute_query(
             pool,
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
             &[],
@@ -132,7 +134,7 @@ impl DatabaseDriver for SqliteDriver {
             .collect();
 
         // Views
-        let (view_rows, _) = Self::execute_query(
+        let (view_rows, _, _) = Self::execute_query(
             pool,
             "SELECT name FROM sqlite_master WHERE type='view'",
             &[],
@@ -168,7 +170,7 @@ impl DatabaseDriver for SqliteDriver {
 
         // Get PKs
         let pk_sql = format!("PRAGMA table_info({})", safe_table);
-        let (pk_rows, _) = Self::execute_query(pool, &pk_sql, &[]).await?;
+        let (pk_rows, _, _) = Self::execute_query(pool, &pk_sql, &[]).await?;
         let pk_set: std::collections::HashSet<String> = pk_rows
             .iter()
             .filter(|r| r.get("pk").and_then(|v| v.as_i64()).unwrap_or(0) > 0)
@@ -186,7 +188,7 @@ impl DatabaseDriver for SqliteDriver {
             "SELECT * FROM {}{} LIMIT ? OFFSET ?",
             safe_table, order_clause
         );
-        let (data, mut fields) = Self::execute_query(
+        let (data, mut fields, elapsed) = Self::execute_query(
             pool,
             &sql,
             &[Value::Number(limit.into()), Value::Number(offset.into())],
@@ -200,7 +202,7 @@ impl DatabaseDriver for SqliteDriver {
         }
 
         let count_sql = format!("SELECT COUNT(*) as cnt FROM {}", safe_table);
-        let (count_rows, _) = Self::execute_query(pool, &count_sql, &[]).await?;
+        let (count_rows, _, _) = Self::execute_query(pool, &count_sql, &[]).await?;
         let total = count_rows
             .first()
             .and_then(|r| r.get("cnt"))
@@ -211,17 +213,19 @@ impl DatabaseDriver for SqliteDriver {
             rows: data,
             fields,
             total_count: total,
+            execution_time: elapsed,
         })
     }
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
         let pool = self.pool()?;
-        let (data, fields) = Self::execute_query(pool, sql, &[]).await?;
+        let (data, fields, elapsed) = Self::execute_query(pool, sql, &[]).await?;
         let count = data.len();
         Ok(QueryResult {
             rows: data,
             fields,
             row_count: count,
+            execution_time: elapsed,
         })
     }
 
@@ -286,7 +290,7 @@ impl DatabaseDriver for SqliteDriver {
         let last_id = res.last_insert_rowid();
 
         let select_sql = format!("SELECT * FROM {} WHERE rowid = ?", safe_table);
-        let (rows, _) = Self::execute_query(pool, &select_sql, &[Value::Number(last_id.into())]).await
+        let (rows, _, _) = Self::execute_query(pool, &select_sql, &[Value::Number(last_id.into())]).await
             .unwrap_or_default();
         if let Some(row) = rows.into_iter().next() {
             return Ok(row);
@@ -322,7 +326,7 @@ impl DatabaseDriver for SqliteDriver {
     async fn get_table_columns(&self, table_name: &str) -> Result<Vec<TableColumn>, String> {
         let pool = self.pool()?;
         let sql = format!("PRAGMA table_info({})", Self::quote(table_name));
-        let (rows, _) = Self::execute_query(pool, &sql, &[]).await?;
+        let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
         
         let mut columns = Vec::new();
         for r in rows {
@@ -389,7 +393,7 @@ impl DatabaseDriver for SqliteDriver {
         let safe_table = Self::quote(table_name);
         let sql = format!("SELECT * FROM {}", safe_table);
         
-        let (rows, _) = Self::execute_query(pool, &sql, &[]).await?;
+        let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
         
         if rows.is_empty() {
             return Ok(());

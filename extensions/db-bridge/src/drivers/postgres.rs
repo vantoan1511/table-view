@@ -32,19 +32,19 @@ impl PostgresDriver {
         pool: &PgPool,
         sql: &str,
         params: &[Value],
-    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>), String> {
+    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>, u64), String> {
         let mut q = sqlx::query(sql);
         for p in params {
             q = bind_json_value!(q, p);
         }
-
         log::info!("postgres: executing query: {}", sql);
         let start = std::time::Instant::now();
         let rows = q.fetch_all(pool).await.map_err(|e| e.to_string())?;
-        log::info!("postgres: query finished in {}ms", start.elapsed().as_millis());
+        let elapsed = start.elapsed().as_millis() as u64;
+        log::info!("postgres: query finished in {}ms", elapsed);
 
         if rows.is_empty() {
-            return Ok((vec![], vec![]));
+            return Ok((vec![], vec![], elapsed));
         }
 
         let mut fields = Vec::new();
@@ -66,7 +66,7 @@ impl PostgresDriver {
             data.push(map);
         }
 
-        Ok((data, fields))
+        Ok((data, fields, elapsed))
     }
 
     fn get_column_value(row: &PgRow, i: usize) -> Value {
@@ -153,8 +153,8 @@ impl DatabaseDriver for PostgresDriver {
     async fn connect(&mut self, config: &Config) -> Result<(), String> {
         let ssl_mode = if config.ssl { "require" } else { "disable" };
         let dsn = format!(
-            "postgres://{}:{}@{}:{}/{}?sslmode={}&options=-c%20search_path=public&application_name=db_manager&connect_timeout=5&tcp_user_timeout=5000",
-            config.username, config.password, config.host, config.port, config.database, ssl_mode
+            "postgres://{}:{}@{}:{}/{}?sslmode={}&options=-c%20search_path=public&application_name=db_manager&connect_timeout={}&tcp_user_timeout=5000",
+            config.username, config.password, config.host, config.port, config.database, ssl_mode, config.connection_timeout
         );
 
         let pool = PgPoolOptions::new()
@@ -203,10 +203,10 @@ impl DatabaseDriver for PostgresDriver {
             Self::execute_query(pool, schema_sql, &[])
         );
 
-        let (table_rows, _) = table_res?;
-        let (view_rows, _) = view_res?;
-        let (func_rows, _) = func_res?;
-        let (schema_rows, _) = schema_res?;
+        let (table_rows, _, _) = table_res?;
+        let (view_rows, _, _) = view_res?;
+        let (func_rows, _, _) = func_res?;
+        let (schema_rows, _, _) = schema_res?;
 
         let tables: Vec<SchemaObject> = table_rows
             .iter()
@@ -296,9 +296,9 @@ impl DatabaseDriver for PostgresDriver {
             Self::execute_query(pool, &count_sql, &count_params)
         );
 
-        let (pk_rows, _) = pk_res?;
-        let (data, mut fields) = data_res?;
-        let (count_rows, _) = count_res?;
+        let (pk_rows, _, _) = pk_res?;
+        let (data, mut fields, elapsed) = data_res?;
+        let (count_rows, _, _) = count_res?;
 
         let pk_set: std::collections::HashSet<String> = pk_rows
             .iter()
@@ -329,17 +329,19 @@ impl DatabaseDriver for PostgresDriver {
             rows: data,
             fields,
             total_count: total,
+            execution_time: elapsed,
         })
     }
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
         let pool = self.pool()?;
-        let (data, fields) = Self::execute_query(pool, sql, &[]).await?;
+        let (data, fields, elapsed) = Self::execute_query(pool, sql, &[]).await?;
         let count = data.len();
         Ok(QueryResult {
             rows: data,
             fields,
             row_count: count,
+            execution_time: elapsed,
         })
     }
 
@@ -378,7 +380,7 @@ impl DatabaseDriver for PostgresDriver {
                 "INSERT INTO public.{} DEFAULT VALUES RETURNING *",
                 safe_table
             );
-            let (rows, _) = Self::execute_query(pool, &sql, &[]).await?;
+            let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
             return rows.into_iter().next().ok_or("No row returned".to_string());
         }
 
@@ -393,7 +395,7 @@ impl DatabaseDriver for PostgresDriver {
             placeholders.join(", ")
         );
 
-        let (rows, _) = Self::execute_query(pool, &sql, &values).await?;
+        let (rows, _, _) = Self::execute_query(pool, &sql, &values).await?;
         rows.into_iter().next().ok_or("No row returned".to_string())
     }
 
@@ -426,7 +428,7 @@ impl DatabaseDriver for PostgresDriver {
              WHERE table_schema = 'public' AND table_name = $1 \
              ORDER BY ordinal_position";
         
-        let (rows, _) = Self::execute_query(pool, sql, &[Value::String(table_name.to_string())]).await?;
+        let (rows, _, _) = Self::execute_query(pool, sql, &[Value::String(table_name.to_string())]).await?;
         
         let mut columns = Vec::new();
         for r in rows {
@@ -493,7 +495,7 @@ impl DatabaseDriver for PostgresDriver {
         let safe_table = Self::quote(table_name);
         let sql = format!("SELECT * FROM public.{}", safe_table);
         
-        let (rows, _) = Self::execute_query(pool, &sql, &[]).await?;
+        let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
         
         if rows.is_empty() {
             return Ok(());

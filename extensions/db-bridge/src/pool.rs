@@ -9,7 +9,6 @@ const MAX_SIZE: usize = 5;
 /// Maintains up to MAX_SIZE concurrent live connections keyed by connectionId.
 /// When the pool is full, the least-recently-used connection is closed and evicted.
 pub struct Pool {
-    cache: HashMap<String, usize>, // id -> index in order
     order: VecDeque<String>,       // front = most recently used
     drivers: HashMap<String, Arc<Mutex<Box<dyn DatabaseDriver>>>>,
 }
@@ -17,7 +16,6 @@ pub struct Pool {
 impl Pool {
     pub fn new() -> Self {
         Self {
-            cache: HashMap::new(),
             order: VecDeque::new(),
             drivers: HashMap::new(),
         }
@@ -69,6 +67,7 @@ impl Pool {
     }
 
     /// Explicitly close and remove a connection from the pool.
+    #[allow(dead_code)]
     pub async fn remove(&mut self, id: &str) {
         if let Some(driver_arc) = self.drivers.remove(id) {
             let mut driver = driver_arc.lock().await;

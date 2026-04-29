@@ -26,7 +26,7 @@ struct Payload {
     #[serde(default)]
     sort_direction: String,
     #[serde(default)]
-    filter: String,
+    _filter: String,
     #[serde(default)]
     sql: String,
     #[serde(default)]

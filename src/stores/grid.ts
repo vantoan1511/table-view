@@ -66,7 +66,7 @@ export const useGridStore = defineStore('grid', () => {
           rows.value = payload.rows
           columns.value = payload.fields.map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID), isPrimaryKey: !!f.isPrimaryKey }))
           totalRows.value = payload.totalCount
-          executionTime.value = Math.round(performance.now() - startTime)
+          executionTime.value = payload.executionTime ?? Math.round(performance.now() - startTime)
         } else {
           console.error("Failed to fetch table data:", payload.error)
         }
@@ -143,7 +143,7 @@ export const useGridStore = defineStore('grid', () => {
     const onResult = (evt: any) => {
       const payload = evt.detail
       if (payload.reqId === reqId) {
-        sqlExecutionTime.value = Math.round(performance.now() - startTime)
+        sqlExecutionTime.value = payload.executionTime ?? Math.round(performance.now() - startTime)
         if (payload.success) {
           sqlRows.value = payload.rows || []
           sqlColumns.value = (payload.fields || []).map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID), isPrimaryKey: !!f.isPrimaryKey }))

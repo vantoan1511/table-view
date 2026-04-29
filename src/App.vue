@@ -15,6 +15,7 @@ import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
 import { useLayoutStore } from '@/stores/layout'
+import { useSchemaStore } from '@/stores/schema'
 import { useTabsStore } from '@/stores/tabs'
 import { onMounted, watch } from 'vue'
 
@@ -22,6 +23,7 @@ const tabsStore = useTabsStore()
 const gridStore = useGridStore()
 const connectionsStore = useConnectionsStore()
 const layoutStore = useLayoutStore()
+const schemaStore = useSchemaStore()
 
 useKeyboardShortcuts()
 
@@ -44,7 +46,7 @@ const minimizeBottomPanel = () => {
 
 // When active tab changes, sync global connection/schema and load table data
 watch(
-  () => [tabsStore.activeTab, connectionsStore.connections.length],
+  () => [tabsStore.activeTab, connectionsStore.connections.length] as const,
   async ([tab, connCount]) => {
     if (!tab || connCount === 0) return
     
@@ -63,8 +65,6 @@ watch(
       }
 
       // Sync schema selection
-      const { useSchemaStore } = await import('@/stores/schema')
-      const schemaStore = useSchemaStore()
       if (tab.schema && tab.schema !== schemaStore.selectedSchema) {
         schemaStore.setSelectedSchema(tab.schema)
       }

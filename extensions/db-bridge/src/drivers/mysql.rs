@@ -30,7 +30,7 @@ impl MysqlDriver {
         pool: &MySqlPool,
         sql: &str,
         params: &[Value],
-    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>), String> {
+    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>, u64), String> {
         let mut q = sqlx::query(sql);
         for p in params {
             q = bind_json_value!(q, p);
@@ -39,10 +39,11 @@ impl MysqlDriver {
         log::info!("mysql: executing query: {}", sql);
         let start = std::time::Instant::now();
         let rows = q.fetch_all(pool).await.map_err(|e| e.to_string())?;
-        log::info!("mysql: query finished in {}ms", start.elapsed().as_millis());
+        let elapsed = start.elapsed().as_millis() as u64;
+        log::info!("mysql: query finished in {}ms", elapsed);
 
         if rows.is_empty() {
-            return Ok((vec![], vec![]));
+            return Ok((vec![], vec![], elapsed));
         }
 
         let mut fields = Vec::new();
@@ -64,7 +65,7 @@ impl MysqlDriver {
             data.push(map);
         }
 
-        Ok((data, fields))
+        Ok((data, fields, elapsed))
     }
 
     fn get_column_value(row: &MySqlRow, i: usize) -> Value {
@@ -145,6 +146,7 @@ impl DatabaseDriver for MysqlDriver {
 
         let pool = MySqlPoolOptions::new()
             .max_connections(5)
+            .acquire_timeout(std::time::Duration::from_secs(config.connection_timeout as u64))
             .connect_lazy(&dsn)
             .map_err(|e| e.to_string())?;
 
@@ -193,10 +195,10 @@ impl DatabaseDriver for MysqlDriver {
             Self::execute_query(pool, &schema_sql, &[])
         );
 
-        let (table_rows, _) = table_res?;
-        let (view_rows, _) = view_res?;
-        let (func_rows, _) = func_res?;
-        let (schema_rows, _) = schema_res?;
+        let (table_rows, _, _) = table_res?;
+        let (view_rows, _, _) = view_res?;
+        let (func_rows, _, _) = func_res?;
+        let (schema_rows, _, _) = schema_res?;
 
         let tables: Vec<SchemaObject> = table_rows
             .iter()
@@ -282,9 +284,9 @@ impl DatabaseDriver for MysqlDriver {
             Self::execute_query(pool, &count_sql, &count_params)
         );
 
-        let (pk_rows, _) = pk_res?;
-        let (data, mut fields) = data_res?;
-        let (count_rows, _) = count_res?;
+        let (pk_rows, _, _) = pk_res?;
+        let (data, mut fields, elapsed) = data_res?;
+        let (count_rows, _, _) = count_res?;
 
         let pk_set: std::collections::HashSet<String> = pk_rows
             .iter()
@@ -307,17 +309,19 @@ impl DatabaseDriver for MysqlDriver {
             rows: data,
             fields,
             total_count: total,
+            execution_time: elapsed,
         })
     }
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
         let pool = self.pool()?;
-        let (data, fields) = Self::execute_query(pool, sql, &[]).await?;
+        let (data, fields, elapsed) = Self::execute_query(pool, sql, &[]).await?;
         let count = data.len();
         Ok(QueryResult {
             rows: data,
             fields,
             row_count: count,
+            execution_time: elapsed,
         })
     }
 
@@ -383,7 +387,7 @@ impl DatabaseDriver for MysqlDriver {
 
         // Try to SELECT the inserted row back
         let select_sql = format!("SELECT * FROM {} WHERE id = ?", safe_table);
-        let (rows, _) = Self::execute_query(pool, &select_sql, &[Value::Number(last_id.into())]).await
+        let (rows, _, _) = Self::execute_query(pool, &select_sql, &[Value::Number(last_id.into())]).await
             .unwrap_or_default();
         if let Some(row) = rows.into_iter().next() {
             return Ok(row);
@@ -423,7 +427,7 @@ impl DatabaseDriver for MysqlDriver {
              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? \
              ORDER BY ORDINAL_POSITION";
         
-        let (rows, _) = Self::execute_query(pool, sql, &[Value::String(table_name.to_string())]).await?;
+        let (rows, _, _) = Self::execute_query(pool, sql, &[Value::String(table_name.to_string())]).await?;
         
         let mut columns = Vec::new();
         for r in rows {
@@ -490,7 +494,7 @@ impl DatabaseDriver for MysqlDriver {
         let safe_table = Self::quote(table_name);
         let sql = format!("SELECT * FROM {}", safe_table);
         
-        let (rows, _) = Self::execute_query(pool, &sql, &[]).await?;
+        let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
         
         if rows.is_empty() {
             return Ok(());

@@ -51,6 +51,8 @@ pub struct QueryResult {
     pub fields: Vec<ColumnInfo>,
     #[serde(rename = "rowCount")]
     pub row_count: usize,
+    #[serde(rename = "executionTime")]
+    pub execution_time: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -59,6 +61,8 @@ pub struct TableDataResult {
     pub fields: Vec<ColumnInfo>,
     #[serde(rename = "totalCount")]
     pub total_count: i64,
+    #[serde(rename = "executionTime")]
+    pub execution_time: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
