@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.21] - 2026-04-29
+
+### Fixed
+- Reliability: Resolved `db-bridge.exe` process termination issues using explicit shutdown signals and awaited frontend dispatch.
+
+### Changed
+- Mandates: Updated project architecture documentation (`GEMINI.md`) to correctly reflect the Rust-based backend.
+
 ## [0.0.20] - 2026-04-29
 
 ### Added
