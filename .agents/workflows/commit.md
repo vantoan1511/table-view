@@ -8,7 +8,10 @@ This workflow automatically stages all changes, generates a descriptive commit m
 
 ### Steps:
 
-1. **Stage All Changes**: Automatically stage all modified and new files.
+1. **Ensure Production Settings**: Update configuration files for production mode before committing.
+   - In `neutralino.config.json`, set `"enableInspector": false`, set `"tokenSecurity": "one-time"`.
+   - In `index.html`, ensure script source path is `"%PUBLIC_URL%/__neutralino_globals.js"`.
+2. **Stage All Changes**: Automatically stage all modified and new files.
    ```bash
    git add .
    ```

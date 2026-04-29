@@ -10,7 +10,7 @@
   "enableNativeAPI": true,
   "singlePageServe": true,
   "enableExtensions": true,
-  "tokenSecurity": "none",
+  "tokenSecurity": "one-time",
   "nativeAllowList": [
     "app.*",
     "os.*",
@@ -35,7 +35,7 @@
       "minHeight": 720,
       "center": true,
       "icon": "/public/favicon.ico",
-      "enableInspector": true
+      "enableInspector": false
     }
   },
   "cli": {
