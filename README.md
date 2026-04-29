@@ -7,6 +7,7 @@
 ## ✨ Features
 
 - **Multi-DB Support**: Connect to PostgreSQL, MySQL, and SQLite databases simultaneously.
+- **Real-time Telemetry**: High-precision backend-level query timing (ms) displayed in the Status Bar.
 - **Rich Data Grid**: 
   - **Inline Editing**: Double-click any cell to edit data instantly.
   - **Bulk Operations**: Select multiple rows for batch deletion.
@@ -29,7 +30,7 @@
 - **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
 - **Icons**: [Lucide Vue Next](https://lucide.dev/)
 - **Editor**: [CodeMirror 6](https://codemirror.net/)
-- **Backend Bridge**: High-performance Go-based Neutralino extension for database drivers (pgx, mysql, modernc-sqlite).
+- **Backend Bridge**: High-performance Rust-based Neutralino extension powered by `sqlx`.
 
 ## 🚀 Getting Started
 
@@ -73,7 +74,7 @@ The binaries will be available in the `dist/` directory.
   - `stores/`: Pinia state management modules.
   - `assets/`: Global styles and static assets.
 - `extensions/`: Neutralino extensions.
-  - `db-bridge/`: The core database connector written in Go.
+  - `db-bridge/`: The core database connector written in Rust.
 - `neutralino.config.json`: Neutralino application configuration.
 
 ## 📄 License

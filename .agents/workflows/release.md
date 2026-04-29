@@ -14,17 +14,22 @@ Update the version strings in the following files:
 - `package.json`
 - `neutralino.config.json`
 
-## Step 2: Commit Changes
-Stage and commit the version bumps.
+## Step 2: Update Changelog
+Prepare the `CHANGELOG.md` for the new release:
+- Move all entries under `## [Unreleased]` to a new version section: `## [<NEW_VERSION>] - <YYYY-MM-DD>`.
+- Create a new empty `## [Unreleased]` section at the top.
+
+## Step 3: Commit Changes
+Stage and commit the version bumps and changelog updates.
 
 // turbo
 ```powershell
-git add package.json neutralino.config.json
+git add package.json neutralino.config.json CHANGELOG.md
 git commit -m "chore: release v<NEW_VERSION>"
 ```
 *(Replace `<NEW_VERSION>` with the actual new version, e.g. `0.0.18`)*
 
-## Step 3: Push Commit
+## Step 4: Push Commit
 Push the new release commit to the remote branch.
 
 // turbo
@@ -32,7 +37,7 @@ Push the new release commit to the remote branch.
 git push
 ```
 
-## Step 4: Create and Push Tag
+## Step 5: Create and Push Tag
 Create a git tag for the new version and push it to the remote repository. Pushing the tag will automatically trigger the GitHub Actions release workflow.
 
 // turbo

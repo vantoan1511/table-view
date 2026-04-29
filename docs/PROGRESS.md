@@ -52,6 +52,7 @@ All core database management features are functional. The application has a robu
 - [x] Fix production build bottlenecks and TypeScript inference errors.
 - [x] Standardize environment workflows (`/devmode`, `/commit`).
 - [x] Automate documentation synchronization in the commit pipeline.
+- [x] Automate changelog maintenance in the release workflow.
 - [x] Eliminate all compilation warnings in the Rust bridge.
 
 ## Upcoming Tasks

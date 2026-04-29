@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.19] - 2026-04-29
+
+### Added
+- Performance: High-precision backend execution timing (ms) reported directly from Rust drivers.
+- DevOps: New `/sync-docs` workflow to automate synchronization of `PROGRESS.md`, `SPEC.md`, and `README.md`.
+- Workflow: Integrated documentation synchronization into the `/commit` pipeline.
+
+### Fixed
+- Build: Resolved 11 TypeScript inference errors in `App.vue` that were blocking production builds.
+- Bundling: Fixed `INEFFECTIVE_DYNAMIC_IMPORT` warnings and resolved script resolution issues in `index.html`.
+
+## [0.0.18] - 2026-04-29
+
+### Added
+- Architecture: **Migrated backend extension from Go to Rust** for improved performance and safety.
+- Features: Implemented tab-specific connection state using an LRU connection pool.
+- Workflow: Added `/devmode` workflow for quick toggling of development settings.
+
+### Fixed
+- Stability: Resolved bridge deadlocks and improved error handling in the Rust extension.
+- Compatibility: Standardized JSON payload structures for Rust-Vue interop.
+
 ## [0.0.17] - 2026-04-27
 
 ### Fixed

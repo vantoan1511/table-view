@@ -14,4 +14,9 @@ This workflow ensures that the project's progress tracking and technical specifi
    - Update architecture diagrams or descriptions.
    - Document new protocol fields or API endpoints.
    - Reflect changes in build tools, environment management, or deployment strategies.
-4. **Final Review**: Ensure all documentation is accurate, professional, and reflects the current state of the repository.
+4. **Synchronize README.md**:
+   - Update the tech stack (e.g., Rust vs Go).
+   - Refresh the feature list with latest additions (e.g., Real-time Telemetry).
+   - Update version badges or installation instructions if necessary.
+   - Ensure screenshots or mockups are current.
+5. **Final Review**: Ensure all documentation is accurate, professional, and reflects the current state of the repository.
