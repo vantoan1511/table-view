@@ -74,9 +74,10 @@ export const useSchemaStore = defineStore('schema', () => {
     selectedSchema.value = s
   }
 
-  const loadSchema = async (allSchemas: boolean = false) => {
+  const loadSchema = async (allSchemas: boolean = false, connectionId?: string) => {
     if (window.NL_PORT) {
       const reqId = Date.now().toString()
+      const targetConnectionId = connectionId || connectionsStore.activeConnectionId
       
       const onResult = (evt: any) => {
         const payload = evt.detail
@@ -99,7 +100,7 @@ export const useSchemaStore = defineStore('schema', () => {
       Neutralino.events.on('dbBridge.getSchemaResult', onResult)
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getSchema', { 
         reqId,
-        connectionId: connectionsStore.activeConnectionId,
+        connectionId: targetConnectionId,
         allSchemas 
       })
     }

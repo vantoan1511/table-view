@@ -1,16 +1,16 @@
-use super::utils::{bind_value, execute_query, export_to_csv, get_table_columns_generic};
 use super::{
     AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult,
+    TableColumn, TableDataResult, ColumnInfo
 };
+use crate::bind_json_value;
 use async_trait::async_trait;
 use serde_json::Value;
-use sqlx::any::AnyPoolOptions;
-use sqlx::AnyPool;
+use sqlx::sqlite::{SqlitePool, SqlitePoolOptions, SqliteRow};
+use sqlx::{Column, Row, TypeInfo};
 use std::collections::HashMap;
 
 pub struct SqliteDriver {
-    pool: Option<AnyPool>,
+    pool: Option<SqlitePool>,
 }
 
 impl SqliteDriver {
@@ -18,32 +18,86 @@ impl SqliteDriver {
         Self { pool: None }
     }
 
-    fn pool(&self) -> Result<&AnyPool, String> {
+    fn pool(&self) -> Result<&SqlitePool, String> {
         self.pool.as_ref().ok_or("Not connected".to_string())
     }
 
     fn quote(ident: &str) -> String {
         format!("\"{}\"", ident.replace('"', "\"\""))
     }
+
+    async fn execute_query(
+        pool: &SqlitePool,
+        sql: &str,
+        params: &[Value],
+    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>), String> {
+        let mut q = sqlx::query(sql);
+        for p in params {
+            q = bind_json_value!(q, p);
+        }
+
+        log::info!("sqlite: executing query: {}", sql);
+        let start = std::time::Instant::now();
+        let rows = q.fetch_all(pool).await.map_err(|e| e.to_string())?;
+        log::info!("sqlite: query finished in {}ms", start.elapsed().as_millis());
+
+        if rows.is_empty() {
+            return Ok((vec![], vec![]));
+        }
+
+        let mut fields = Vec::new();
+        for col in rows[0].columns() {
+            fields.push(ColumnInfo {
+                name: col.name().to_string(),
+                data_type: col.type_info().name().to_string(),
+                is_primary_key: false,
+            });
+        }
+
+        let mut data = Vec::new();
+        for row in rows {
+            let mut map = HashMap::new();
+            for (i, col) in row.columns().iter().enumerate() {
+                let val = Self::get_column_value(&row, i);
+                map.insert(col.name().to_string(), val);
+            }
+            data.push(map);
+        }
+
+        Ok((data, fields))
+    }
+
+    fn get_column_value(row: &SqliteRow, i: usize) -> Value {
+        // SQLite is weakly typed, so we try common types
+        if let Ok(v) = row.try_get::<i64, _>(i) {
+            return Value::Number(v.into());
+        }
+        if let Ok(v) = row.try_get::<f64, _>(i) {
+            if let Some(num) = serde_json::Number::from_f64(v) {
+                return Value::Number(num);
+            }
+        }
+        if let Ok(v) = row.try_get::<bool, _>(i) {
+            return Value::Bool(v);
+        }
+        if let Ok(v) = row.try_get::<String, _>(i) {
+            return Value::String(v);
+        }
+        if let Ok(v) = row.try_get::<Vec<u8>, _>(i) {
+            return Value::String(hex::encode(v));
+        }
+
+        Value::Null
+    }
 }
 
 #[async_trait]
 impl DatabaseDriver for SqliteDriver {
     async fn connect(&mut self, config: &Config) -> Result<(), String> {
-        if config.database.is_empty() {
-            return Err("SQLite requires a database file path".to_string());
-        }
-
-        let dsn = format!("sqlite:{}", config.database);
-
-        let pool = AnyPoolOptions::new()
-            .max_connections(1) // SQLite is single-writer
+        let dsn = format!("sqlite://{}", config.database);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(5)
             .connect(&dsn)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        sqlx::query("SELECT 1")
-            .fetch_one(&pool)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -62,7 +116,7 @@ impl DatabaseDriver for SqliteDriver {
         let pool = self.pool()?;
 
         // Tables
-        let (table_rows, _) = execute_query(
+        let (table_rows, _) = Self::execute_query(
             pool,
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
             &[],
@@ -72,13 +126,13 @@ impl DatabaseDriver for SqliteDriver {
             .iter()
             .map(|r| SchemaObject {
                 name: r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                schema: Some("main".to_string()),
+                schema: None,
                 obj_type: None,
             })
             .collect();
 
         // Views
-        let (view_rows, _) = execute_query(
+        let (view_rows, _) = Self::execute_query(
             pool,
             "SELECT name FROM sqlite_master WHERE type='view'",
             &[],
@@ -88,7 +142,7 @@ impl DatabaseDriver for SqliteDriver {
             .iter()
             .map(|r| SchemaObject {
                 name: r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                schema: Some("main".to_string()),
+                schema: None,
                 obj_type: None,
             })
             .collect();
@@ -112,10 +166,10 @@ impl DatabaseDriver for SqliteDriver {
         let pool = self.pool()?;
         let safe_table = Self::quote(table_name);
 
-        // Get PKs via PRAGMA
-        let pragma_sql = format!("PRAGMA table_info({})", safe_table);
-        let (pragma_rows, _) = execute_query(pool, &pragma_sql, &[]).await?;
-        let pk_set: std::collections::HashSet<String> = pragma_rows
+        // Get PKs
+        let pk_sql = format!("PRAGMA table_info({})", safe_table);
+        let (pk_rows, _) = Self::execute_query(pool, &pk_sql, &[]).await?;
+        let pk_set: std::collections::HashSet<String> = pk_rows
             .iter()
             .filter(|r| r.get("pk").and_then(|v| v.as_i64()).unwrap_or(0) > 0)
             .filter_map(|r| r.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
@@ -132,10 +186,12 @@ impl DatabaseDriver for SqliteDriver {
             "SELECT * FROM {}{} LIMIT ? OFFSET ?",
             safe_table, order_clause
         );
-        let (data, mut fields) = execute_query(pool, &sql, &[
-            Value::Number(limit.into()),
-            Value::Number(offset.into()),
-        ]).await?;
+        let (data, mut fields) = Self::execute_query(
+            pool,
+            &sql,
+            &[Value::Number(limit.into()), Value::Number(offset.into())],
+        )
+        .await?;
 
         for f in &mut fields {
             if pk_set.contains(&f.name) {
@@ -144,7 +200,7 @@ impl DatabaseDriver for SqliteDriver {
         }
 
         let count_sql = format!("SELECT COUNT(*) as cnt FROM {}", safe_table);
-        let (count_rows, _) = execute_query(pool, &count_sql, &[]).await?;
+        let (count_rows, _) = Self::execute_query(pool, &count_sql, &[]).await?;
         let total = count_rows
             .first()
             .and_then(|r| r.get("cnt"))
@@ -160,7 +216,7 @@ impl DatabaseDriver for SqliteDriver {
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
         let pool = self.pool()?;
-        let (data, fields) = execute_query(pool, sql, &[]).await?;
+        let (data, fields) = Self::execute_query(pool, sql, &[]).await?;
         let count = data.len();
         Ok(QueryResult {
             rows: data,
@@ -185,8 +241,8 @@ impl DatabaseDriver for SqliteDriver {
             Self::quote(pk_column)
         );
         let mut q = sqlx::query(&sql);
-        q = bind_value(q, new_value);
-        q = bind_value(q, pk_value);
+        q = bind_json_value!(q, new_value);
+        q = bind_json_value!(q, pk_value);
         q.execute(pool).await.map_err(|e| e.to_string())?;
         Ok(())
     }
@@ -205,24 +261,15 @@ impl DatabaseDriver for SqliteDriver {
                 .execute(pool)
                 .await
                 .map_err(|e| e.to_string())?;
-            let last_id = res.last_insert_id().unwrap_or(0);
-
-            // Fetch the row back
-            let select_sql = format!("SELECT * FROM {} WHERE rowid = ?", safe_table);
-            let (rows, _) = execute_query(pool, &select_sql, &[Value::Number(last_id.into())])
-                .await
-                .unwrap_or_default();
-            if let Some(row) = rows.into_iter().next() {
-                return Ok(row);
-            }
+            let last_id = res.last_insert_rowid();
             let mut m = HashMap::new();
-            m.insert("lastID".to_string(), Value::Number(last_id.into()));
+            m.insert("rowid".to_string(), Value::Number(last_id.into()));
             return Ok(m);
         }
 
         let cols: Vec<String> = data.keys().map(|k| Self::quote(k)).collect();
         let placeholders: Vec<String> = (0..data.len()).map(|_| "?".to_string()).collect();
-        let values: Vec<&Value> = data.values().collect();
+        let values: Vec<Value> = data.values().cloned().collect();
 
         let sql = format!(
             "INSERT INTO {} ({}) VALUES ({})",
@@ -233,21 +280,20 @@ impl DatabaseDriver for SqliteDriver {
 
         let mut q = sqlx::query(&sql);
         for v in &values {
-            q = bind_value(q, v);
+            q = bind_json_value!(q, v);
         }
         let res = q.execute(pool).await.map_err(|e| e.to_string())?;
-        let last_id = res.last_insert_id().unwrap_or(0);
+        let last_id = res.last_insert_rowid();
 
         let select_sql = format!("SELECT * FROM {} WHERE rowid = ?", safe_table);
-        let (rows, _) = execute_query(pool, &select_sql, &[Value::Number(last_id.into())])
-            .await
+        let (rows, _) = Self::execute_query(pool, &select_sql, &[Value::Number(last_id.into())]).await
             .unwrap_or_default();
         if let Some(row) = rows.into_iter().next() {
             return Ok(row);
         }
 
         let mut m = HashMap::new();
-        m.insert("lastID".to_string(), Value::Number(last_id.into()));
+        m.insert("rowid".to_string(), Value::Number(last_id.into()));
         Ok(m)
     }
 
@@ -267,7 +313,7 @@ impl DatabaseDriver for SqliteDriver {
         );
         let mut q = sqlx::query(&sql);
         for v in pk_values {
-            q = bind_value(q, v);
+            q = bind_json_value!(q, v);
         }
         q.execute(pool).await.map_err(|e| e.to_string())?;
         Ok(())
@@ -275,23 +321,20 @@ impl DatabaseDriver for SqliteDriver {
 
     async fn get_table_columns(&self, table_name: &str) -> Result<Vec<TableColumn>, String> {
         let pool = self.pool()?;
-        let pragma_sql = format!("PRAGMA table_info({})", Self::quote(table_name));
-        let (rows, _) = execute_query(pool, &pragma_sql, &[]).await?;
-
-        let cols: Vec<TableColumn> = rows
-            .iter()
-            .map(|r| TableColumn {
+        let sql = format!("PRAGMA table_info({})", Self::quote(table_name));
+        let (rows, _) = Self::execute_query(pool, &sql, &[]).await?;
+        
+        let mut columns = Vec::new();
+        for r in rows {
+            columns.push(TableColumn {
                 name: r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                 data_type: r.get("type").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                nullable: r.get("notnull").and_then(|v| v.as_i64()).unwrap_or(0) == 0,
-                default: r
-                    .get("dflt_value")
-                    .cloned()
-                    .unwrap_or(Value::Null),
-            })
-            .collect();
-
-        Ok(cols)
+                nullable: r.get("notnull").and_then(|v| v.as_i64()).map(|i| i == 0).unwrap_or(true),
+                is_primary_key: r.get("pk").and_then(|v| v.as_i64()).map(|i| i > 0).unwrap_or(false),
+                default: r.get("dflt_value").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            });
+        }
+        Ok(columns)
     }
 
     async fn alter_table(
@@ -343,6 +386,38 @@ impl DatabaseDriver for SqliteDriver {
 
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;
-        export_to_csv(pool, &Self::quote(table_name), export_path).await
+        let safe_table = Self::quote(table_name);
+        let sql = format!("SELECT * FROM {}", safe_table);
+        
+        let (rows, _) = Self::execute_query(pool, &sql, &[]).await?;
+        
+        if rows.is_empty() {
+            return Ok(());
+        }
+
+        let mut wtr = csv::Writer::from_path(export_path).map_err(|e| e.to_string())?;
+        
+        // Header
+        let headers: Vec<String> = rows[0].keys().cloned().collect();
+        wtr.write_record(&headers).map_err(|e| e.to_string())?;
+
+        // Data
+        for row in rows {
+            let record: Vec<String> = headers
+                .iter()
+                .map(|h| {
+                    let v = row.get(h).unwrap_or(&Value::Null);
+                    match v {
+                        Value::Null => "".to_string(),
+                        Value::String(s) => s.clone(),
+                        _ => v.to_string(),
+                    }
+                })
+                .collect();
+            wtr.write_record(&record).map_err(|e| e.to_string())?;
+        }
+
+        wtr.flush().map_err(|e| e.to_string())?;
+        Ok(())
     }
 }

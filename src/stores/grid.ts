@@ -47,7 +47,7 @@ export const useGridStore = defineStore('grid', () => {
     loadTable(activeTableName.value)
   }
 
-  const loadTable = async (tableName: string) => {
+  const loadTable = async (tableName: string, connectionId?: string) => {
     if (!tableName || !window.NL_PORT) return
 
     activeTableName.value = tableName
@@ -55,6 +55,9 @@ export const useGridStore = defineStore('grid', () => {
     const offset = (currentPage.value - 1) * rowsPerPage.value
     const startTime = performance.now()
     isLoading.value = true
+
+    // Use provided connectionId or fallback to active one
+    const targetConnectionId = connectionId || connectionsStore.activeConnectionId
 
     const onResult = (evt: any) => {
       const payload = evt.detail
@@ -75,7 +78,7 @@ export const useGridStore = defineStore('grid', () => {
     Neutralino.events.on('dbBridge.fetchTableDataResult', onResult)
     Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.fetchTableData', {
       reqId,
-      connectionId: connectionsStore.activeConnectionId,
+      connectionId: targetConnectionId,
       tableName,
       limit: rowsPerPage.value,
       offset,

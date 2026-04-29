@@ -216,10 +216,18 @@ const handleContextAction = (action: string) => {
             <td class="px-3 py-1.5 border-r border-grid-border bg-inherit sticky left-0 z-10">
               <Skeleton height="1.25rem" />
             </td>
-            <td v-for="col in gridStore.columns.filter(c => gridStore.columnVisibility[c.name] !== false)"
-              :key="'skel-' + col.name" class="px-3 py-1.5 border-r border-grid-border">
-              <Skeleton height="1.25rem" />
-            </td>
+            <!-- Show real columns if they exist, otherwise show 5 placeholder columns -->
+            <template v-if="gridStore.columns.length > 0">
+              <td v-for="col in gridStore.columns.filter(c => gridStore.columnVisibility[c.name] !== false)"
+                :key="'skel-' + col.name" class="px-3 py-1.5 border-r border-grid-border">
+                <Skeleton height="1.25rem" />
+              </td>
+            </template>
+            <template v-else>
+              <td v-for="j in 5" :key="'skel-col-' + j" class="px-3 py-1.5 border-r border-grid-border">
+                <Skeleton height="1.25rem" />
+              </td>
+            </template>
           </tr>
         </template>
 

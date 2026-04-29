@@ -1,16 +1,16 @@
-use super::utils::{bind_value, execute_query, export_to_csv, get_table_columns_generic};
 use super::{
     AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult,
+    TableColumn, TableDataResult, ColumnInfo
 };
+use crate::bind_json_value;
 use async_trait::async_trait;
 use serde_json::Value;
-use sqlx::any::AnyPoolOptions;
-use sqlx::AnyPool;
+use sqlx::mysql::{MySqlPool, MySqlPoolOptions, MySqlRow};
+use sqlx::{Column, Row, TypeInfo, ValueRef};
 use std::collections::HashMap;
 
 pub struct MysqlDriver {
-    pool: Option<AnyPool>,
+    pool: Option<MySqlPool>,
 }
 
 impl MysqlDriver {
@@ -18,12 +18,120 @@ impl MysqlDriver {
         Self { pool: None }
     }
 
-    fn pool(&self) -> Result<&AnyPool, String> {
+    fn pool(&self) -> Result<&MySqlPool, String> {
         self.pool.as_ref().ok_or("Not connected".to_string())
     }
 
     fn quote(ident: &str) -> String {
         format!("`{}`", ident.replace('`', "``"))
+    }
+
+    async fn execute_query(
+        pool: &MySqlPool,
+        sql: &str,
+        params: &[Value],
+    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>), String> {
+        let mut q = sqlx::query(sql);
+        for p in params {
+            q = bind_json_value!(q, p);
+        }
+
+        log::info!("mysql: executing query: {}", sql);
+        let start = std::time::Instant::now();
+        let rows = q.fetch_all(pool).await.map_err(|e| e.to_string())?;
+        log::info!("mysql: query finished in {}ms", start.elapsed().as_millis());
+
+        if rows.is_empty() {
+            return Ok((vec![], vec![]));
+        }
+
+        let mut fields = Vec::new();
+        for col in rows[0].columns() {
+            fields.push(ColumnInfo {
+                name: col.name().to_string(),
+                data_type: col.type_info().name().to_string(),
+                is_primary_key: false,
+            });
+        }
+
+        let mut data = Vec::new();
+        for row in rows {
+            let mut map = HashMap::new();
+            for (i, col) in row.columns().iter().enumerate() {
+                let val = Self::get_column_value(&row, i);
+                map.insert(col.name().to_string(), val);
+            }
+            data.push(map);
+        }
+
+        Ok((data, fields))
+    }
+
+    fn get_column_value(row: &MySqlRow, i: usize) -> Value {
+        let raw = match row.try_get_raw(i) {
+            Ok(v) => v,
+            Err(_) => return Value::Null,
+        };
+        if raw.is_null() {
+            return Value::Null;
+        }
+
+        let col = row.column(i);
+        let type_info = col.type_info();
+        let name = type_info.name();
+
+        match name {
+            "TINYINT" | "SMALLINT" | "INT" | "MEDIUMINT" | "BIGINT" | "YEAR" => {
+                if let Ok(v) = row.try_get::<i64, _>(i) {
+                    return Value::Number(v.into());
+                }
+            }
+            "FLOAT" | "DOUBLE" | "DECIMAL" | "NEWDECIMAL" => {
+                if let Ok(v) = row.try_get::<f64, _>(i) {
+                    if let Some(num) = serde_json::Number::from_f64(v) {
+                        return Value::Number(num);
+                    }
+                }
+            }
+            "TINYINT(1)" | "BIT" => {
+                if let Ok(v) = row.try_get::<bool, _>(i) {
+                    return Value::Bool(v);
+                }
+            }
+            "VARCHAR" | "CHAR" | "TEXT" | "MEDIUMTEXT" | "LONGTEXT" | "TINYTEXT" | "ENUM" | "SET" => {
+                if let Ok(v) = row.try_get::<String, _>(i) {
+                    return Value::String(v);
+                }
+            }
+            "DATETIME" | "TIMESTAMP" => {
+                if let Ok(v) = row.try_get::<chrono::NaiveDateTime, _>(i) {
+                    return Value::String(v.to_string());
+                }
+            }
+            "DATE" => {
+                if let Ok(v) = row.try_get::<chrono::NaiveDate, _>(i) {
+                    return Value::String(v.to_string());
+                }
+            }
+            "BLOB" | "MEDIUMBLOB" | "LONGBLOB" | "TINYBLOB" | "VARBINARY" | "BINARY" => {
+                if let Ok(bytes) = row.try_get::<Vec<u8>, _>(i) {
+                    return Value::String(hex::encode(bytes));
+                }
+            }
+            "JSON" => {
+                if let Ok(v) = row.try_get::<Value, _>(i) {
+                    return v;
+                }
+            }
+            _ => {}
+        }
+
+        // Fallback
+        if let Ok(v) = row.try_get::<String, _>(i) {
+            return Value::String(v);
+        }
+
+        Value::Null
     }
 }
 
@@ -35,15 +143,9 @@ impl DatabaseDriver for MysqlDriver {
             config.username, config.password, config.host, config.port, config.database
         );
 
-        let pool = AnyPoolOptions::new()
+        let pool = MySqlPoolOptions::new()
             .max_connections(5)
-            .connect(&dsn)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        sqlx::query("SELECT 1")
-            .fetch_one(&pool)
-            .await
+            .connect_lazy(&dsn)
             .map_err(|e| e.to_string())?;
 
         self.pool = Some(pool);
@@ -65,12 +167,37 @@ impl DatabaseDriver for MysqlDriver {
             "WHERE TABLE_SCHEMA = DATABASE()"
         };
 
-        // Tables
-        let sql = format!(
-            "SELECT TABLE_NAME as table_name, TABLE_SCHEMA as table_schema FROM information_schema.TABLES {} AND TABLE_TYPE = 'BASE TABLE'",
+        let table_sql = format!(
+            "SELECT TABLE_NAME as table_name, TABLE_SCHEMA as table_schema FROM information_schema.TABLES {} AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME",
             where_clause
         );
-        let (table_rows, _) = execute_query(pool, &sql, &[]).await?;
+        let view_sql = format!(
+            "SELECT TABLE_NAME as table_name, TABLE_SCHEMA as table_schema FROM information_schema.TABLES {} AND TABLE_TYPE = 'VIEW' ORDER BY TABLE_NAME",
+            where_clause
+        );
+        let routine_where = where_clause.replace("TABLE_SCHEMA", "ROUTINE_SCHEMA");
+        let func_sql = format!(
+            "SELECT ROUTINE_NAME as routine_name, ROUTINE_SCHEMA as routine_schema, ROUTINE_TYPE as routine_type FROM information_schema.ROUTINES {} ORDER BY ROUTINE_NAME",
+            routine_where
+        );
+        let schema_where = where_clause.replace("TABLE_SCHEMA", "SCHEMA_NAME");
+        let schema_sql = format!(
+            "SELECT SCHEMA_NAME as schema_name FROM information_schema.SCHEMATA {} ORDER BY SCHEMA_NAME",
+            schema_where
+        );
+
+        let (table_res, view_res, func_res, schema_res) = tokio::join!(
+            Self::execute_query(pool, &table_sql, &[]),
+            Self::execute_query(pool, &view_sql, &[]),
+            Self::execute_query(pool, &func_sql, &[]),
+            Self::execute_query(pool, &schema_sql, &[])
+        );
+
+        let (table_rows, _) = table_res?;
+        let (view_rows, _) = view_res?;
+        let (func_rows, _) = func_res?;
+        let (schema_rows, _) = schema_res?;
+
         let tables: Vec<SchemaObject> = table_rows
             .iter()
             .map(|r| SchemaObject {
@@ -80,12 +207,6 @@ impl DatabaseDriver for MysqlDriver {
             })
             .collect();
 
-        // Views
-        let sql = format!(
-            "SELECT TABLE_NAME as table_name, TABLE_SCHEMA as table_schema FROM information_schema.TABLES {} AND TABLE_TYPE = 'VIEW'",
-            where_clause
-        );
-        let (view_rows, _) = execute_query(pool, &sql, &[]).await?;
         let views: Vec<SchemaObject> = view_rows
             .iter()
             .map(|r| SchemaObject {
@@ -95,13 +216,6 @@ impl DatabaseDriver for MysqlDriver {
             })
             .collect();
 
-        // Routines
-        let routine_where = where_clause.replace("TABLE_SCHEMA", "ROUTINE_SCHEMA");
-        let sql = format!(
-            "SELECT ROUTINE_NAME as routine_name, ROUTINE_SCHEMA as routine_schema, ROUTINE_TYPE as routine_type FROM information_schema.ROUTINES {}",
-            routine_where
-        );
-        let (func_rows, _) = execute_query(pool, &sql, &[]).await?;
         let functions: Vec<SchemaObject> = func_rows
             .iter()
             .map(|r| SchemaObject {
@@ -111,13 +225,6 @@ impl DatabaseDriver for MysqlDriver {
             })
             .collect();
 
-        // Schemas
-        let schema_where = where_clause.replace("TABLE_SCHEMA", "SCHEMA_NAME");
-        let sql = format!(
-            "SELECT SCHEMA_NAME as schema_name FROM information_schema.SCHEMATA {}",
-            schema_where
-        );
-        let (schema_rows, _) = execute_query(pool, &sql, &[]).await?;
         let schemas: Vec<SchemaObject> = schema_rows
             .iter()
             .map(|r| SchemaObject {
@@ -146,15 +253,9 @@ impl DatabaseDriver for MysqlDriver {
         let pool = self.pool()?;
         let safe_table = Self::quote(table_name);
 
-        // Get PKs
         let pk_sql = "SELECT COLUMN_NAME FROM information_schema.COLUMNS \
             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_KEY = 'PRI'";
-        let (pk_rows, _) = execute_query(pool, pk_sql, &[Value::String(table_name.to_string())]).await?;
-        let pk_set: std::collections::HashSet<String> = pk_rows
-            .iter()
-            .filter_map(|r| r.get("COLUMN_NAME").and_then(|v| v.as_str()).map(|s| s.to_string()))
-            .collect();
-
+        
         let order_clause = if !sort_column.is_empty() {
             let dir = if sort_direction.eq_ignore_ascii_case("desc") { "DESC" } else { "ASC" };
             format!(" ORDER BY {} {}", Self::quote(sort_column), dir)
@@ -162,14 +263,33 @@ impl DatabaseDriver for MysqlDriver {
             String::new()
         };
 
-        let sql = format!(
+        let data_sql = format!(
             "SELECT * FROM {}{} LIMIT ? OFFSET ?",
             safe_table, order_clause
         );
-        let (data, mut fields) = execute_query(pool, &sql, &[
+        let count_sql = format!("SELECT COUNT(*) as cnt FROM {}", safe_table);
+
+        let pk_params = [Value::String(table_name.to_string())];
+        let data_params = [
             Value::Number(limit.into()),
             Value::Number(offset.into()),
-        ]).await?;
+        ];
+        let count_params = [];
+
+        let (pk_res, data_res, count_res) = tokio::join!(
+            Self::execute_query(pool, pk_sql, &pk_params),
+            Self::execute_query(pool, &data_sql, &data_params),
+            Self::execute_query(pool, &count_sql, &count_params)
+        );
+
+        let (pk_rows, _) = pk_res?;
+        let (data, mut fields) = data_res?;
+        let (count_rows, _) = count_res?;
+
+        let pk_set: std::collections::HashSet<String> = pk_rows
+            .iter()
+            .filter_map(|r| r.get("COLUMN_NAME").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .collect();
 
         for f in &mut fields {
             if pk_set.contains(&f.name) {
@@ -177,8 +297,6 @@ impl DatabaseDriver for MysqlDriver {
             }
         }
 
-        let count_sql = format!("SELECT COUNT(*) as cnt FROM {}", safe_table);
-        let (count_rows, _) = execute_query(pool, &count_sql, &[]).await?;
         let total = count_rows
             .first()
             .and_then(|r| r.get("cnt"))
@@ -194,7 +312,7 @@ impl DatabaseDriver for MysqlDriver {
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
         let pool = self.pool()?;
-        let (data, fields) = execute_query(pool, sql, &[]).await?;
+        let (data, fields) = Self::execute_query(pool, sql, &[]).await?;
         let count = data.len();
         Ok(QueryResult {
             rows: data,
@@ -219,8 +337,8 @@ impl DatabaseDriver for MysqlDriver {
             Self::quote(pk_column)
         );
         let mut q = sqlx::query(&sql);
-        q = bind_value(q, new_value);
-        q = bind_value(q, pk_value);
+        q = bind_json_value!(q, new_value);
+        q = bind_json_value!(q, pk_value);
         q.execute(pool).await.map_err(|e| e.to_string())?;
         Ok(())
     }
@@ -239,7 +357,7 @@ impl DatabaseDriver for MysqlDriver {
                 .execute(pool)
                 .await
                 .map_err(|e| e.to_string())?;
-            let last_id = res.last_insert_id().unwrap_or(0);
+            let last_id = res.last_insert_id();
             let mut m = HashMap::new();
             m.insert("insertId".to_string(), Value::Number(last_id.into()));
             return Ok(m);
@@ -247,7 +365,7 @@ impl DatabaseDriver for MysqlDriver {
 
         let cols: Vec<String> = data.keys().map(|k| Self::quote(k)).collect();
         let placeholders: Vec<String> = (0..data.len()).map(|_| "?".to_string()).collect();
-        let values: Vec<&Value> = data.values().collect();
+        let values: Vec<Value> = data.values().cloned().collect();
 
         let sql = format!(
             "INSERT INTO {} ({}) VALUES ({})",
@@ -258,14 +376,14 @@ impl DatabaseDriver for MysqlDriver {
 
         let mut q = sqlx::query(&sql);
         for v in &values {
-            q = bind_value(q, v);
+            q = bind_json_value!(q, v);
         }
         let res = q.execute(pool).await.map_err(|e| e.to_string())?;
-        let last_id = res.last_insert_id().unwrap_or(0);
+        let last_id = res.last_insert_id();
 
         // Try to SELECT the inserted row back
         let select_sql = format!("SELECT * FROM {} WHERE id = ?", safe_table);
-        let (rows, _) = execute_query(pool, &select_sql, &[Value::Number(last_id.into())]).await
+        let (rows, _) = Self::execute_query(pool, &select_sql, &[Value::Number(last_id.into())]).await
             .unwrap_or_default();
         if let Some(row) = rows.into_iter().next() {
             return Ok(row);
@@ -292,7 +410,7 @@ impl DatabaseDriver for MysqlDriver {
         );
         let mut q = sqlx::query(&sql);
         for v in pk_values {
-            q = bind_value(q, v);
+            q = bind_json_value!(q, v);
         }
         q.execute(pool).await.map_err(|e| e.to_string())?;
         Ok(())
@@ -300,15 +418,24 @@ impl DatabaseDriver for MysqlDriver {
 
     async fn get_table_columns(&self, table_name: &str) -> Result<Vec<TableColumn>, String> {
         let pool = self.pool()?;
-        get_table_columns_generic(
-            pool,
-            "SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT \
+        let sql = "SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT \
              FROM INFORMATION_SCHEMA.COLUMNS \
              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? \
-             ORDER BY ORDINAL_POSITION",
-            &[Value::String(table_name.to_string())],
-        )
-        .await
+             ORDER BY ORDINAL_POSITION";
+        
+        let (rows, _) = Self::execute_query(pool, sql, &[Value::String(table_name.to_string())]).await?;
+        
+        let mut columns = Vec::new();
+        for r in rows {
+            columns.push(TableColumn {
+                name: r.get("COLUMN_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                data_type: r.get("DATA_TYPE").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                nullable: r.get("IS_NULLABLE").and_then(|v| v.as_str()).map(|s| s == "YES").unwrap_or(true),
+                is_primary_key: false, 
+                default: r.get("COLUMN_DEFAULT").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            });
+        }
+        Ok(columns)
     }
 
     async fn alter_table(
@@ -360,6 +487,38 @@ impl DatabaseDriver for MysqlDriver {
 
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;
-        export_to_csv(pool, &Self::quote(table_name), export_path).await
+        let safe_table = Self::quote(table_name);
+        let sql = format!("SELECT * FROM {}", safe_table);
+        
+        let (rows, _) = Self::execute_query(pool, &sql, &[]).await?;
+        
+        if rows.is_empty() {
+            return Ok(());
+        }
+
+        let mut wtr = csv::Writer::from_path(export_path).map_err(|e| e.to_string())?;
+        
+        // Header
+        let headers: Vec<String> = rows[0].keys().cloned().collect();
+        wtr.write_record(&headers).map_err(|e| e.to_string())?;
+
+        // Data
+        for row in rows {
+            let record: Vec<String> = headers
+                .iter()
+                .map(|h| {
+                    let v = row.get(h).unwrap_or(&Value::Null);
+                    match v {
+                        Value::Null => "".to_string(),
+                        Value::String(s) => s.clone(),
+                        _ => v.to_string(),
+                    }
+                })
+                .collect();
+            wtr.write_record(&record).map_err(|e| e.to_string())?;
+        }
+
+        wtr.flush().map_err(|e| e.to_string())?;
+        Ok(())
     }
 }

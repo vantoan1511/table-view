@@ -11,7 +11,6 @@ use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
-    // Initialize logging to file next to executable
     let exe_path = std::env::current_exe().unwrap_or_default();
     let log_path = exe_path.with_extension("log");
     let log_file = std::fs::OpenOptions::new()
@@ -30,19 +29,8 @@ async fn main() {
         .init();
 
     log::info!("--- db-bridge-rs extension starting ---");
-    log::info!(
-        "Working directory: {}",
-        std::env::current_dir()
-            .map(|p| p.display().to_string())
-            .unwrap_or_default()
-    );
-    log::info!("Executable path: {}", exe_path.display());
-
-    // ─── Read auth from stdin (JSON, single object) ─────────────────────────
+    
     let mut auth = AuthInfo::from_stdin();
-    log::info!("Received auth from stdin: {:?}", auth);
-
-    // ─── Override with CLI flags ────────────────────────────────────────────
     auth.override_from_cli();
 
     if auth.nl_port.is_empty() || auth.nl_token.is_empty() || auth.nl_ext_id.is_empty() {
@@ -50,9 +38,8 @@ async fn main() {
         std::process::exit(1);
     }
 
-    // ─── Connect to Neutralino WebSocket ────────────────────────────────────
-    let bridge = match Bridge::connect(&auth).await {
-        Ok(b) => Arc::new(Mutex::new(b)),
+    let mut bridge = match Bridge::connect(&auth).await {
+        Ok(b) => b,
         Err(e) => {
             log::error!("Failed to connect to NeutralinoJS: {}", e);
             std::process::exit(1);
@@ -61,23 +48,20 @@ async fn main() {
 
     log::info!("Extension {} connected to NeutralinoJS.", auth.nl_ext_id);
 
-    // ─── Connection Pool ────────────────────────────────────────────────────
     let pool = Arc::new(Mutex::new(Pool::new()));
+    let writer_arc = bridge.writer;
+    let token = bridge.token;
 
-    // ─── Listen loop ────────────────────────────────────────────────────────
     loop {
-        let msg = {
-            let mut b = bridge.lock().await;
-            match b.read_message().await {
-                Ok(msg) => msg,
-                Err(e) => {
-                    log::error!("WebSocket read error: {}", e);
-                    break;
-                }
+        // We now pass the reader and writer separately, so reading does NOT lock writing.
+        let msg = match Bridge::read_message(&mut bridge.reader, &writer_arc).await {
+            Ok(msg) => msg,
+            Err(e) => {
+                log::error!("WebSocket read error: {}", e);
+                break;
             }
         };
 
-        // Handle windowClose to exit gracefully
         if msg.event.as_deref() == Some("windowClose") {
             log::info!("Received windowClose, shutting down.");
             let mut p = pool.lock().await;
@@ -85,11 +69,12 @@ async fn main() {
             break;
         }
 
-        let bridge_clone = Arc::clone(&bridge);
+        let writer_clone = Arc::clone(&writer_arc);
         let pool_clone = Arc::clone(&pool);
+        let token_clone = token.clone();
 
         tokio::spawn(async move {
-            handle_message(msg, bridge_clone, pool_clone).await;
+            handle_message(msg, writer_clone, token_clone, pool_clone).await;
         });
     }
 }

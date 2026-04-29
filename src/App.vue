@@ -44,25 +44,37 @@ const minimizeBottomPanel = () => {
 
 // When active tab changes, sync global connection/schema and load table data
 watch(
-  () => tabsStore.activeTab,
-  async (tab) => {
-    if (!tab) return
+  () => [tabsStore.activeTab, connectionsStore.connections.length],
+  async ([tab, connCount]) => {
+    if (!tab || connCount === 0) return
     
     // Sync UI to tab's connection context
-    if (tab.connectionId && tab.connectionId !== connectionsStore.activeConnectionId) {
-      connectionsStore.activeConnectionId = tab.connectionId
-      // Dynamically import to avoid circular dependency
+    if (tab.connectionId) {
+      const conn = connectionsStore.connections.find(c => c.id === tab.connectionId)
+      
+      // Ensure we are connected to this database in the bridge
+      if (!conn?.isConnected || tab.connectionId !== connectionsStore.activeConnectionId) {
+        try {
+          await connectionsStore.setActiveConnection(tab.connectionId)
+        } catch (err) {
+          console.error("Failed to sync connection for tab:", err)
+          return
+        }
+      }
+
+      // Sync schema selection
       const { useSchemaStore } = await import('@/stores/schema')
       const schemaStore = useSchemaStore()
-      if (tab.schema) {
+      if (tab.schema && tab.schema !== schemaStore.selectedSchema) {
         schemaStore.setSelectedSchema(tab.schema)
       }
-      const conn = connectionsStore.connections.find(c => c.id === tab.connectionId)
-      schemaStore.loadSchema(conn?.displayAllSchemas ?? false)
     }
 
-    if (tab.type === 'table' && tab.tableName && tab.tableName !== gridStore.activeTableName) {
-      gridStore.loadTable(tab.tableName)
+    if (tab.type === 'table' && tab.tableName) {
+      // Trigger loading state early for better UX
+      gridStore.isLoading = true
+      // Explicitly pass connectionId to avoid using stale global state
+      gridStore.loadTable(tab.tableName, tab.connectionId)
     }
   },
   { immediate: true },

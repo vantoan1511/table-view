@@ -40,7 +40,7 @@ fn default_timeout() -> u32 {
 pub struct ColumnInfo {
     pub name: String,
     #[serde(rename = "dataTypeID")]
-    pub data_type_id: Value,
+    pub data_type: String,
     #[serde(rename = "isPrimaryKey")]
     pub is_primary_key: bool,
 }
@@ -85,7 +85,9 @@ pub struct TableColumn {
     #[serde(rename = "dataType")]
     pub data_type: String,
     pub nullable: bool,
-    pub default: Value,
+    #[serde(rename = "isPrimaryKey")]
+    pub is_primary_key: bool,
+    pub default: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

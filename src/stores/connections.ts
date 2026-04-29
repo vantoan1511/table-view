@@ -74,11 +74,18 @@ export const useConnectionsStore = defineStore('connections', () => {
   }
 
   const setActiveConnection = async (id: string) : Promise<any> => {
-    const previousActiveConnection = activeConnection.value
+    // 1. Update active ID immediately so UI reflects intended state
+    const previousActiveConnectionId = activeConnectionId.value
     activeConnectionId.value = id
-    // Connect to the actual database using the db-bridge
+    
     const conn = connections.value.find(c => c.id === id)
-    if (conn && window.NL_PORT) {
+    if (!conn) return
+
+    // 2. If already marked connected, we might still want to ensure bridge has it (stateless extension)
+    // but we can skip the wait if we're confident. 
+    // Actually, always dispatching connect is safest for the bridge's pool.
+
+    if (window.NL_PORT) {
       return new Promise((resolve, reject) => {
         const reqId = Date.now().toString()
 
@@ -91,15 +98,12 @@ export const useConnectionsStore = defineStore('connections', () => {
               // Import dynamically to avoid circular dependency
               const { useSchemaStore } = await import('./schema')
               const schemaStore = useSchemaStore()
-              schemaStore.loadSchema(conn.displayAllSchemas)
+              schemaStore.loadSchema(conn.displayAllSchemas, id)
               resolve(true)
             } else {
               conn.isConnected = false
-              if (previousActiveConnection) {
-                activeConnectionId.value = previousActiveConnection.id
-              } else {
-                activeConnectionId.value = null
-              }
+              // Rollback if this specific connection attempt failed
+              activeConnectionId.value = previousActiveConnectionId
               console.error("Failed to connect:", payload.error)
               reject(new Error(payload.error || `Failed to connect to database: ${conn.name}`))
             }
