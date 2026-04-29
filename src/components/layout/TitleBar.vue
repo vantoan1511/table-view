@@ -117,8 +117,13 @@ const showAbout = () => {
   closeMenu()
 }
 
-const quitApp = () => {
+const quitApp = async () => {
   if (window.NL_PORT) {
+    try {
+      await Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.shutdown', {})
+    } catch (e) {
+      console.error('Failed to send shutdown signal:', e)
+    }
     Neutralino.app.exit()
   }
   closeMenu()

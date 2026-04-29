@@ -137,6 +137,13 @@ pub async fn handle_message(
             }
         }
 
+        "shutdown" => {
+            log::info!("Received shutdown request. Closing all connections and exiting.");
+            let mut p = pool.lock().await;
+            p.close_all().await;
+            std::process::exit(0);
+        }
+
         _ => {
             let driver_arc = {
                 let mut p = pool.lock().await;

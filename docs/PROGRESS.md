@@ -17,6 +17,8 @@ All core database management features are functional. The application has a robu
 - [x] Resolve Windows path compatibility in Neutralino config.
 - [x] Align JSON payload structures between Rust and Vue.
 - [x] Add file-based logging for the extension.
+- [x] Fix extension process termination using explicit shutdown signals and awaited frontend dispatch.
+- [x] Update project mandates to correctly reflect Rust-based backend architecture.
 
 ### Phase 3: Frontend Refinement
 - [x] Resolve Lucide icon resolution warnings.
