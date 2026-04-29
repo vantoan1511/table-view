@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.19] - 2026-04-29
+## [0.0.20] - 2026-04-29
+
+### Added
+- CI/CD: Migrated GitHub Actions release workflow to Rust architecture with optimized caching.
+- Automation: Implemented automated documentation synchronization for README, PROGRESS, and SPEC files.
+- Workflow: Enhanced release process with mandatory changelog maintenance.
 
 ### Added
 - Performance: High-precision backend execution timing (ms) reported directly from Rust drivers.
