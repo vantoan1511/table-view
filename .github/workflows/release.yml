@@ -24,11 +24,13 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
         with:
-          go-version-file: 'extensions/db-bridge/go.mod'
-          cache-dependency-path: extensions/db-bridge/go.sum
+          workspaces: "extensions/db-bridge -> target"
 
       - name: Install Dependencies
         run: npm install --no-fund --no-audit --legacy-peer-deps
@@ -38,11 +40,12 @@ jobs:
           npm install -g @neutralinojs/neu
           neu update
 
-      - name: Build Go Extension (Windows)
+      - name: Build Rust Extension (Windows)
         shell: bash
         run: |
           cd extensions/db-bridge
-          GOOS=windows GOARCH=amd64 go build -o db-bridge.exe ./main.go
+          cargo build --release
+          cp target/release/db-bridge.exe .
 
       - name: Build Application (Neutralino)
         run: neu build --release
