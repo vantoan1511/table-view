@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.23] - 2026-04-29
+
+### Fixed
+- CI/CD: Resolved "unstaged changes" error during branch switching in GitHub Actions by resetting build-time file modifications.
+
 ## [0.0.22] - 2026-04-29
 
 ### Fixed
