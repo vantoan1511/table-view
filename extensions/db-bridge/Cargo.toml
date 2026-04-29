@@ -33,8 +33,8 @@ async-trait = "0.1"
 urlencoding = "2"
 
 [profile.release]
-opt-level = "z"     # optimize for size
-lto = true          # link-time optimization
-codegen-units = 1   # single codegen unit for best optimization
-strip = true        # strip debug symbols
-panic = "abort"     # abort on panic (smaller binary)
+opt-level = 3          # speed up compilation (3 is faster than 'z')
+lto = "thin"           # faster than full LTO, still good optimization
+codegen-units = 16     # parallelize compilation for faster builds
+strip = true           # keep symbols stripped for reasonable binary size
+panic = "abort"        # abort on panic (smaller binary)

@@ -30,7 +30,9 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: "extensions/db-bridge -> target"
+          workspaces: "extensions/db-bridge"
+          # Cache size is limited, so we only cache the necessary bits
+          cache-all-crates: true
 
       - name: Install Dependencies
         run: npm install --no-fund --no-audit --legacy-peer-deps
@@ -40,15 +42,19 @@ jobs:
           npm install -g @neutralinojs/neu
           neu update
 
-      - name: Build Rust Extension (Windows)
+      - name: Build Backend and Frontend
         shell: bash
         run: |
+          # Start Rust build in background
           cd extensions/db-bridge
-          cargo build --release
-          cp target/release/db-bridge.exe .
-
-      - name: Build Application (Neutralino)
-        run: neu build --release
+          cargo build --release &
+          RUST_PID=$!
+          cd ../..
+          # Build Frontend
+          neu build --release
+          # Wait for Rust build to finish
+          wait $RUST_PID
+          cp extensions/db-bridge/target/release/db-bridge.exe extensions/db-bridge/
 
       - name: Extract Release Notes
         id: extract_notes
