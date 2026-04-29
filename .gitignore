@@ -58,3 +58,7 @@ __screenshots__/
 .vscode/
 
 /docs
+
+# Rust
+target/
+Cargo.lock

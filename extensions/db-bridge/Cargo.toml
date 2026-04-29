@@ -1,0 +1,36 @@
+[package]
+name = "db-bridge"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "db-bridge"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+futures-util = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+sqlx = { version = "0.8", features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "mysql",
+    "sqlite",
+    "any",
+] }
+log = "0.4"
+env_logger = "0.11"
+clap = { version = "4", features = ["derive"] }
+csv = "1"
+async-trait = "0.1"
+urlencoding = "2"
+
+[profile.release]
+opt-level = "z"     # optimize for size
+lto = true          # link-time optimization
+codegen-units = 1   # single codegen unit for best optimization
+strip = true        # strip debug symbols
+panic = "abort"     # abort on panic (smaller binary)
