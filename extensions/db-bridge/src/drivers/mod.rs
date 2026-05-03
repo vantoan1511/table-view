@@ -1,4 +1,5 @@
 pub mod mysql;
+pub mod oracle;
 pub mod postgres;
 pub mod sqlite;
 pub mod utils;
@@ -159,6 +160,7 @@ pub fn create_driver(db_type: &str) -> Option<Box<dyn DatabaseDriver>> {
     match db_type {
         "postgresql" | "postgres" => Some(Box::new(postgres::PostgresDriver::new())),
         "mysql" => Some(Box::new(mysql::MysqlDriver::new())),
+        "oracle" => Some(Box::new(oracle::OracleDriver::new())),
         "sqlite" => Some(Box::new(sqlite::SqliteDriver::new())),
         _ => None,
     }

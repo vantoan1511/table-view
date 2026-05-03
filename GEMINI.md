@@ -5,6 +5,7 @@
 - **Database Driver Guidelines**: 
   - Use `sqlx` or dedicated Rust drivers (like `rusqlite`, `tokio-postgres`, `mysql_async`) to maintain high performance and safety.
   - For PostgreSQL, ensure proper connection pooling and error handling.
+  - For Oracle, use `oracle-rs` with `deadpool-oracle` for pure Rust thin-driver connectivity without Oracle Instant Client or OCI/ODPI-C dependencies.
 - **Frontend State**: Use Pinia for global state. Ensure WebSocket response handling in stores matches the expected payload structures (e.g., `payload.schema` vs direct flattening).
 - **Styling**: Maintain the established dark-mode aesthetic using Tailwind CSS 4.
 - **Bundling**: Always update `neutralino.config.json` exclusion patterns when adding new source files or directories to keep the production bundle lean.

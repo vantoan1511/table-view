@@ -24,6 +24,7 @@ const dbTypes: { key: DbType; label: string; icon: string }[] = [
   { key: 'postgresql', label: 'PostgreSQL', icon: '🐘' },
   { key: 'mysql', label: 'MySQL', icon: '🐬' },
   { key: 'sqlite', label: 'SQLite', icon: '📦' },
+  { key: 'oracle', label: 'Oracle', icon: '⭕' },
   { key: 'sqlserver', label: 'SQL Server', icon: '🔷' },
   { key: 'mariadb', label: 'MariaDB', icon: '🦭' },
   { key: 'redis', label: 'Redis', icon: '🔴' },
@@ -80,6 +81,7 @@ watch(
 const portDefaults: Partial<Record<DbType, number>> = {
   postgresql: 5432,
   mysql: 3306,
+  oracle: 1521,
   sqlserver: 1433,
   mariadb: 3306,
   redis: 6379,
@@ -133,11 +135,13 @@ const handleImportConnection = async () => {
       throw new Error('Invalid connection profile format')
     }
 
+    const importedType = (conn.type || 'postgresql') as DbType
+
     Object.assign(form, {
       name: conn.name || '',
-      type: conn.type || 'postgresql',
+      type: importedType,
       host: conn.host || 'localhost',
-      port: conn.port || 5432,
+      port: conn.port || portDefaults[importedType] || 5432,
       database: conn.database || '',
       username: conn.username || conn.user || '',
       password: conn.password || '',
@@ -324,7 +328,9 @@ const handleClose = () => {
 
                 <!-- Database -->
                 <div>
-                  <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Database</label>
+                  <label class="block text-[12px] font-medium text-text-secondary mb-1.5">
+                    {{ form.type === 'oracle' ? 'Service Name' : 'Database' }}
+                  </label>
                   <input v-model="form.database" type="text"
                     class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
                 </div>

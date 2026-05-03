@@ -1,6 +1,6 @@
 // ─── Connection ─────────────────────────────────────────────────────────────
 
-export type DbType = 'postgresql' | 'mysql' | 'sqlite' | 'sqlserver' | 'mariadb' | 'redis'
+export type DbType = 'postgresql' | 'mysql' | 'sqlite' | 'oracle' | 'sqlserver' | 'mariadb' | 'redis'
 
 export type ConnectionColor =
   | 'indigo' | 'blue' | 'teal' | 'green'
