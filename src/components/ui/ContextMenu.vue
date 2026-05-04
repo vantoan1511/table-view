@@ -42,7 +42,7 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="context-menu">
-      <div v-if="show" ref="menuRef" class="fixed z-9999 py-1.5 bg-surface border border-border rounded-lg shadow-xl"
+      <div v-if="show" ref="menuRef" class="fixed z-9999 py-1.5 bg-surface border border-border rounded-lg shadow-xl context-menu"
         :class="widthClass || 'w-52'" :style="{ top: y + 'px', left: x + 'px' }" @click.stop>
         <slot></slot>
       </div>

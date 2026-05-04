@@ -361,7 +361,7 @@ impl DatabaseDriver for PostgresDriver {
     ) -> Result<(), String> {
         let pool = self.pool()?;
         let sql = format!(
-            "UPDATE public.{} SET {} = $1 WHERE {} = $2",
+            "UPDATE public.{} SET {} = $1 WHERE {}::text = $2",
             Self::quote(table_name),
             Self::quote(target_column),
             Self::quote(pk_column)
@@ -414,7 +414,7 @@ impl DatabaseDriver for PostgresDriver {
         let pool = self.pool()?;
         let placeholders: Vec<String> = (1..=pk_values.len()).map(|i| format!("${}", i)).collect();
         let sql = format!(
-            "DELETE FROM public.{} WHERE {} IN ({})",
+            "DELETE FROM public.{} WHERE {}::text IN ({})",
             Self::quote(table_name),
             Self::quote(pk_column),
             placeholders.join(", ")

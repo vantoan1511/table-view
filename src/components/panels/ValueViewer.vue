@@ -52,7 +52,7 @@ const copyToClipboard = () => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-background overflow-hidden">
+  <div class="flex flex-col h-full bg-background overflow-hidden value-viewer-panel">
     <!-- Toolbar -->
     <div class="flex items-center justify-between px-3 py-2 border-b border-border bg-sidebar/50">
       <div class="flex items-center gap-2 overflow-hidden">

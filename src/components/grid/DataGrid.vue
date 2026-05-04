@@ -5,7 +5,7 @@ import { useGridStore } from '@/stores/grid'
 import { useLayoutStore } from '@/stores/layout'
 import type { GridColumn } from '@/types'
 import { ArrowDown, ArrowUp, Check, Plus, RefreshCw, Trash2, Wrench, X } from 'lucide-vue-next'
-import { nextTick, ref } from 'vue'
+import { nextTick, ref, onMounted, onUnmounted } from 'vue'
 import GridToolbar from './GridToolbar.vue'
 import Pagination from './Pagination.vue'
 
@@ -28,6 +28,30 @@ const onCellClick = (rowIdx: number, col: GridColumn) => {
     panel.activeTabId = 'value'
   }
 }
+
+// ─── Global Click Handling ──────────────────────────────────────────────────
+const handleClickOutside = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  
+  // Check if we clicked on something that should NOT clear the selection
+  const isCell = target.closest('td')
+  const isPanel = target.closest('.value-viewer-panel')
+  const isToolbar = target.closest('.grid-toolbar')
+  const isContextMenu = target.closest('.context-menu')
+  const isModal = target.closest('.modal-container') || target.closest('.modal-backdrop') || target.closest('#new-connection-modal')
+
+  if (!isCell && !isPanel && !isToolbar && !isContextMenu && !isModal) {
+    gridStore.clearSelectedCell()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('mousedown', handleClickOutside)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('mousedown', handleClickOutside)
+})
 
 const startEdit = (rowIdx: number, col: GridColumn) => {
   if (col.isPrimaryKey) return

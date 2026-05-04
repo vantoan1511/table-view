@@ -239,7 +239,7 @@ const handleClose = () => {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
       @click.self="handleClose">
       <!-- Modal -->
-      <div class="bg-surface rounded-xl shadow-modal w-[920px] max-h-[90vh] flex flex-col overflow-hidden animate-in">
+      <div id="new-connection-modal" class="bg-surface rounded-xl shadow-modal w-[920px] max-h-[90vh] flex flex-col overflow-hidden animate-in modal-container">
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-3.5 border-b border-border">
           <h2 class="text-[15px] font-semibold text-text-primary">

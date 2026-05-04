@@ -14,9 +14,9 @@ const handleClose = () => {
 
 <template>
   <div v-if="errorStore.show"
-    class="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    class="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 backdrop-blur-sm modal-backdrop">
     <div
-      class="bg-surface border border-border rounded-xl shadow-2xl w-[550px] flex flex-col max-h-[85vh] overflow-hidden">
+      class="bg-surface border border-border rounded-xl shadow-2xl w-[550px] flex flex-col max-h-[85vh] overflow-hidden modal-container">
       <!-- Header -->
       <div class="flex items-center gap-3 px-5 py-4 border-b border-border bg-danger/5 text-danger">
         <AlertCircle :size="20" class="shrink-0" />

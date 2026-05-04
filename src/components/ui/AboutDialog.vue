@@ -31,10 +31,10 @@ const openLink = (url: string) => {
   <Teleport to="body">
     <Transition name="fade">
       <div v-if="aboutStore.isOpen"
-        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 modal-backdrop"
         @click.self="aboutStore.close">
         
-        <div class="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-[380px] overflow-hidden animate-in zoom-in duration-200">
+        <div class="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-[380px] overflow-hidden animate-in zoom-in duration-200 modal-container">
           <!-- Branded Header -->
           <div class="relative h-32 bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center overflow-hidden">
             <!-- Decorative background elements -->
