@@ -42,6 +42,7 @@ const handleClickOutside = (e: MouseEvent) => {
 
   if (!isCell && !isPanel && !isToolbar && !isContextMenu && !isModal) {
     gridStore.clearSelectedCell()
+    gridStore.cancelEditCell()
   }
 }
 

@@ -2,7 +2,7 @@
   "applicationId": "com.github.vantoan1511.tableview",
   "applicationName": "Table View",
   "author": "Toan Nguyen",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "defaultMode": "window",
   "documentRoot": "/build/",
   "url": "/",
@@ -10,7 +10,7 @@
   "enableNativeAPI": true,
   "singlePageServe": true,
   "enableExtensions": true,
-  "tokenSecurity": "none",
+  "tokenSecurity": "one-time",
   "nativeAllowList": [
     "app.*",
     "os.*",
@@ -37,7 +37,7 @@
       "minHeight": 720,
       "center": true,
       "icon": "/public/favicon.ico",
-      "enableInspector": true 
+      "enableInspector": false 
     }
   },
   "cli": {

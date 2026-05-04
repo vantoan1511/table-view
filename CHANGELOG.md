@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-05
+
+### Fixed
+- **Database: Resolved PostgreSQL UUID type mismatch error** by implementing explicit `::text` casting in the Rust backend drivers for `update` and `delete` operations.
+- **Grid: Improved focus management** for a more standard user experience.
+  - Inline edit mode is now automatically discarded when clicking outside the grid or inspector panels.
+  - Selecting a cell now correctly clears when clicking on sidebar or status bar.
+- **Architecture: Standardized modal interactions** across GlobalErrorDialog, AboutDialog, and NewConnectionModal to ensure reliable focus preservation.
+- **UI: Fixed version display** in the About dialog to correctly read from app configuration.
+
 ## [0.1.1] - 2026-05-05
 
 ### Added
