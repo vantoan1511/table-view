@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-05-04
+
+### Added
+- **Database: Integrated Oracle Database support** using the `oracle-rs` pure-Rust thin driver.
+  - No dependency on Oracle Instant Client or OCI/ODPI-C libraries.
+  - Supports Service Name, SID, and TNS connectivity modes.
+  - Full support for Oracle-specific schema management and system roles (SYSDBA, SYSOPER, etc.).
+- Performance: Optimized application startup with parallel initialization and lazy-loaded components.
+- UI/UX: Added a premium branded splash screen with smooth cross-fade transitions.
+- SQL Editor: Implemented professional dark mode and high-contrast custom syntax highlighting.
+- Architecture: Introduced a reusable `useDebounce` composable for standardizing UI responsiveness.
  
  ## [0.0.25] - 2026-05-04
  
