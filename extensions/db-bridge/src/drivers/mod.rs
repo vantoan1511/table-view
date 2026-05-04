@@ -29,10 +29,22 @@ pub struct Config {
     pub ssl: bool,
     #[serde(rename = "connectionTimeout", default = "default_timeout")]
     pub connection_timeout: u32,
+    #[serde(rename = "oracleConnectType", default = "default_oracle_connect_type")]
+    pub oracle_connect_type: String,
+    #[serde(rename = "oracleRole", default = "default_oracle_role")]
+    pub oracle_role: String,
 }
 
 fn default_timeout() -> u32 {
     30
+}
+
+fn default_oracle_connect_type() -> String {
+    "serviceName".to_string()
+}
+
+fn default_oracle_role() -> String {
+    "normal".to_string()
 }
 
 // ─── Result Types ───────────────────────────────────────────────────────────
@@ -117,7 +129,11 @@ pub struct AlterOperation {
 pub trait DatabaseDriver: Send + Sync {
     async fn connect(&mut self, config: &Config) -> Result<(), String>;
     async fn disconnect(&mut self) -> Result<(), String>;
-    async fn get_schema(&self, all_schemas: bool) -> Result<SchemaResult, String>;
+    async fn get_schema(
+        &self,
+        all_schemas: bool,
+        schema_name: Option<&str>,
+    ) -> Result<SchemaResult, String>;
     async fn fetch_table_data(
         &self,
         table_name: &str,

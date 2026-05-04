@@ -18,8 +18,8 @@ const toggleSection = (key: string) => {
   expandedSections.value[key] = !expandedSections.value[key]
 }
 
-const handleTableClick = (tableName: string) => {
-  tabsStore.openTable(tableName)
+const handleTableClick = (tableName: string, schemaName: string) => {
+  tabsStore.openTable(tableName, schemaName)
 }
 </script>
 
@@ -41,12 +41,12 @@ const handleTableClick = (tableName: string) => {
           class="pl-5 pr-3 py-2 text-[12px] text-text-tertiary italic">
           No tables found
         </div>
-        <button v-for="table in schemaStore.filteredTables" :key="table.name"
+        <button v-for="table in schemaStore.filteredTables" :key="`${table.schema}.${table.name}`"
           class="flex items-center gap-2 w-full pl-5 pr-3 py-1 text-[13px] rounded-md cursor-pointer transition-colors"
-          :class="tabsStore.activeTab?.tableName === table.name
+          :class="tabsStore.activeTab?.tableName === table.name && tabsStore.activeTab?.schema === table.schema
             ? 'bg-active text-primary font-medium'
             : 'text-text-primary hover:bg-hover'
-            " @click="handleTableClick(table.name)">
+            " @click="handleTableClick(table.name, table.schema)">
           <Table2 :size="13" class="shrink-0 opacity-50" />
           <span class="truncate">{{ table.name }}</span>
         </button>

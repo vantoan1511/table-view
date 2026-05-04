@@ -1,12 +1,12 @@
 # Table View
 
-**Table View** is a lightweight, high-performance desktop database management tool built with [NeutralinoJS](https://neutralino.js.org/) and [Vue 3](https://vuejs.org/). It provides a unified interface to browse, edit, and manage multiple database types (PostgreSQL, MySQL, SQLite) with a focus on speed and a premium user experience.
+**Table View** is a lightweight, high-performance desktop database management tool built with [NeutralinoJS](https://neutralino.js.org/) and [Vue 3](https://vuejs.org/). It provides a unified interface to browse, edit, and manage multiple database types (PostgreSQL, MySQL, SQLite, Oracle) with a focus on speed and a premium user experience.
 
 ![Table View Preview](screenshots/preview.png)
 
 ## ✨ Features
 
-- **Multi-DB Support**: Connect to PostgreSQL, MySQL, and SQLite databases simultaneously.
+- **Multi-DB Support**: Connect to PostgreSQL, MySQL, SQLite, and Oracle databases simultaneously.
 - **Real-time Telemetry**: High-precision backend-level query timing (ms) displayed in the Status Bar.
 - **Rich Data Grid**: 
   - **Inline Editing**: Double-click any cell to edit data instantly.
@@ -30,7 +30,7 @@
 - **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
 - **Icons**: [Lucide Vue Next](https://lucide.dev/)
 - **Editor**: [CodeMirror 6](https://codemirror.net/)
-- **Backend Bridge**: High-performance Rust-based Neutralino extension powered by `sqlx`.
+- **Backend Bridge**: High-performance Rust-based Neutralino extension powered by `sqlx` plus dedicated Oracle thin-driver components (`oracle-rs` and `deadpool-oracle`).
 
 ## 🚀 Getting Started
 

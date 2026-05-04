@@ -55,13 +55,14 @@ const toggleSchemaMenu = () => {
   showSchemaMenu.value = !showSchemaMenu.value
 }
 
-const selectSchema = (s: string) => {
+const selectSchema = async (s: string) => {
   schemaStore.setSelectedSchema(s)
   showSchemaMenu.value = false
+  await schemaStore.loadSchema(schemaStore.loadedAllSchemas, undefined, s)
 }
 
 const refreshSchema = () => {
-  schemaStore.loadSchema()
+  schemaStore.loadSchema(schemaStore.loadedAllSchemas, undefined, schemaStore.selectedSchema)
   toastStore.addToast({
     title: 'Schema Refreshed',
     message: 'Schema has been reloaded.',
@@ -156,7 +157,7 @@ onUnmounted(() => window.removeEventListener('click', handleOutsideClick))
 
       <!-- Schema dropdown menu -->
       <div v-if="showSchemaMenu && schemaStore.schema.schemas.length > 0"
-        class="absolute left-3 right-3 top-full mt-1 z-50 bg-surface border border-border rounded-lg shadow-lg py-1 text-[12px]"
+        class="absolute left-3 right-3 top-full mt-1 z-50 max-h-64 overflow-y-auto bg-surface border border-border rounded-lg shadow-lg py-1 text-[12px]"
         @click.stop>
         <button v-for="s in schemaStore.schema.schemas" :key="s"
           class="flex items-center gap-2 w-full px-3 py-2 hover:bg-hover transition-colors cursor-pointer"

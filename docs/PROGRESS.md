@@ -68,7 +68,9 @@ All core database management features are functional. The application has a robu
 - [x] **Workspace Panels**: Implement real-time Output, Properties, and Indexes views.
 - [x] **Display All Schemas**: Add toggle in connection settings and implement schema switching in frontend and backend.
 - [x] **Oracle DB Support**: Create detailed implementation plan using pure Rust thin driver (`oracle-rs`).
-- [ ] **Oracle DB Support**: Implement backend driver and frontend UI components.
+- [x] **Oracle DB Support**: Implement backend driver and frontend UI components.
+- [x] **Oracle DB Support**: Add Oracle role handling (`SYSDBA`/`SYSOPER`), owner-qualified table loading, and schema-targeted browsing fixes.
+- [x] **Oracle DB Support**: Document the temporary vendored `oracle-rs` patch strategy for later extraction into a separate extension repository.
 - [ ] **SQL Workbench**: Full implementation of the query editor and result set viewer.
 - [ ] **Schema Management**: Create/Drop schema support (backend & UI).
 - [ ] **Data Import/Export**: Support for JSON and SQL dump formats.

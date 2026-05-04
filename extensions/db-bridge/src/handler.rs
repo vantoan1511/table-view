@@ -47,6 +47,8 @@ struct Payload {
     operations: Vec<AlterOperation>,
     #[serde(default)]
     all_schemas: bool,
+    #[serde(default)]
+    schema_name: String,
 }
 
 pub async fn handle_message(
@@ -164,7 +166,9 @@ pub async fn handle_message(
             let driver = driver_arc.lock().await;
             match action {
                 "getSchema" => {
-                    let result = driver.get_schema(payload.all_schemas).await;
+                    let schema_name = (!payload.schema_name.trim().is_empty())
+                        .then_some(payload.schema_name.trim());
+                    let result = driver.get_schema(payload.all_schemas, schema_name).await;
                     handle_result(&writer, &token, "dbBridge.getSchemaResult", &payload.req_id, "schema", result).await;
                 }
                 "fetchTableData" => {

@@ -86,21 +86,22 @@ export const useTabsStore = defineStore('tabs', () => {
     }
   }
 
-  const openTable = (tableName: string) => {
+  const openTable = (tableName: string, schemaName?: string) => {
+    const targetSchema = schemaName || schemaStore.selectedSchema
     const existing = tabs.value.find(
-      (t) => t.type === 'table' && t.tableName === tableName,
+      (t) => t.type === 'table' && t.tableName === tableName && t.schema === targetSchema,
     )
     if (existing) {
       activeTabId.value = existing.id
       return
     }
     const tab: Tab = {
-      id: `tab-${tableName}-${Date.now()}`,
+      id: `tab-${targetSchema}-${tableName}-${Date.now()}`,
       type: 'table',
-      title: tableName,
+      title: targetSchema ? `${targetSchema}.${tableName}` : tableName,
       tableName,
       connectionId: connectionsStore.activeConnectionId ?? undefined,
-      schema: schemaStore.selectedSchema,
+      schema: targetSchema,
     }
     tabs.value.push(tab)
     activeTabId.value = tab.id

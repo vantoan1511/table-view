@@ -83,7 +83,7 @@ const handleContextAction = (action: string) => {
     showDeleteConfirm.value = true
   } else if (action === 'refresh') {
     if (connectionsStore.activeConnectionId === id) {
-      schemaStore.loadSchema()
+      schemaStore.loadSchema(schemaStore.loadedAllSchemas, id, schemaStore.selectedSchema)
     } else {
       handleSelectConnection(id)
     }

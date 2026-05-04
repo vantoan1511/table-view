@@ -2,7 +2,7 @@
 import ColorPicker from '@/components/ui/ColorPicker.vue'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 import { useConnectionsStore } from '@/stores/connections'
-import type { Connection, DbType } from '@/types'
+import type { Connection, DbType, OracleConnectType, OracleRole } from '@/types'
 import {
   CircleHelp,
   Download,
@@ -46,6 +46,8 @@ const form = reactive<Omit<Connection, 'id' | 'isConnected'>>({
   comment: '',
   savePassword: false,
   displayAllSchemas: false,
+  oracleConnectType: 'serviceName',
+  oracleRole: 'normal',
 })
 
 // Initialize form if editing
@@ -53,7 +55,11 @@ watch(
   () => connectionsStore.connectionToEdit,
   (conn) => {
     if (conn) {
-      Object.assign(form, { ...conn })
+      Object.assign(form, {
+        ...conn,
+        oracleConnectType: conn.oracleConnectType || 'serviceName',
+        oracleRole: conn.oracleRole || 'normal',
+      })
     } else {
       // Reset to defaults
       Object.assign(form, {
@@ -72,6 +78,8 @@ watch(
         comment: '',
         savePassword: false,
         displayAllSchemas: false,
+        oracleConnectType: 'serviceName',
+        oracleRole: 'normal',
       })
     }
   },
@@ -92,6 +100,11 @@ import * as Neutralino from '@neutralinojs/lib'
 const selectDbType = (type: DbType) => {
   form.type = type
   form.port = portDefaults[type] ?? 5432
+  if (type === 'oracle') {
+    form.database = form.database === 'postgres' ? 'FREEPDB1' : form.database
+    form.oracleConnectType = form.oracleConnectType ?? 'serviceName'
+    form.oracleRole = form.oracleRole ?? 'normal'
+  }
 }
 
 // ─── Import Connection ────────────────────────────────────────────────────────
@@ -153,6 +166,8 @@ const handleImportConnection = async () => {
       comment: conn.comment || '',
       savePassword: conn.savePassword ?? false,
       displayAllSchemas: conn.displayAllSchemas ?? false,
+      oracleConnectType: (conn.oracleConnectType || 'serviceName') as OracleConnectType,
+      oracleRole: (conn.oracleRole || 'normal') as OracleRole,
     })
   } catch (err: any) {
     importError.value = err.message || 'Failed to import connection'
@@ -329,7 +344,7 @@ const handleClose = () => {
                 <!-- Database -->
                 <div>
                   <label class="block text-[12px] font-medium text-text-secondary mb-1.5">
-                    {{ form.type === 'oracle' ? 'Service Name' : 'Database' }}
+                    {{ form.type === 'oracle' ? (form.oracleConnectType === 'sid' ? 'SID' : 'Service Name') : 'Database' }}
                   </label>
                   <input v-model="form.database" type="text"
                     class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
@@ -399,7 +414,27 @@ const handleClose = () => {
 
               <!-- Advanced Tab -->
               <div v-else class="text-[13px] text-text-secondary">
-                <div class="flex items-center justify-center h-40">
+                <div v-if="form.type === 'oracle'" class="grid grid-cols-2 gap-x-6 gap-y-4">
+                  <div>
+                    <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Connect Type</label>
+                    <select v-model="form.oracleConnectType"
+                      class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer">
+                      <option value="serviceName">Service Name</option>
+                      <option value="sid">SID</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Role</label>
+                    <select v-model="form.oracleRole"
+                      class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer">
+                      <option value="normal">Normal</option>
+                      <option value="sysdba">SYSDBA</option>
+                      <option value="sysoper">SYSOPER</option>
+                    </select>
+                  </div>
+                </div>
+                <div v-else class="flex items-center justify-center h-40">
                   <p class="text-text-tertiary">Advanced settings will appear here.</p>
                 </div>
               </div>

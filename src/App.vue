@@ -67,6 +67,9 @@ watch(
       // Sync schema selection
       if (tab.schema && tab.schema !== schemaStore.selectedSchema) {
         schemaStore.setSelectedSchema(tab.schema)
+        if (conn?.type === 'oracle') {
+          await schemaStore.loadSchema(schemaStore.loadedAllSchemas, tab.connectionId, tab.schema)
+        }
       }
     }
 
@@ -74,7 +77,7 @@ watch(
       // Trigger loading state early for better UX
       gridStore.isLoading = true
       // Explicitly pass connectionId to avoid using stale global state
-      gridStore.loadTable(tab.tableName, tab.connectionId)
+      gridStore.loadTable(tab.tableName, tab.connectionId, tab.schema)
     }
   },
   { immediate: true },

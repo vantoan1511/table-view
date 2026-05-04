@@ -41,28 +41,42 @@ import { useConnectionsStore } from './connections'
 
 export const useSchemaStore = defineStore('schema', () => {
   const connectionsStore = useConnectionsStore()
-  const schema = ref<SchemaInfo>({ tables: [], views: [], functions: [], schemas: ['public'] })
-  const selectedSchema = ref('public')
+  const schema = ref<SchemaInfo>({ tables: [], views: [], functions: [], schemas: [] })
+  const selectedSchema = ref('')
   const filterQuery = ref('')
+  const loadedAllSchemas = ref(false)
+  const activeSchemaRequestId = ref('')
+
+  const sameSchema = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'accent' }) === 0
+
+  const resolveFallbackSchema = (connectionType?: string, username?: string) => {
+    if (connectionType === 'oracle') {
+      return username?.toUpperCase() || ''
+    }
+    if (connectionType === 'postgresql' || connectionType === 'postgres') {
+      return 'public'
+    }
+    return ''
+  }
 
   const filteredTables = computed(() => {
     const q = filterQuery.value.toLowerCase()
     return schema.value.tables.filter(
-      (t) => t.schema === selectedSchema.value && t.name.toLowerCase().includes(q),
+      (t) => sameSchema(t.schema, selectedSchema.value) && t.name.toLowerCase().includes(q),
     )
   })
 
   const filteredViews = computed(() => {
     const q = filterQuery.value.toLowerCase()
     return schema.value.views.filter(
-      (v) => v.schema === selectedSchema.value && v.name.toLowerCase().includes(q),
+      (v) => sameSchema(v.schema, selectedSchema.value) && v.name.toLowerCase().includes(q),
     )
   })
 
   const filteredFunctions = computed(() => {
     const q = filterQuery.value.toLowerCase()
     return schema.value.functions.filter(
-      (f) => f.schema === selectedSchema.value && f.name.toLowerCase().includes(q),
+      (f) => sameSchema(f.schema, selectedSchema.value) && f.name.toLowerCase().includes(q),
     )
   })
 
@@ -74,21 +88,65 @@ export const useSchemaStore = defineStore('schema', () => {
     selectedSchema.value = s
   }
 
-  const loadSchema = async (allSchemas: boolean = false, connectionId?: string) => {
+  const loadSchema = async (
+    allSchemas?: boolean,
+    connectionId?: string,
+    schemaName?: string,
+  ) => {
     if (window.NL_PORT) {
       const reqId = Date.now().toString()
       const targetConnectionId = connectionId || connectionsStore.activeConnectionId
+      const connection = connectionsStore.connections.find((c) => c.id === targetConnectionId)
+      const targetAllSchemas = allSchemas ?? connection?.displayAllSchemas ?? loadedAllSchemas.value
+      const fallbackSchema = resolveFallbackSchema(connection?.type, connection?.username)
+      const requestedSchemaName = schemaName || selectedSchema.value
+      const targetSchemaName = requestedSchemaName || (targetAllSchemas ? '' : fallbackSchema)
+      loadedAllSchemas.value = targetAllSchemas
+      activeSchemaRequestId.value = reqId
       
       const onResult = (evt: any) => {
         const payload = evt.detail
         if (payload.reqId === reqId) {
+          if (activeSchemaRequestId.value !== reqId) {
+            Neutralino.events.off('dbBridge.getSchemaResult', onResult)
+            return
+          }
+
           if (payload.success) {
             const backendSchemas = payload.schema.schemas || []
-            schema.value = {
-              tables: (payload.schema.tables || []).map((t: any) => ({ name: t.name, schema: t.schema || 'public' })),
-              views: (payload.schema.views || []).map((v: any) => ({ name: v.name, schema: v.schema || 'public' })),
-              functions: (payload.schema.functions || []).map((f: any) => ({ name: f.name, schema: f.schema || 'public', returnType: f.type || 'unknown' })),
-              schemas: backendSchemas.length > 0 ? backendSchemas.map((s: any) => s.name || s) : ['public']
+            const defaultObjectSchema = resolveFallbackSchema(connection?.type, connection?.username)
+            const nextSchema: SchemaInfo = {
+              tables: (payload.schema.tables || []).map((t: any) => ({ name: t.name, schema: t.schema || defaultObjectSchema })),
+              views: (payload.schema.views || []).map((v: any) => ({ name: v.name, schema: v.schema || defaultObjectSchema })),
+              functions: (payload.schema.functions || []).map((f: any) => ({ name: f.name, schema: f.schema || defaultObjectSchema, returnType: f.type || 'unknown' })),
+              schemas: backendSchemas.length > 0 ? backendSchemas.map((s: any) => s.name || s) : []
+            }
+
+            schema.value = nextSchema
+
+            const availableSchemas = nextSchema.schemas
+            const firstSchemaWithObjects =
+              nextSchema.tables[0]?.schema ||
+              nextSchema.views[0]?.schema ||
+              nextSchema.functions[0]?.schema ||
+              ''
+            const canUseRequestedSchema =
+              !!requestedSchemaName &&
+              (
+                availableSchemas.some((s) => sameSchema(s, requestedSchemaName)) ||
+                sameSchema(firstSchemaWithObjects, requestedSchemaName)
+              )
+
+            if (
+              schemaName ||
+              !selectedSchema.value ||
+              !availableSchemas.some((s) => sameSchema(s, selectedSchema.value))
+            ) {
+              selectedSchema.value =
+                (canUseRequestedSchema ? requestedSchemaName : '') ||
+                firstSchemaWithObjects ||
+                availableSchemas[0] ||
+                fallbackSchema
             }
           } else {
             console.error("Failed to load schema:", payload.error)
@@ -101,7 +159,8 @@ export const useSchemaStore = defineStore('schema', () => {
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getSchema', { 
         reqId,
         connectionId: targetConnectionId,
-        allSchemas 
+        allSchemas: targetAllSchemas,
+        schemaName: targetSchemaName,
       })
     }
   }
@@ -110,6 +169,7 @@ export const useSchemaStore = defineStore('schema', () => {
     schema,
     selectedSchema,
     filterQuery,
+    loadedAllSchemas,
     filteredTables,
     filteredViews,
     filteredFunctions,

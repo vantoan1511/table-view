@@ -4,7 +4,7 @@ use super::{
 };
 use async_trait::async_trait;
 use deadpool_oracle::{Pool, PoolBuilder};
-use oracle_rs::{Config as OracleConfig, Value as OracleValue};
+use oracle_rs::{AuthMode as OracleAuthMode, Config as OracleConfig, Value as OracleValue};
 use serde_json::Value as JsonValue;
 use std::collections::{HashMap, HashSet};
 
@@ -144,23 +144,68 @@ impl DatabaseDriver for OracleDriver {
             return Err("Oracle service name is required".to_string());
         }
 
-        let mut oracle_config = OracleConfig::new(
-            config.host.clone(),
-            config.port,
-            config.database.clone(),
-            config.username.clone(),
-            config.password.clone(),
-        )
+        let connect_type = config.oracle_connect_type.trim();
+        let oracle_role = config.oracle_role.trim().to_ascii_lowercase();
+        let use_implicit_sysdba = oracle_role == "normal"
+            && config.username.trim().eq_ignore_ascii_case("sys");
+        let auth_mode = match oracle_role.as_str() {
+            "sysdba" => OracleAuthMode::SysDba,
+            "sysoper" => OracleAuthMode::SysOper,
+            "normal" if use_implicit_sysdba => OracleAuthMode::SysDba,
+            _ => OracleAuthMode::Normal,
+        };
+
+        let mut oracle_config = if connect_type.eq_ignore_ascii_case("sid") {
+            OracleConfig::with_sid(
+                config.host.clone(),
+                config.port,
+                config.database.clone(),
+                config.username.clone(),
+                config.password.clone(),
+            )
+        } else {
+            OracleConfig::new(
+                config.host.clone(),
+                config.port,
+                config.database.clone(),
+                config.username.clone(),
+                config.password.clone(),
+            )
+        }
+        .auth_mode(auth_mode)
         .connect_timeout(std::time::Duration::from_secs(config.connection_timeout as u64));
 
         if config.ssl {
             oracle_config = oracle_config.with_tls().map_err(|e| e.to_string())?;
         }
 
+        log::info!(
+            "oracle: connecting to {}:{}/{} as {} with role {} using {}",
+            config.host,
+            config.port,
+            config.database,
+            config.username,
+            if use_implicit_sysdba { "sysdba (implicit for SYS)" } else { config.oracle_role.as_str() },
+            if connect_type.eq_ignore_ascii_case("sid") { "SID" } else { "service name" }
+        );
+
         let pool = PoolBuilder::new(oracle_config)
             .max_size(5)
             .build()
             .map_err(|e| e.to_string())?;
+
+        let conn = pool.get().await.map_err(|e| {
+            let message = e.to_string();
+            if message.contains("Server sent MARKER - authentication rejected") {
+                format!(
+                    "Oracle authentication rejected. If you connect as SYS, set Oracle Role to SYSDBA and make sure the service/SID matches DBeaver. Details: {}",
+                    message
+                )
+            } else {
+                message
+            }
+        })?;
+        drop(conn);
 
         self.current_schema = config.username.to_uppercase();
         self.pool = Some(pool);
@@ -172,48 +217,65 @@ impl DatabaseDriver for OracleDriver {
         Ok(())
     }
 
-    async fn get_schema(&self, all_schemas: bool) -> Result<SchemaResult, String> {
+    async fn get_schema(
+        &self,
+        all_schemas: bool,
+        schema_name: Option<&str>,
+    ) -> Result<SchemaResult, String> {
         let pool = self.pool()?;
-        let owner_clause = if all_schemas {
-            "OWNER NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'XDB', 'CTXSYS', 'MDSYS')".to_string()
-        } else {
-            "OWNER = :1".to_string()
-        };
-        let params = if all_schemas {
-            vec![]
-        } else {
-            vec![JsonValue::String(self.current_schema.clone())]
-        };
+        let requested_schema = schema_name
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+            .map(|name| name.to_uppercase());
 
-        let table_sql = format!(
-            "SELECT TABLE_NAME, OWNER FROM ALL_TABLES WHERE {} ORDER BY OWNER, TABLE_NAME",
-            owner_clause
-        );
-        let view_sql = format!(
-            "SELECT VIEW_NAME, OWNER FROM ALL_VIEWS WHERE {} ORDER BY OWNER, VIEW_NAME",
-            owner_clause
-        );
-        let func_sql = format!(
-            "SELECT OBJECT_NAME, OWNER, OBJECT_TYPE FROM ALL_OBJECTS WHERE {} AND OBJECT_TYPE IN ('PROCEDURE', 'FUNCTION') ORDER BY OWNER, OBJECT_NAME",
-            owner_clause
-        );
         let schema_sql = if all_schemas {
             "SELECT USERNAME FROM ALL_USERS WHERE USERNAME NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'XDB', 'CTXSYS', 'MDSYS') ORDER BY USERNAME".to_string()
         } else {
             "SELECT USERNAME FROM ALL_USERS WHERE USERNAME = :1 ORDER BY USERNAME".to_string()
         };
+        let schema_params = if all_schemas {
+            Vec::new()
+        } else {
+            vec![JsonValue::String(
+                requested_schema
+                    .clone()
+                    .unwrap_or_else(|| self.current_schema.clone()),
+            )]
+        };
 
-        let (table_res, view_res, func_res, schema_res) = tokio::join!(
+        let (schema_rows, _, _) = Self::execute_query(pool, &schema_sql, &schema_params).await?;
+        let resolved_schema = requested_schema.unwrap_or_else(|| {
+            if all_schemas {
+                schema_rows
+                    .iter()
+                    .find_map(|r| r.get("USERNAME").and_then(|v| v.as_str()).map(str::to_string))
+                    .unwrap_or_else(|| self.current_schema.clone())
+            } else {
+                self.current_schema.clone()
+            }
+        });
+        let params = vec![JsonValue::String(resolved_schema.clone())];
+
+        log::info!(
+            "oracle: loading schema objects for owner {} (allSchemas={})",
+            resolved_schema,
+            all_schemas
+        );
+
+        let table_sql = "SELECT TABLE_NAME, OWNER FROM ALL_TABLES WHERE OWNER = :1 ORDER BY OWNER, TABLE_NAME";
+        let view_sql = "SELECT VIEW_NAME, OWNER FROM ALL_VIEWS WHERE OWNER = :1 ORDER BY OWNER, VIEW_NAME";
+        let func_sql =
+            "SELECT OBJECT_NAME, OWNER, OBJECT_TYPE FROM ALL_OBJECTS WHERE OWNER = :1 AND OBJECT_TYPE IN ('PROCEDURE', 'FUNCTION') ORDER BY OWNER, OBJECT_NAME";
+
+        let (table_res, view_res, func_res) = tokio::join!(
             Self::execute_query(pool, &table_sql, &params),
             Self::execute_query(pool, &view_sql, &params),
             Self::execute_query(pool, &func_sql, &params),
-            Self::execute_query(pool, &schema_sql, &params),
         );
 
         let (table_rows, _, _) = table_res?;
         let (view_rows, _, _) = view_res?;
         let (func_rows, _, _) = func_res?;
-        let (schema_rows, _, _) = schema_res?;
 
         let tables = table_rows
             .iter()

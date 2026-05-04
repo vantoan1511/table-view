@@ -114,7 +114,11 @@ impl DatabaseDriver for SqliteDriver {
         Ok(())
     }
 
-    async fn get_schema(&self, _all_schemas: bool) -> Result<SchemaResult, String> {
+    async fn get_schema(
+        &self,
+        _all_schemas: bool,
+        _schema_name: Option<&str>,
+    ) -> Result<SchemaResult, String> {
         let pool = self.pool()?;
 
         // Tables

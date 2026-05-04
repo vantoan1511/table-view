@@ -53,6 +53,8 @@ export const useConnectionsStore = defineStore('connections', () => {
         loaded.forEach(c => {
           c.password = decryptPassword(c.password)
           c.isConnected = false
+          c.oracleConnectType = c.oracleConnectType || 'serviceName'
+          c.oracleRole = c.oracleRole || 'normal'
         })
         connections.value = loaded
       } catch (err) {
@@ -98,6 +100,7 @@ export const useConnectionsStore = defineStore('connections', () => {
               // Import dynamically to avoid circular dependency
               const { useSchemaStore } = await import('./schema')
               const schemaStore = useSchemaStore()
+              schemaStore.setSelectedSchema('')
               schemaStore.loadSchema(conn.displayAllSchemas, id)
               resolve(true)
             } else {

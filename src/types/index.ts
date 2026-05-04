@@ -2,6 +2,9 @@
 
 export type DbType = 'postgresql' | 'mysql' | 'sqlite' | 'oracle' | 'sqlserver' | 'mariadb' | 'redis'
 
+export type OracleConnectType = 'serviceName' | 'sid'
+export type OracleRole = 'normal' | 'sysdba' | 'sysoper'
+
 export type ConnectionColor =
   | 'indigo' | 'blue' | 'teal' | 'green'
   | 'amber' | 'orange' | 'pink' | 'gray'
@@ -23,6 +26,8 @@ export interface Connection {
   comment: string
   savePassword: boolean
   displayAllSchemas: boolean
+  oracleConnectType?: OracleConnectType
+  oracleRole?: OracleRole
   isConnected: boolean
 }
 

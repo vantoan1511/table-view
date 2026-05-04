@@ -17,6 +17,7 @@ export const useGridStore = defineStore('grid', () => {
   const sortDirection = ref<'asc' | 'desc' | undefined>()
   const executionTime = ref(0)
   const activeTableName = ref('')
+  const activeTableSchema = ref('')
   const filterText = ref('')
   const isLoading = ref(false)
 
@@ -36,6 +37,24 @@ export const useGridStore = defineStore('grid', () => {
 
   const totalPages = computed(() => Math.max(1, Math.ceil(totalRows.value / rowsPerPage.value)))
 
+  const resolveConnection = (connectionId?: string) =>
+    connectionsStore.connections.find((conn) => conn.id === (connectionId || connectionsStore.activeConnectionId)) ?? null
+
+  const resolveBackendTableName = (
+    tableName: string,
+    connectionId?: string,
+    schemaName?: string,
+  ) => {
+    const connection = resolveConnection(connectionId)
+    const targetSchema = schemaName || activeTableSchema.value
+
+    if (connection?.type === 'oracle' && targetSchema) {
+      return `${targetSchema}.${tableName}`
+    }
+
+    return tableName
+  }
+
   const setPage = (page: number) => {
     currentPage.value = page
     loadTable(activeTableName.value)
@@ -47,17 +66,21 @@ export const useGridStore = defineStore('grid', () => {
     loadTable(activeTableName.value)
   }
 
-  const loadTable = async (tableName: string, connectionId?: string) => {
+  const loadTable = async (tableName: string, connectionId?: string, schemaName?: string) => {
     if (!tableName || !window.NL_PORT) return
 
     activeTableName.value = tableName
+    if (schemaName) {
+      activeTableSchema.value = schemaName
+    }
     const reqId = Date.now().toString()
     const offset = (currentPage.value - 1) * rowsPerPage.value
     const startTime = performance.now()
     isLoading.value = true
 
     // Use provided connectionId or fallback to active one
-    const targetConnectionId = connectionId || connectionsStore.activeConnectionId
+    const targetConnectionId = connectionId || connectionsStore.activeConnectionId || undefined
+    const backendTableName = resolveBackendTableName(tableName, targetConnectionId, schemaName)
 
     const onResult = (evt: any) => {
       const payload = evt.detail
@@ -79,7 +102,7 @@ export const useGridStore = defineStore('grid', () => {
     Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.fetchTableData', {
       reqId,
       connectionId: targetConnectionId,
-      tableName,
+      tableName: backendTableName,
       limit: rowsPerPage.value,
       offset,
       sortColumn: sortColumn.value,
@@ -123,7 +146,7 @@ export const useGridStore = defineStore('grid', () => {
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.updateCell', {
         reqId,
         connectionId: connectionsStore.activeConnectionId,
-        tableName: activeTableName.value,
+        tableName: resolveBackendTableName(activeTableName.value),
         pkColumn: pkColumn.name,
         pkValue,
         targetColumn: column.name,
@@ -340,7 +363,7 @@ export const useGridStore = defineStore('grid', () => {
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.insertRow', {
         reqId,
         connectionId: connectionsStore.activeConnectionId,
-        tableName: activeTableName.value,
+        tableName: resolveBackendTableName(activeTableName.value),
         data,
       })
     })
@@ -382,7 +405,7 @@ export const useGridStore = defineStore('grid', () => {
       Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.deleteRows', {
         reqId,
         connectionId: connectionsStore.activeConnectionId,
-        tableName: activeTableName.value,
+        tableName: resolveBackendTableName(activeTableName.value),
         pkColumn: pkCol.name,
         pkValues,
       })
@@ -401,7 +424,11 @@ export const useGridStore = defineStore('grid', () => {
         else reject(new Error(payload.error))
       }
       Neutralino.events.on('dbBridge.getTableColumnsResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getTableColumns', { reqId, connectionId: connectionsStore.activeConnectionId, tableName })
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getTableColumns', {
+        reqId,
+        connectionId: connectionsStore.activeConnectionId,
+        tableName: resolveBackendTableName(tableName),
+      })
     })
   }
 
@@ -417,7 +444,12 @@ export const useGridStore = defineStore('grid', () => {
         else reject(new Error(payload.error))
       }
       Neutralino.events.on('dbBridge.alterTableResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.alterTable', { reqId, connectionId: connectionsStore.activeConnectionId, tableName, operations })
+      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.alterTable', {
+        reqId,
+        connectionId: connectionsStore.activeConnectionId,
+        tableName: resolveBackendTableName(tableName),
+        operations,
+      })
     })
   }
 
@@ -431,6 +463,7 @@ export const useGridStore = defineStore('grid', () => {
     sortDirection,
     executionTime,
     activeTableName,
+    activeTableSchema,
     filterText,
     isLoading,
     totalPages,

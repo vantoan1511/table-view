@@ -34,6 +34,9 @@ urlencoding = "2"
 oracle-rs = "0.1"
 deadpool-oracle = "0.1"
 
+[patch.crates-io]
+oracle-rs = { path = "vendor/oracle-rs" }
+
 [profile.release]
 opt-level = 3          # speed up compilation (3 is faster than 'z')
 lto = "thin"           # faster than full LTO, still good optimization

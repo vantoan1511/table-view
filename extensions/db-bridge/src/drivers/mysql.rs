@@ -161,7 +161,11 @@ impl DatabaseDriver for MysqlDriver {
         Ok(())
     }
 
-    async fn get_schema(&self, all_schemas: bool) -> Result<SchemaResult, String> {
+    async fn get_schema(
+        &self,
+        all_schemas: bool,
+        _schema_name: Option<&str>,
+    ) -> Result<SchemaResult, String> {
         let pool = self.pool()?;
         let where_clause = if all_schemas {
             "WHERE TABLE_SCHEMA NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')"
