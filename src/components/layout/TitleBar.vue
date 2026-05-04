@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAboutStore } from '@/stores/about'
 import { useConnectionsStore } from '@/stores/connections'
 import { useTabsStore } from '@/stores/tabs'
 import * as Neutralino from '@neutralinojs/lib'
@@ -16,6 +17,7 @@ import {
 } from 'lucide-vue-next'
 import { onMounted, onUnmounted, ref } from 'vue'
 
+const aboutStore = useAboutStore()
 const connectionsStore = useConnectionsStore()
 const tabsStore = useTabsStore()
 
@@ -112,8 +114,7 @@ const openSettings = () => {
 }
 
 const showAbout = () => {
-  // TODO: Open an About dialog
-  alert(`Table View v${window.NL_APPVERSION || '0.0.0'}\n\nA fast, portable database management tool.`)
+  aboutStore.open()
   closeMenu()
 }
 

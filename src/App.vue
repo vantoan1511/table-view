@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import MinimizedDock from '@/components/layout/MinimizedDock.vue'
-import PanelRail from '@/components/layout/PanelRail.vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import StatusBar from '@/components/layout/StatusBar.vue'
 import TabContent from '@/components/layout/TabContent.vue'
@@ -22,6 +21,7 @@ const NewConnectionModal = defineAsyncComponent(() => import('@/components/modal
 const GlobalErrorDialog = defineAsyncComponent(() => import('@/components/ui/GlobalErrorDialog.vue'))
 const ToastContainer = defineAsyncComponent(() => import('@/components/ui/ToastContainer.vue'))
 const UpdaterDialog = defineAsyncComponent(() => import('@/components/ui/UpdaterDialog.vue'))
+const AboutDialog = defineAsyncComponent(() => import('@/components/ui/AboutDialog.vue'))
 
 const tabsStore = useTabsStore()
 const gridStore = useGridStore()
@@ -91,6 +91,7 @@ watch(
 onMounted(async () => {
   // Load initial data
   await connectionsStore.loadConnections()
+  await layoutStore.init()
 
   // Initialize background services
   if (window.NL_PORT) {
@@ -148,9 +149,6 @@ onMounted(async () => {
           </div>
         </div>
       </div>
-
-      <!-- Minimized Panel Rail -->
-      <PanelRail />
     </div>
 
     <!-- Status Bar -->
@@ -161,5 +159,6 @@ onMounted(async () => {
     <GlobalErrorDialog />
     <ToastContainer />
     <UpdaterDialog />
+    <AboutDialog />
   </div>
 </template>

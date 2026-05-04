@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useLayoutStore } from '@/stores/layout'
 import ResizeHandle from '@/components/ui/ResizeHandle.vue'
 import PanelHeader from '@/components/layout/PanelHeader.vue'
@@ -9,12 +8,6 @@ import PropertiesPanel from '@/components/panels/PropertiesPanel.vue'
 import IndexesPanel from '@/components/panels/IndexesPanel.vue'
 
 const layoutStore = useLayoutStore()
-
-const bottomPanel = computed(() => layoutStore.bottomPanel)
-const rightPanel = computed(() => layoutStore.rightPanel)
-
-const isBottomVisible = computed(() => bottomPanel.value && bottomPanel.value.isVisible && !bottomPanel.value.isMinimized)
-const isRightVisible = computed(() => rightPanel.value && rightPanel.value.isVisible && !rightPanel.value.isMinimized)
 </script>
 
 <template>
@@ -26,29 +19,26 @@ const isRightVisible = computed(() => rightPanel.value && rightPanel.value.isVis
         <slot name="main" />
       </div>
 
-      <!-- Right Panel -->
-      <template v-if="isRightVisible && rightPanel">
+      <!-- Right Panel (Inspector) -->
+      <template v-if="layoutStore.isRightVisible">
         <ResizeHandle
           orientation="horizontal"
-          :model-value="rightPanel.size"
+          :model-value="layoutStore.rightPanel.size"
           reverse
-          @update:model-value="layoutStore.updatePanelSize(rightPanel.id, $event)"
+          @update:model-value="layoutStore.updatePanelSize('inspector', $event)"
         />
         <div 
-          class="flex flex-col bg-sidebar border-l border-border animate-slide-in-right"
-          :style="{ width: `${rightPanel.size}px` }"
+          class="flex flex-col bg-sidebar border-l border-border animate-slide-in-right shadow-lg"
+          :style="{ width: `${layoutStore.rightPanel.size}px` }"
         >
           <PanelHeader 
-            :panel="rightPanel"
-            @minimize="layoutStore.minimizePanel(rightPanel.id)"
-            @close="layoutStore.togglePanel(rightPanel.id)"
-            @reposition="layoutStore.movePanel(rightPanel.id, $event)"
+            :panel="layoutStore.rightPanel"
+            @minimize="layoutStore.togglePanel('inspector')"
           />
           <div class="flex-1 overflow-hidden flex flex-col">
-            <PropertiesPanel v-if="rightPanel.activeTabId === 'properties'" />
-            <IndexesPanel v-else-if="rightPanel.activeTabId === 'indexes'" />
-            <!-- Fallback if tab ID is unknown -->
-            <div v-else class="flex-1 p-4 text-sm text-muted-foreground">
+            <PropertiesPanel v-if="layoutStore.rightPanel.activeTabId === 'properties'" />
+            <IndexesPanel v-else-if="layoutStore.rightPanel.activeTabId === 'indexes'" />
+            <div v-else class="flex-1 p-4 text-sm text-text-tertiary">
               Select a tab to view content.
             </div>
           </div>
@@ -56,28 +46,26 @@ const isRightVisible = computed(() => rightPanel.value && rightPanel.value.isVis
       </template>
     </div>
 
-    <!-- Bottom Panel -->
-    <template v-if="isBottomVisible && bottomPanel">
+    <!-- Bottom Panel (Console) -->
+    <template v-if="layoutStore.isBottomVisible">
       <ResizeHandle
         orientation="vertical"
-        :model-value="bottomPanel.size"
+        :model-value="layoutStore.bottomPanel.size"
         reverse
-        @update:model-value="layoutStore.updatePanelSize(bottomPanel.id, $event)"
+        @update:model-value="layoutStore.updatePanelSize('console', $event)"
       />
       <div 
-        class="flex flex-col bg-sidebar border-t border-border animate-slide-in-up"
-        :style="{ height: `${bottomPanel.size}px` }"
+        class="flex flex-col bg-sidebar border-t border-border animate-slide-in-up shadow-lg"
+        :style="{ height: `${layoutStore.bottomPanel.size}px` }"
       >
         <PanelHeader 
-          :panel="bottomPanel"
-          @minimize="layoutStore.minimizePanel(bottomPanel.id)"
-          @close="layoutStore.togglePanel(bottomPanel.id)"
-          @reposition="layoutStore.movePanel(bottomPanel.id, $event)"
+          :panel="layoutStore.bottomPanel"
+          @minimize="layoutStore.togglePanel('console')"
         />
         <div class="flex-1 overflow-hidden flex flex-col bg-background">
-          <OutputPanel v-if="bottomPanel.activeTabId === 'output'" />
-          <TimelinePanel v-else-if="bottomPanel.activeTabId === 'timeline'" />
-          <div v-else class="flex-1 p-4 text-sm text-muted-foreground">
+          <OutputPanel v-if="layoutStore.bottomPanel.activeTabId === 'output'" />
+          <TimelinePanel v-else-if="layoutStore.bottomPanel.activeTabId === 'timeline'" />
+          <div v-else class="flex-1 p-4 text-sm text-text-tertiary">
             Select a tab to view content.
           </div>
         </div>

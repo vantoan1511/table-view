@@ -1,5 +1,6 @@
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
+import { useLayoutStore } from '@/stores/layout'
 import { useTabsStore } from '@/stores/tabs'
 import { onMounted, onUnmounted } from 'vue'
 
@@ -7,6 +8,7 @@ export function useKeyboardShortcuts() {
   const tabsStore = useTabsStore()
   const gridStore = useGridStore()
   const connectionsStore = useConnectionsStore()
+  const layoutStore = useLayoutStore()
 
   const handleKeydown = (e: KeyboardEvent) => {
     const isMod = e.ctrlKey || e.metaKey
@@ -54,6 +56,20 @@ export function useKeyboardShortcuts() {
     if (isMod && e.key.toLowerCase() === 'n') {
       e.preventDefault()
       connectionsStore.toggleConnectionModal(true)
+      return
+    }
+
+    // Ctrl+J: Toggle Console
+    if (isMod && e.key.toLowerCase() === 'j') {
+      e.preventDefault()
+      layoutStore.togglePanel('console')
+      return
+    }
+
+    // Ctrl+I: Toggle Inspector
+    if (isMod && e.key.toLowerCase() === 'i') {
+      e.preventDefault()
+      layoutStore.togglePanel('inspector')
       return
     }
 

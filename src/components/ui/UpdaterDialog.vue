@@ -90,15 +90,22 @@ const close = () => {
                 </p>
               </div>
 
-              <div class="flex items-center gap-3 pt-2">
+              <div class="flex flex-col gap-3 pt-2">
                 <button @click="updaterStore.installUpdates"
-                  class="flex-1 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-semibold transition-all shadow-md active:scale-[0.98]">
+                  class="w-full px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-semibold transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2">
+                  <Download :size="16" />
                   Install and Restart
                 </button>
-                <button @click="close"
-                  class="px-4 py-2.5 bg-surface-lighter hover:bg-hover border border-border text-text-secondary rounded-lg text-sm font-medium transition-all">
-                  Later
-                </button>
+                <div class="flex gap-3">
+                  <button @click="close"
+                    class="flex-1 px-4 py-2.5 bg-surface-lighter hover:bg-hover border border-border text-text-secondary rounded-lg text-[13px] font-medium transition-all">
+                    Later
+                  </button>
+                  <button @click="updaterStore.ignoreUpdate(updaterStore.updateAvailable.version)"
+                    class="flex-1 px-4 py-2.5 bg-surface-lighter hover:bg-hover border border-border text-text-tertiary rounded-lg text-[13px] font-medium transition-all">
+                    Skip version
+                  </button>
+                </div>
               </div>
             </div>
           </div>

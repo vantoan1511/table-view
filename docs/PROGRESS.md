@@ -69,6 +69,9 @@ All core database management features are functional. The application has a robu
 - [x] Add loading state and execution guards to the query runner.
 - [x] Optimize application startup with lazy loading and parallel initialization.
 - [x] Implement a premium branded splash screen with smooth transition effects.
+- [x] Implement high-fidelity About Dialog and professional Updater UI.
+- [x] Refactor workspace to use fixed panels (Console & Inspector) with persistent layout state.
+- [ ] Implement Settings Panel (Placeholder added)
 
 ### 🚀 New Features
 - [x] **Workspace Panels**: Implement real-time Output, Properties, and Indexes views.

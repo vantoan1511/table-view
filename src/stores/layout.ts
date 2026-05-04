@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import type { LayoutState, Panel, PanelPosition } from '@/types'
+import type { LayoutState, Panel } from '@/types'
+import * as Neutralino from '@neutralinojs/lib'
 
 export const useLayoutStore = defineStore('layout', {
   state: (): LayoutState => ({
@@ -36,71 +37,99 @@ export const useLayoutStore = defineStore('layout', {
   }),
 
   getters: {
-    bottomPanel: (state) => Object.values(state.panels).find(p => p.position === 'bottom'),
-    rightPanel: (state) => Object.values(state.panels).find(p => p.position === 'right'),
-    visiblePanels: (state) => Object.values(state.panels).filter((p) => p.isVisible && !p.isMinimized),
-    minimizedPanels: (state) => Object.values(state.panels).filter((p) => p.isMinimized),
+    bottomPanel: (state) => state.panels['console'],
+    rightPanel: (state) => state.panels['inspector'],
+    isBottomVisible: (state) => state.panels['console']?.isVisible ?? false,
+    isRightVisible: (state) => state.panels['inspector']?.isVisible ?? false,
   },
 
   actions: {
-    togglePanel(id: string) {
+    async init() {
+      if (window.NL_PORT) {
+        try {
+          const saved = await Neutralino.storage.getData('layout')
+          const layout = JSON.parse(saved)
+          
+          if (layout && typeof layout === 'object') {
+            if (layout.panels) {
+              Object.keys(layout.panels).forEach((id) => {
+                const panel = this.panels[id]
+                const savedPanel = layout.panels[id]
+                if (panel && savedPanel) {
+                  if (typeof savedPanel.isVisible === 'boolean') {
+                    panel.isVisible = savedPanel.isVisible
+                  }
+                  if (typeof savedPanel.size === 'number') {
+                    panel.size = savedPanel.size
+                  }
+                }
+              })
+            }
+            if (typeof layout.sidebarWidth === 'number') {
+              this.sidebarWidth = layout.sidebarWidth
+            }
+            if (typeof layout.isSidebarVisible === 'boolean') {
+              this.isSidebarVisible = layout.isSidebarVisible
+            }
+          }
+        } catch (err) {
+          // Storage item might not exist yet or be invalid JSON
+        }
+      }
+    },
+
+    async save() {
+      if (window.NL_PORT) {
+        try {
+          const panelsToSave: Record<string, { isVisible: boolean, size: number }> = {}
+          Object.keys(this.panels).forEach(id => {
+            const panel = this.panels[id]
+            if (panel) {
+              panelsToSave[id] = {
+                isVisible: panel.isVisible,
+                size: panel.size
+              }
+            }
+          })
+
+          const layout = {
+            panels: panelsToSave,
+            sidebarWidth: this.sidebarWidth,
+            isSidebarVisible: this.isSidebarVisible
+          }
+          await Neutralino.storage.setData('layout', JSON.stringify(layout))
+        } catch (err) {
+          console.error('Failed to save layout state:', err)
+        }
+      }
+    },
+
+    async togglePanel(id: string) {
       const panel = this.panels[id]
       if (panel) {
         panel.isVisible = !panel.isVisible
-        if (panel.isVisible) panel.isMinimized = false
+        await this.save()
       }
     },
 
-    minimizePanel(id: string) {
-      const panel = this.panels[id]
-      if (panel) {
-        panel.isMinimized = true
-      }
-    },
-
-    restorePanel(id: string) {
-      const panel = this.panels[id]
-      if (panel) {
-        panel.isVisible = true
-        panel.isMinimized = false
-      }
-    },
-
-    movePanel(id: string, position: PanelPosition) {
-      const panel = this.panels[id]
-      if (!panel || panel.position === position) return
-
-      // Find if another panel is occupying the target position to perform a swap
-      const otherPanel = Object.values(this.panels).find(p => p.position === position)
-      
-      if (otherPanel) {
-        // Swap positions and sizes
-        const oldPos = panel.position
-        const oldSize = panel.size
-        
-        otherPanel.position = oldPos
-        otherPanel.size = oldSize
-      }
-
-      panel.position = position
-      panel.size = position === 'bottom' ? 300 : 350
-    },
-
-    updatePanelSize(id: string, size: number) {
+    async updatePanelSize(id: string, size: number) {
       const panel = this.panels[id]
       if (panel) {
         const minSize = 100
         const maxSize = panel.position === 'bottom' ? window.innerHeight * 0.7 : window.innerWidth * 0.5
         panel.size = Math.max(minSize, Math.min(maxSize, size))
+        await this.save()
       }
     },
 
-    setSidebarWidth(width: number) {
+    async setSidebarWidth(width: number) {
       this.sidebarWidth = Math.max(150, Math.min(500, width))
+      await this.save()
     },
 
-    toggleSidebar() {
+    async toggleSidebar() {
       this.isSidebarVisible = !this.isSidebarVisible
+      await this.save()
     },
   },
 })

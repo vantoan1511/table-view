@@ -18,12 +18,21 @@ export const useUpdaterStore = defineStore('updater', () => {
   const updateAvailable = ref<UpdateManifest | null>(null)
   const updateStatus = ref('')
   const error = ref<string | null>(null)
+  const ignoredVersion = ref<string | null>(null)
 
   const MANIFEST_URL = 'https://raw.githubusercontent.com/vantoan1511/table-view/main/manifest.json'
 
   const init = async () => {
     // Cleanup update-related files on startup
     if (window.NL_PORT) {
+      try {
+        const data = await Neutralino.storage.getData('updater_config')
+        const config = JSON.parse(data)
+        ignoredVersion.value = config.ignoredVersion || null
+      } catch (err) {
+        // Not found or invalid
+      }
+
       try {
         const platform = window.NL_OS.toLowerCase()
         if (platform === 'windows') {
@@ -49,7 +58,9 @@ export const useUpdaterStore = defineStore('updater', () => {
       const appNeedsUpdate = isNewerVersion(manifest.version, currentAppVersion)
 
       if (appNeedsUpdate) {
-        updateAvailable.value = manifest
+        if (manual || manifest.version !== ignoredVersion.value) {
+          updateAvailable.value = manifest
+        }
       }
     } catch (err: any) {
       console.error('Update check failed:', err)
@@ -101,6 +112,18 @@ export const useUpdaterStore = defineStore('updater', () => {
       error.value = 'Update failed: ' + (err.message || err)
       isUpdating.value = false
     }
+  }
+
+  const ignoreUpdate = async (version: string) => {
+    ignoredVersion.value = version
+    if (window.NL_PORT) {
+      try {
+        await Neutralino.storage.setData('updater_config', JSON.stringify({ ignoredVersion: version }))
+      } catch (err) {
+        console.error('Failed to save updater config:', err)
+      }
+    }
+    updateAvailable.value = null // Close dialog
   }
 
   const downloadFileNative = async (url: string, dest: string) => {
@@ -162,8 +185,10 @@ del "%~f0" & exit
     updateAvailable,
     updateStatus,
     error,
+    ignoredVersion,
     init,
     checkForUpdates,
-    installUpdates
+    installUpdates,
+    ignoreUpdate
   }
 })

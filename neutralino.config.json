@@ -25,13 +25,15 @@
   "extensions": [
     {
       "id": "com.github.vantoan1511.table-view.db-bridge",
-      "command": "${NL_PATH}\\extensions\\db-bridge\\db-bridge.exe"
+      "command": "extensions\\db-bridge\\db-bridge.exe"
     }
   ],
   "modes": {
     "window": {
       "title": "Table View",
-      "minWidth": 1280,
+      "width": 1280,
+      "height": 800,
+      "minWidth": 1024,
       "minHeight": 720,
       "center": true,
       "icon": "/public/favicon.ico",
