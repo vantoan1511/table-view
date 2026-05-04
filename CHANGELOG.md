@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+ 
+ ## [0.0.25] - 2026-05-04
+ 
+ ### Added
+ - UI/UX: Implemented a premium, high-fidelity splash screen with a branded gradient logo and uppercase typography.
+ - Performance: Optimized startup sequence by parallelizing Neutralino initialization with Vue mounting.
+ - Performance: Implemented code splitting for secondary components (Modals, Toasts, Dialogs) to reduce initial bundle execution time.
+ - Performance: Added smooth CSS cross-fade transitions between the splash screen and the application shell.
+ - Architecture: Deferred non-critical background services (like update checks) to post-startup for zero-contention boot.
 
 ## [0.0.24] - 2026-05-04
 
