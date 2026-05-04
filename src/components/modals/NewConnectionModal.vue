@@ -2,6 +2,7 @@
 import ColorPicker from '@/components/ui/ColorPicker.vue'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 import { useConnectionsStore } from '@/stores/connections'
+import { useErrorStore } from '@/stores/error'
 import type { Connection, DbType, OracleConnectType, OracleRole } from '@/types'
 import {
   CircleHelp,
@@ -14,6 +15,7 @@ import {
 import { reactive, ref, watch } from 'vue'
 
 const connectionsStore = useConnectionsStore()
+const errorStore = useErrorStore()
 
 const activeTab = ref<'general' | 'ssl' | 'advanced'>('general')
 const showPassword = ref(false)
@@ -189,6 +191,7 @@ const handleTestConnection = () => {
           setTimeout(() => { testStatus.value = 'ready' }, 2000)
         } else {
           testStatus.value = 'error'
+          errorStore.showError("Connection Test Failed", payload.error)
           console.error("Connection failed:", payload.error)
         }
         Neutralino.events.off('dbBridge.testConnectionResult', onTestResult)
@@ -458,7 +461,8 @@ const handleClose = () => {
             </button>
             <span class="flex items-center gap-1.5 text-[12px]">
               <span class="w-2 h-2 rounded-full" :class="{
-                'bg-success': testStatus === 'ready' || testStatus === 'success',
+                'bg-success': testStatus === 'success',
+                'bg-text-tertiary': testStatus === 'ready',
                 'bg-warning animate-pulse': testStatus === 'testing',
                 'bg-danger': testStatus === 'error',
               }"></span>

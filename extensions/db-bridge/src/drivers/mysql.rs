@@ -147,7 +147,8 @@ impl DatabaseDriver for MysqlDriver {
         let pool = MySqlPoolOptions::new()
             .max_connections(5)
             .acquire_timeout(std::time::Duration::from_secs(config.connection_timeout as u64))
-            .connect_lazy(&dsn)
+            .connect(&dsn)
+            .await
             .map_err(|e| e.to_string())?;
 
         self.pool = Some(pool);
