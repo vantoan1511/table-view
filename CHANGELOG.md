@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.24] - 2026-05-04
+
+### Added
+- Database: Implemented synchronous connection verification for PostgreSQL and MySQL drivers to ensure credential validity during testing.
+- UI/UX: Added detailed error feedback popups for failed connection tests.
+- SQL Editor: Implemented professional dark mode and high-contrast custom syntax highlighting for improved readability.
+- Performance: Integrated loading animations and execution guards for the SQL query runner.
+- Architecture: Introduced a reusable and highly configurable `useDebounce` composable for standardizing UI performance.
+
+### Fixed
+- Connection: Resolved "Test Connection" bug where it would incorrectly report success before verifying the handshake.
+- UI/UX: Improved clarity in the connection modal by changing the "Ready" state indicator to a neutral gray.
+
 ## [0.0.23] - 2026-04-29
 
 ### Fixed
