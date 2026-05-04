@@ -4,6 +4,7 @@ import ResizeHandle from '@/components/ui/ResizeHandle.vue'
 import PanelHeader from '@/components/layout/PanelHeader.vue'
 import OutputPanel from '@/components/panels/OutputPanel.vue'
 import TimelinePanel from '@/components/panels/TimelinePanel.vue'
+import ValueViewer from '@/components/panels/ValueViewer.vue'
 import PropertiesPanel from '@/components/panels/PropertiesPanel.vue'
 import IndexesPanel from '@/components/panels/IndexesPanel.vue'
 
@@ -20,7 +21,7 @@ const layoutStore = useLayoutStore()
       </div>
 
       <!-- Right Panel (Inspector) -->
-      <template v-if="layoutStore.isRightVisible">
+      <template v-if="layoutStore.isRightVisible && layoutStore.rightPanel">
         <ResizeHandle
           orientation="horizontal"
           :model-value="layoutStore.rightPanel.size"
@@ -47,7 +48,7 @@ const layoutStore = useLayoutStore()
     </div>
 
     <!-- Bottom Panel (Console) -->
-    <template v-if="layoutStore.isBottomVisible">
+    <template v-if="layoutStore.isBottomVisible && layoutStore.bottomPanel">
       <ResizeHandle
         orientation="vertical"
         :model-value="layoutStore.bottomPanel.size"
@@ -65,6 +66,7 @@ const layoutStore = useLayoutStore()
         <div class="flex-1 overflow-hidden flex flex-col bg-background">
           <OutputPanel v-if="layoutStore.bottomPanel.activeTabId === 'output'" />
           <TimelinePanel v-else-if="layoutStore.bottomPanel.activeTabId === 'timeline'" />
+          <ValueViewer v-else-if="layoutStore.bottomPanel.activeTabId === 'value'" />
           <div v-else class="flex-1 p-4 text-sm text-text-tertiary">
             Select a tab to view content.
           </div>

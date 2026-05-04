@@ -16,6 +16,12 @@
 - **Schema Management**:
   - **Visual Schema Tree**: Browse tables, views, functions, and schemas.
   - **Alter Table UI**: Add, rename, or drop columns via a dedicated structure management dialog.
+- **Workspace Panels**:
+  - **Console**: Execution logs and query output.
+  - **Timeline**: Query history and execution metrics.
+  - **Value Viewer**: Dedicated, monospaced viewer for large cell content with transactional save/discard support.
+  - **Inspector**: Real-time table properties and index definitions.
+- **Layout Persistence**: Automatically remembers and restores your panel visibilities and sizes across sessions.
 - **SQL Editor**: Write and execute raw SQL queries with syntax highlighting and autocompletion (powered by CodeMirror 6).
 - **Modern UX**:
   - **Global Error Handling**: Uncaught exceptions are displayed in a polished, detailed dialog rather than silently failing.

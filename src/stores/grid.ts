@@ -24,6 +24,10 @@ export const useGridStore = defineStore('grid', () => {
   // Row selection state
   const selectedRowIndices = ref<Set<number>>(new Set())
 
+  // Cell selection state
+  const selectedCell = ref<{ rowIndex: number; column: GridColumn } | null>(null)
+  const editingCell = ref<{ rowIndex: number; column: GridColumn; originalValue: any; currentValue: any } | null>(null)
+
   // Column widths state (column name -> width in px)
   const columnWidths = ref<Record<string, number>>({})
 
@@ -116,7 +120,10 @@ export const useGridStore = defineStore('grid', () => {
     const row = rows.value[rowIndex]
     if (!row || !window.NL_PORT) return false
 
-    // Find the primary key column
+    // Don't update if value hasn't changed
+    if (row[column.name] === newValue) return true
+    
+    // Primary key found?
     const pkColumn = columns.value.find(c => c.isPrimaryKey)
     if (!pkColumn) {
       console.warn('Cannot update cell: No primary key found for table', activeTableName.value)
@@ -266,6 +273,37 @@ export const useGridStore = defineStore('grid', () => {
 
   const setColumnWidth = (colName: string, width: number) => {
     columnWidths.value = { ...columnWidths.value, [colName]: width }
+  }
+
+  const setSelectedCell = (rowIndex: number, column: GridColumn) => {
+    selectedCell.value = { rowIndex, column }
+  }
+
+  const clearSelectedCell = () => {
+    selectedCell.value = null
+  }
+
+  const startEditCell = (rowIndex: number, column: GridColumn) => {
+    const value = rows.value[rowIndex]?.[column.name]
+    editingCell.value = {
+      rowIndex,
+      column,
+      originalValue: value,
+      currentValue: value
+    }
+  }
+
+  const cancelEditCell = () => {
+    editingCell.value = null
+  }
+
+  const saveEditCell = async () => {
+    if (!editingCell.value) return
+    const { rowIndex, column, currentValue } = editingCell.value
+    const success = await updateCell(rowIndex, column, currentValue)
+    if (success) {
+      editingCell.value = null
+    }
   }
 
   // ─── New Row Inline Adding ───────────────────────────────────────────────
@@ -491,6 +529,13 @@ export const useGridStore = defineStore('grid', () => {
     toggleSelectAllRows,
     clearSelection,
     selectAllRows,
+    selectedCell,
+    editingCell,
+    setSelectedCell,
+    clearSelectedCell,
+    startEditCell,
+    cancelEditCell,
+    saveEditCell,
     setColumnWidth,
     insertRow,
     deleteRows,

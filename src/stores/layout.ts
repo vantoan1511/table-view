@@ -16,6 +16,7 @@ export const useLayoutStore = defineStore('layout', {
         tabs: [
           { id: 'output', title: 'Output', component: 'ConsoleOutput' },
           { id: 'timeline', title: 'Timeline', component: 'Timeline' },
+          { id: 'value', title: 'Value', component: 'ValueViewer' },
         ],
       },
       inspector: {

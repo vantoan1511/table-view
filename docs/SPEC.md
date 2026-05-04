@@ -29,6 +29,10 @@ The `db-bridge` extension handles all direct database interactions. It is writte
   - **executeQuery**: Executes raw SQL and returns `rows`, `fields`, and `executionTime`.
   - **updateCell/insertRow/deleteRows**: Core CRUD operations.
 
+### UI Layout
+- **Fixed Architecture**: The application uses a fixed workspace layout with a Bottom panel (Console, Timeline, Value Viewer) and a Right panel (Inspector). 
+- **Persistence**: Panel visibilities and sizes are persisted using Neutralino storage to maintain user preferences across sessions.
+
 ## Build & Deployment
 - **Bundling**: `neutralino.config.json` is configured to exclude all source code, `node_modules`, and intermediate build files, including only the production frontend assets and the compiled extension binary.
 - **Temporary Oracle Patch**: The repo currently vendors `extensions/db-bridge/vendor/oracle-rs` via Cargo patch override to support the Oracle privileged-auth flow needed by `SYSDBA` / `SYSOPER`. The long-term plan is to move the extension source and this patch into a separate repository so the app repo keeps only the shipped binary.
