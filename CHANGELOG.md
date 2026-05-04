@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-05-05
+
+### Added
+- **Grid: Implemented cell-level selection** with a premium ring highlight and background tint.
+- **Value Viewer: Added a dedicated 'Value' tab** to the console panel for high-convenience viewing and editing of large cell content.
+  - Supports monospaced typography for structured data.
+  - Includes a "Copy to clipboard" shortcut.
+- **Transactional Editing**: Implemented Save/Discard icon buttons for both inline grid editing and the Value panel.
+- **UX: Auto-tab switching**: The application now automatically switches to the 'Value' tab when a cell is clicked, providing instant visibility.
+
+### Fixed
+- UI: Resolved multiple "possibly undefined" TypeScript warnings in `DataGrid.vue` and `WorkspaceContainer.vue`.
+- Cleaned up deprecated `PanelRail.vue` component from the codebase.
+- Enforced production security settings and globals path for the release build.
+
 ## [0.1.0] - 2026-05-04
 
 ### Added
