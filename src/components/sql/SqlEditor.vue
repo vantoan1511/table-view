@@ -2,16 +2,19 @@
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import { useGridStore } from '@/stores/grid'
 import { useSchemaStore } from '@/stores/schema'
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { PostgreSQL, sql } from '@codemirror/lang-sql'
 import { Compartment, EditorState, Prec } from '@codemirror/state'
 import { keymap } from '@codemirror/view'
 import { EditorView, basicSetup } from 'codemirror'
+import { tags as t } from '@lezer/highlight'
 import {
   Check,
   ChevronDown,
   Clock,
   Play
 } from 'lucide-vue-next'
+import { useDebounce } from '@/composables/useDebounce'
 import { onMounted, ref, watch } from 'vue'
 import ResultsGrid from './ResultsGrid.vue'
 
@@ -20,21 +23,32 @@ const schemaStore = useSchemaStore()
 const editorContainer = ref<HTMLElement>()
 const activeResultTab = ref<'results' | 'messages'>('results')
 
-const showLimitMenu = ref(false)
-const limitMenuPos = ref({ x: 0, y: 0 })
 
-const toggleLimitMenu = (e: MouseEvent) => {
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  limitMenuPos.value = { x: rect.left, y: rect.bottom + 5 }
-  showLimitMenu.value = !showLimitMenu.value
-}
 
-const setSqlLimit = (limit: number) => {
-  gridStore.sqlLimit = limit
-  showLimitMenu.value = false
-}
+
 let editorView: EditorView | null = null
 const sqlCompartment = new Compartment()
+
+const sqlHighlightStyle = HighlightStyle.define([
+  { tag: t.keyword, color: '#818CF8', fontWeight: 'bold' },
+  { tag: t.string, color: '#34D399' },
+  { tag: t.number, color: '#FBBF24' },
+  { tag: t.comment, color: '#6C7086', fontStyle: 'italic' },
+  { tag: t.operator, color: '#CDD6F4' },
+  { tag: t.meta, color: '#CDD6F4' },
+  { tag: t.typeName, color: '#818CF8' },
+  { tag: t.propertyName, color: '#CDD6F4' },
+  { tag: t.className, color: '#CDD6F4' },
+  { tag: t.labelName, color: '#CDD6F4' },
+  { tag: t.namespace, color: '#CDD6F4' },
+  { tag: t.macroName, color: '#CDD6F4' },
+  { tag: t.literal, color: '#34D399' },
+  { tag: t.bool, color: '#FBBF24' },
+  { tag: t.null, color: '#FBBF24' },
+  { tag: t.name, color: '#CDD6F4' },
+  { tag: t.heading, color: '#CDD6F4', fontWeight: 'bold' },
+  { tag: t.invalid, color: '#FB7185' },
+])
 
 /**
  * Extract the SQL statement at the current cursor position.
@@ -76,7 +90,7 @@ const getQueryAtCursor = () : string => {
   return statements[statements.length - 1]?.text ?? ''
 }
 
-const handleRun = () => {
+const executeRun = () => {
   if (!editorView) return
 
   const selection = editorView.state.sliceDoc(
@@ -86,13 +100,18 @@ const handleRun = () => {
 
   // Priority: selected text > statement at cursor > entire document
   const queryAtCursor = getQueryAtCursor()
-  console.log('getQueryAtCursor', queryAtCursor)
   const query = selection.trim() || queryAtCursor || editorView.state.doc.toString()
   if (!query) return
 
   gridStore.runQuery(query)
   activeResultTab.value = 'results'
 }
+
+const handleRun = useDebounce(() => {
+  if (gridStore.isLoading) return
+  executeRun()
+}, { delay: 300 })
+
 
 onMounted(() => {
   if (!editorContainer.value) return
@@ -113,6 +132,7 @@ onMounted(() => {
     doc: '',
     extensions: [
       basicSetup,
+      syntaxHighlighting(sqlHighlightStyle),
       sqlCompartment.of(buildSqlExtension()),
       Prec.highest(keymap.of([
         {
@@ -127,29 +147,31 @@ onMounted(() => {
         '&': {
           fontSize: '12px',
           fontFamily: 'var(--font-mono)',
+          backgroundColor: 'var(--color-surface)',
+          color: 'var(--color-text-primary)',
         },
         '.cm-content': {
           padding: '8px 0',
         },
         '.cm-gutters': {
-          backgroundColor: '#F9FAFB',
-          borderRight: '1px solid #E5E7EB',
-          color: '#9CA3AF',
+          backgroundColor: 'var(--color-muted)',
+          borderRight: '1px solid var(--color-border)',
+          color: 'var(--color-text-tertiary)',
           fontSize: '11px',
         },
         '.cm-activeLine': {
-          backgroundColor: '#F0F4FF',
+          backgroundColor: 'var(--color-active)',
         },
         '.cm-activeLineGutter': {
-          backgroundColor: '#EEF2FF',
+          backgroundColor: 'var(--color-active)',
         },
         '&.cm-focused .cm-cursor': {
-          borderLeftColor: '#4F46E5',
+          borderLeftColor: 'var(--color-primary)',
         },
         '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
-          backgroundColor: '#E0E7FF',
+          backgroundColor: 'var(--color-primary-light)',
         },
-      }),
+      }, { dark: true }),
       EditorView.lineWrapping,
     ],
   })
@@ -203,32 +225,18 @@ onMounted(() => {
         <!-- Run Bar -->
         <div class="flex items-center gap-3 px-3 py-1.5 border-t border-border bg-muted">
           <button id="btn-run-query"
-            class="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover text-text-inverse rounded-lg text-[12px] font-medium cursor-pointer transition-colors shadow-sm"
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed text-text-inverse rounded-lg text-[12px] font-medium cursor-pointer transition-colors shadow-sm"
+            :disabled="gridStore.isLoading"
             @click="handleRun">
-            <Play :size="13" fill="currentColor" />
-            Run
+            <Loader2 v-if="gridStore.isLoading" :size="13" class="animate-spin" />
+            <Play v-else :size="13" fill="currentColor" />
+            {{ gridStore.isLoading ? 'Running...' : 'Run' }}
           </button>
           <button class="flex items-center gap-1 text-[11px] text-primary hover:text-primary-hover cursor-pointer">
             <ChevronDown :size="12" />
           </button>
 
-          <div class="flex items-center gap-1.5 text-[11px] text-text-secondary ml-2 relative">
-            <span>Limit</span>
-            <button
-              class="flex items-center gap-1 px-1.5 py-0.5 border border-border rounded text-[11px] hover:bg-hover cursor-pointer"
-              @click="toggleLimitMenu">
-              {{ gridStore.sqlLimit }}
-              <ChevronDown :size="10" />
-            </button>
-            <ContextMenu :show="showLimitMenu" :x="limitMenuPos.x" :y="limitMenuPos.y" @close="showLimitMenu = false">
-              <button v-for="limit in [100, 500, 1000, 5000, 0]" :key="limit"
-                class="w-full flex items-center justify-between px-3 py-1.5 hover:bg-hover text-[12px]"
-                @click="setSqlLimit(limit)">
-                <span>{{ limit === 0 ? 'No Limit' : limit }}</span>
-                <Check v-if="gridStore.sqlLimit === limit" :size="14" class="text-primary" />
-              </button>
-            </ContextMenu>
-          </div>
+
 
           <div class="flex items-center gap-1 text-[11px] text-text-secondary ml-auto">
             <Clock :size="12" class="text-success" />

@@ -64,6 +64,9 @@ All core database management features are functional. The application has a robu
 - [x] Implement tab-specific connection state (prevent cross-tab connection leaks) using LRU connection pool in backend.
 - [x] Enhance "Export CSV" functionality with actual backend execution and native OS save dialog.
 - [x] Fix "Test Connection" always success issue and add detailed error feedback popup.
+- [x] Implement proper dark mode and custom syntax highlighting for SQL editor.
+- [x] Standardize debounce logic with a reusable `useDebounce` composable.
+- [x] Add loading state and execution guards to the query runner.
 
 ### 🚀 New Features
 - [x] **Workspace Panels**: Implement real-time Output, Properties, and Indexes views.
