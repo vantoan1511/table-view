@@ -28,13 +28,11 @@ window.addEventListener('unhandledrejection', (event) => {
   errorStore.showError('An unhandled promise rejection occurred', event.reason)
 })
 
-app.mount('#app')
-
 // Initialize Neutralino if running in Neutralino environment
 if (window.NL_PORT) {
   Neutralino.init()
 
-  // Set window title with version
+  // Set window title with version (non-blocking)
   const setWindowTitle = async () => {
     const config = await Neutralino.app.getConfig();
     if (config && config.version) {
@@ -42,10 +40,6 @@ if (window.NL_PORT) {
     }
   }
   setWindowTitle()
-
-  Neutralino.events.on('extensionReady', (evt) => {
-    console.log('Extension ready:', evt.detail)
-  })
 
   Neutralino.events.on('windowClose', async () => {
     try {
@@ -56,3 +50,5 @@ if (window.NL_PORT) {
     Neutralino.app.exit()
   })
 }
+
+app.mount('#app')

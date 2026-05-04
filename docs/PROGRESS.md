@@ -67,6 +67,8 @@ All core database management features are functional. The application has a robu
 - [x] Implement proper dark mode and custom syntax highlighting for SQL editor.
 - [x] Standardize debounce logic with a reusable `useDebounce` composable.
 - [x] Add loading state and execution guards to the query runner.
+- [x] Optimize application startup with lazy loading and parallel initialization.
+- [x] Implement a premium branded splash screen with smooth transition effects.
 
 ### 🚀 New Features
 - [x] **Workspace Panels**: Implement real-time Output, Properties, and Indexes views.

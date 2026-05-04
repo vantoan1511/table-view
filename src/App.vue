@@ -6,24 +6,29 @@ import StatusBar from '@/components/layout/StatusBar.vue'
 import TabContent from '@/components/layout/TabContent.vue'
 import TitleBar from '@/components/layout/TitleBar.vue'
 import WorkspaceContainer from '@/components/layout/WorkspaceContainer.vue'
-import NewConnectionModal from '@/components/modals/NewConnectionModal.vue'
-import GlobalErrorDialog from '@/components/ui/GlobalErrorDialog.vue'
 import ResizeHandle from '@/components/ui/ResizeHandle.vue'
-import ToastContainer from '@/components/ui/ToastContainer.vue'
-import UpdaterDialog from '@/components/ui/UpdaterDialog.vue'
+
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import { useConnectionsStore } from '@/stores/connections'
 import { useGridStore } from '@/stores/grid'
 import { useLayoutStore } from '@/stores/layout'
 import { useSchemaStore } from '@/stores/schema'
 import { useTabsStore } from '@/stores/tabs'
-import { onMounted, watch } from 'vue'
+import { useUpdaterStore } from '@/stores/updater'
+import { defineAsyncComponent, onMounted, watch } from 'vue'
+
+// Lazy load secondary components
+const NewConnectionModal = defineAsyncComponent(() => import('@/components/modals/NewConnectionModal.vue'))
+const GlobalErrorDialog = defineAsyncComponent(() => import('@/components/ui/GlobalErrorDialog.vue'))
+const ToastContainer = defineAsyncComponent(() => import('@/components/ui/ToastContainer.vue'))
+const UpdaterDialog = defineAsyncComponent(() => import('@/components/ui/UpdaterDialog.vue'))
 
 const tabsStore = useTabsStore()
 const gridStore = useGridStore()
 const connectionsStore = useConnectionsStore()
 const layoutStore = useLayoutStore()
 const schemaStore = useSchemaStore()
+const updaterStore = useUpdaterStore()
 
 useKeyboardShortcuts()
 
@@ -84,7 +89,24 @@ watch(
 )
 
 onMounted(async () => {
+  // Load initial data
   await connectionsStore.loadConnections()
+
+  // Initialize background services
+  if (window.NL_PORT) {
+    updaterStore.init()
+    // Check for updates after 5 seconds to not block startup
+    setTimeout(() => {
+      updaterStore.checkForUpdates()
+    }, 5000)
+  }
+
+  // Remove splash screen with a smooth fade-out
+  const loader = document.getElementById('app-loader')
+  if (loader) {
+    loader.classList.add('fade-out')
+    setTimeout(() => loader.remove(), 600)
+  }
 })
 </script>
 
