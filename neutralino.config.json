@@ -1,58 +1,60 @@
 {
-  "applicationId": "com.github.vantoan1511.table-view",
+  "applicationId": "com.github.vantoan1511.tableview",
+  "applicationName": "Table View",
+  "author": "Toan Nguyen",
   "version": "0.1.3",
-  "defaultWidth": 1280,
-  "defaultHeight": 800,
-  "minWidth": 800,
-  "minHeight": 600,
+  "defaultMode": "window",
+  "documentRoot": "/build/",
   "url": "/",
   "enableServer": true,
   "enableNativeAPI": true,
-  "enableInspector": false,
-  "enableLog": true,
-  "tokenSecurity": "one-time",
+  "singlePageServe": true,
   "enableExtensions": true,
+  "tokenSecurity": "one-time",
   "nativeAllowList": [
     "app.*",
     "os.*",
-    "debug.log",
     "filesystem.*",
-    "window.*",
     "storage.*",
     "extensions.*",
-    "updater.*"
+    "events.*",
+    "window.*",
+    "updater.*",
+    "app.restartProcess"
+  ],
+  "extensions": [
+    {
+      "id": "com.github.vantoan1511.table-view.db-bridge",
+      "command": "extensions\\db-bridge\\db-bridge.exe"
+    }
   ],
   "modes": {
     "window": {
       "title": "Table View",
       "width": 1280,
       "height": 800,
-      "minWidth": 800,
-      "minHeight": 600,
-      "icon": "/icon.png",
-      "enableInspector": false,
-      "borderless": false,
-      "maximize": false,
-      "hidden": false,
-      "resizable": true,
-      "alwaysOnTop": false,
-      "fullScreen": false,
+      "minWidth": 1024,
+      "minHeight": 720,
       "center": true,
-      "disableResize": false
+      "icon": "/public/favicon.ico",
+      "enableInspector": false 
     }
   },
   "cli": {
     "binaryName": "table-view",
-    "resourcesPath": "/build",
-    "extensionsPath": "/extensions",
-    "clientLibrary": "/public/__neutralino_globals.js",
-    "binaryVersion": "5.5.0",
-    "clientVersion": "5.5.0"
-  },
-  "extensions": [
-    {
-      "id": "com.github.vantoan1511.table-view.db-bridge",
-      "command": "extensions\\db-bridge\\db-bridge.exe"
+    "resourcesPath": "/build/",
+    "resourcesExclude": ".*\\.ts$|.*\\.tsx$|.*\\.map$",
+    "extensionsPath": "/extensions/",
+    "extensionsExclude": "node_modules|internal|drivers|vendor|.*\\.go$|.*\\.js$|.*\\.mod$|.*\\.sum$|.*\\.log$|package.*\\.json|target|.*\\.rs$|Cargo.*",
+    "binaryVersion": "6.5.0",
+    "clientVersion": "6.5.0",
+    "frontendLibrary": {
+      "patchFile": "/index.html",
+      "devUrl": "http://localhost:5173",
+      "projectPath": "/",
+      "initCommand": "npm install",
+      "devCommand": "npm run dev",
+      "buildCommand": "npm run build"
     }
-  ]
+  }
 }
