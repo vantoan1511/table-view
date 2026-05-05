@@ -11,8 +11,7 @@ use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
-    let exe_path = std::env::current_exe().unwrap_or_default();
-    let log_path = exe_path.with_extension("log");
+    let log_path = std::path::PathBuf::from(".log");
     let log_file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)

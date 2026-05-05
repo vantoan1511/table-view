@@ -24,6 +24,8 @@
 - **Layout Persistence**: Automatically remembers and restores your panel visibilities and sizes across sessions.
 - **SQL Editor**: Write and execute raw SQL queries with syntax highlighting and autocompletion (powered by CodeMirror 6).
 - **Modern UX**:
+  - **Tab Strip**: Responsive horizontal scrolling and drag-and-drop tab reordering for efficient workspace management.
+  - **Centralized Logging**: Both frontend (UI) and backend (Rust) logs are consolidated into a single root `.log` file for unified diagnostics.
   - **Global Error Handling**: Uncaught exceptions are displayed in a polished, detailed dialog rather than silently failing.
   - **Toast Notifications**: Beautiful, non-intrusive feedback for system actions.
   - **Dark Mode Aesthetic**: A sleek, dark-themed interface designed for professional developers.

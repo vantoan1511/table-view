@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Logging: Centralized Application Logging**: Consolidated both frontend (UI) and backend (Rust) diagnostic information into a single `.log` file in the application root.
+- **UI: Tab Reordering**: Implemented drag-and-drop tab reordering in the TitleBar for better workspace organization.
+- **UI: Horizontal Tab Scrolling**: Added responsive horizontal scrolling to the tab strip to handle many open tabs gracefully.
+
+### Changed
+- **UI: TitleBar Cleanup**: Removed redundant Home button and "More" context menu to simplify the interface and focus on core navigation.
+- **UI: Removed Split-View Drag**: Disabled the drag-to-split-view feature in favor of tab reordering and cleaner layout management.
+
+### Fixed
+- **Stability: UI Log Routing**: Fixed the lack of persistent UI logs by routing all `console` calls through the database bridge extension to the central log file.
+- **Store: Fixed tabsStore syntax errors** and restored missing `restoreTab` method.
+
 ## [0.1.2] - 2026-05-05
 
 ### Fixed

@@ -57,6 +57,13 @@ All core database management features are functional. The application has a robu
 - [x] Automate changelog maintenance in the release workflow.
 - [x] Eliminate all compilation warnings in the Rust bridge.
 
+### Phase 8: Logging & UX Refinement
+- [x] Implement centralized logging to `.log` in app root.
+- [x] Route frontend logs through backend extension for unified diagnostic collection.
+- [x] Refactor TitleBar for better responsiveness with horizontal tab scrolling.
+- [x] Implement drag-and-drop tab reordering.
+- [x] Simplify TitleBar UI by removing redundant Home and More menus.
+
 ## Upcoming Tasks
 
 ### 🛠️ Immediate Improvements

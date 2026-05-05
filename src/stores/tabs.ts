@@ -13,16 +13,8 @@ export const useTabsStore = defineStore('tabs', () => {
   const activeTabId = ref<string>('')
   const draggingTabId = ref<string | null>(null)
 
-  // ─── Split View (Bottom Panel) ──────────────────────────────────────────────
-  const bottomTabId = ref<string | null>(null)
-  const splitRatio = ref(50) // percentage of height for the top panel
-
   const activeTab = computed(() =>
     tabs.value.find((t) => t.id === activeTabId.value) ?? null,
-  )
-
-  const bottomTab = computed(() =>
-    bottomTabId.value ? tabs.value.find((t) => t.id === bottomTabId.value) ?? null : null,
   )
 
   const mainTabs = computed(() => tabs.value.filter(t => !t.minimized))
@@ -35,10 +27,6 @@ export const useTabsStore = defineStore('tabs', () => {
   const minimizeTab = (id: string) => {
     const tab = tabs.value.find(t => t.id === id)
     if (tab && !tab.minimized) {
-      // If the tab is currently in the bottom panel, clear it
-      if (bottomTabId.value === id) {
-        bottomTabId.value = null
-      }
       tab.minimized = true
       // If the minimized tab was the active one, fallback to the last main tab
       if (activeTabId.value === id) {
@@ -56,33 +44,12 @@ export const useTabsStore = defineStore('tabs', () => {
     }
   }
 
-  // ─── Split View Actions ─────────────────────────────────────────────────────
-  const moveTabToBottom = (id: string) => {
-    const tab = tabs.value.find(t => t.id === id)
-    if (!tab) return
-
-    // If minimized, restore it first
-    if (tab.minimized) {
-      tab.minimized = false
-    }
-
-    // If the moved tab was the active tab, switch active to another main tab
-    if (activeTabId.value === id) {
-      const others = mainTabs.value.filter(t => t.id !== id)
-      activeTabId.value = others[others.length - 1]?.id ?? ''
-    }
-
-    bottomTabId.value = id
-  }
-
-  const closeBottomPanel = () => {
-    bottomTabId.value = null
-  }
-
-  const moveBottomToTop = () => {
-    if (bottomTabId.value) {
-      activeTabId.value = bottomTabId.value
-      bottomTabId.value = null
+  const reorderTab = (fromId: string, toId: string) => {
+    const fromIdx = tabs.value.findIndex(t => t.id === fromId)
+    const toIdx = tabs.value.findIndex(t => t.id === toId)
+    if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
+      const [movedTab] = tabs.value.splice(fromIdx, 1)
+      tabs.value.splice(toIdx, 0, movedTab)
     }
   }
 
@@ -120,10 +87,6 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   const closeTab = (id: string) => {
-    // If closing the bottom panel tab, clear it
-    if (bottomTabId.value === id) {
-      bottomTabId.value = null
-    }
 
     const idx = tabs.value.findIndex((t) => t.id === id)
     if (idx === -1) return
@@ -141,18 +104,12 @@ export const useTabsStore = defineStore('tabs', () => {
     draggingTabId,
     mainTabs,
     minimizedTabs,
-    // Split view
-    bottomTabId,
-    bottomTab,
-    splitRatio,
     setActiveTab,
+    reorderTab,
     openTable,
     openSqlEditor,
     closeTab,
     minimizeTab,
     restoreTab,
-    moveTabToBottom,
-    closeBottomPanel,
-    moveBottomToTop,
   }
 })

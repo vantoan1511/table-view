@@ -17,7 +17,7 @@
 
 ## Workflow Mandates
 - **Validation**: After modifying the Rust extension, always perform a `cargo build` to ensure the binary compiles correctly before testing with NeutralinoJS.
-- **Logging**: Maintain file-based logging (`db-bridge.log`) next to the extension binary for diagnostic purposes.
+- **Logging**: Maintain a centralized log file (`.log`) in the application root directory, capturing both backend (Rust) and frontend (UI) diagnostic information for unified troubleshooting.
 - **Pathing**: Use Windows-compatible backslash paths (`\\`) in `neutralino.config.json` for extension commands.
 
 ## UI/UX Standards

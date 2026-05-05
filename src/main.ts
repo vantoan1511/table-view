@@ -4,8 +4,13 @@ import { useErrorStore } from '@/stores/error'
 import * as Neutralino from '@neutralinojs/lib'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
+import { initLogger, setupConsoleOverride } from '@/utils/logger'
 
 import App from './App.vue'
+
+// Initialize central logging before anything else
+initLogger()
+setupConsoleOverride()
 
 const app = createApp(App)
 const pinia = createPinia()

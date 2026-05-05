@@ -1,23 +1,15 @@
 <script setup lang="ts">
-import { useAboutStore } from '@/stores/about'
 import { useConnectionsStore } from '@/stores/connections'
 import { useTabsStore } from '@/stores/tabs'
-import * as Neutralino from '@neutralinojs/lib'
 import {
-  Home,
-  Info,
   LayoutGrid,
-  LogOut,
   Minus,
-  MoreVertical,
   Plus,
   Search,
-  Settings,
-  X,
+  X
 } from 'lucide-vue-next'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
-const aboutStore = useAboutStore()
 const connectionsStore = useConnectionsStore()
 const tabsStore = useTabsStore()
 
@@ -29,21 +21,15 @@ const showMenu = ref(false)
 const menuPos = ref({ x: 0, y: 0 })
 const menuTargetTabId = ref<string | null>(null)
 
-// ─── More Menu ───────────────────────────────────────────────────────────────
-const showMoreMenu = ref(false)
-const moreMenuPos = ref({ x: 0, y: 0 })
-
 const onContextMenu = (e: MouseEvent, tabId: string) => {
   e.preventDefault()
   showMenu.value = true
-  showMoreMenu.value = false
   menuPos.value = { x: e.clientX, y: e.clientY }
   menuTargetTabId.value = tabId
 }
 
 const closeMenu = () => {
   showMenu.value = false
-  showMoreMenu.value = false
 }
 
 const closeTab = () => {
@@ -86,48 +72,19 @@ const onDragEnd = () => {
   tabsStore.draggingTabId = null
 }
 
-// ─── Home Button ─────────────────────────────────────────────────────────────
-const goHome = () => {
-  // Open a home tab if it doesn't already exist
-  const homeTab = tabsStore.tabs.find(t => t.type === 'home')
-  if (homeTab) {
-    tabsStore.setActiveTab(homeTab.id)
-  } else if (tabsStore.tabs.length > 0) {
-    // Fallback: navigate to the first tab
-    tabsStore.setActiveTab(tabsStore.tabs[0]?.id || '')
+const onDragOver = (event: DragEvent) => {
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
   }
 }
 
-// ─── More Menu ───────────────────────────────────────────────────────────────
-const toggleMoreMenu = (e: MouseEvent) => {
-  e.stopPropagation()
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  moreMenuPos.value = { x: rect.right - 160, y: rect.bottom + 5 }
-  showMoreMenu.value = !showMoreMenu.value
-  showMenu.value = false
-}
-
-const openSettings = () => {
-  // TODO: Open a settings modal/view
-  console.log('Settings not yet implemented')
-  closeMenu()
-}
-
-const showAbout = () => {
-  aboutStore.open()
-  closeMenu()
-}
-
-const quitApp = async () => {
-  if (window.NL_PORT) {
-    try {
-      await Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.shutdown', {})
-    } catch (e) {
-      console.error('Failed to send shutdown signal:', e)
-    }
-    Neutralino.app.exit()
+const onDrop = (event: DragEvent, targetTabId: string) => {
+  event.preventDefault()
+  const draggingId = event.dataTransfer?.getData('text/plain')
+  if (draggingId && draggingId !== targetTabId) {
+    tabsStore.reorderTab(draggingId, targetTabId)
   }
-  closeMenu()
 }
 
 onMounted(() => {
@@ -140,33 +97,21 @@ onMounted(() => {
     }
   })
 })
-
-onUnmounted(() => {
-  window.removeEventListener('click', closeMenu)
-})
 </script>
 
 <template>
   <header class="flex items-center h-(--titlebar-height) bg-muted border-b border-border pl-2 pr-3 shrink-0">
 
-    <div class="flex items-center h-full mr-2">
-      <!-- Home Button -->
-      <button
-        class="flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-hover hover:text-text-primary cursor-pointer transition-colors"
-        title="Home" @click="goHome">
-        <Home :size="16" />
-      </button>
-    </div>
-
     <!-- Tab Strip -->
-    <nav class="flex items-end flex-1 min-w-0 overflow-hidden h-full" id="tab-strip">
+    <nav class="flex items-end flex-1 min-w-0 overflow-y-hidden overflow-x-auto scrollbar-none" id="tab-strip">
       <button v-for="tab in tabsStore.mainTabs" :key="tab.id" draggable="true"
-        class="group relative flex items-center gap-1.5 px-3 h-[calc(var(--titlebar-height)-8px)] min-w-[120px] max-w-[200px] rounded-t-lg text-[13px] whitespace-nowrap shrink-0 cursor-pointer transition-colors border border-transparent border-b-0"
+        class="group relative flex items-center gap-1.5 px-3 h-[calc(var(--titlebar-height)-.75rem)] min-w-[120px] max-w-[200px] rounded-t-lg text-[13px] whitespace-nowrap shrink-0 cursor-pointer transition-colors border border-transparent border-b-0"
         :class="tabsStore.activeTabId === tab.id
           ? 'bg-surface border-border z-10 font-medium text-text-primary after:absolute after:-bottom-px after:left-0 after:right-0 after:h-px after:bg-surface'
           : 'text-text-secondary hover:bg-hover/50 hover:text-text-primary'
           " @click="tabsStore.setActiveTab(tab.id)" @contextmenu.prevent="onContextMenu($event, tab.id)"
-        @dragstart="onDragStart($event, tab.id)" @dragend="onDragEnd">
+        @dragstart="onDragStart($event, tab.id)" @dragend="onDragEnd" @dragover="onDragOver"
+        @drop="onDrop($event, tab.id)">
         <LayoutGrid :size="14" class="shrink-0"
           :class="tabsStore.activeTabId === tab.id ? 'text-primary' : 'text-text-tertiary'" />
         <span class="truncate flex-1 text-left">{{ tab.title }}</span>
@@ -200,34 +145,6 @@ onUnmounted(() => {
         class="flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-text-inverse rounded-lg text-[12px] font-medium cursor-pointer transition-colors shadow-sm"
         @click="connectionsStore.toggleConnectionModal(true)">
         New Connection
-      </button>
-
-      <!-- More -->
-      <button
-        class="flex items-center justify-center w-7 h-7 rounded-md text-text-secondary hover:bg-hover cursor-pointer relative"
-        @click.stop="toggleMoreMenu">
-        <MoreVertical :size="16" />
-      </button>
-    </div>
-
-    <!-- More Context Menu -->
-    <div v-if="showMoreMenu"
-      class="fixed z-100 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[160px] text-[12px]"
-      :style="{ left: moreMenuPos.x + 'px', top: moreMenuPos.y + 'px' }" @click.stop>
-      <button class="w-full text-left px-3 py-1.5 hover:bg-hover text-text-primary flex items-center gap-2"
-        @click="openSettings">
-        <Settings :size="13" />
-        Settings
-      </button>
-      <button class="w-full text-left px-3 py-1.5 hover:bg-hover text-text-primary flex items-center gap-2"
-        @click="showAbout">
-        <Info :size="13" />
-        About
-      </button>
-      <div class="h-px bg-border my-1" />
-      <button class="w-full text-left px-3 py-1.5 hover:bg-hover text-danger flex items-center gap-2" @click="quitApp">
-        <LogOut :size="13" />
-        Quit
       </button>
     </div>
 

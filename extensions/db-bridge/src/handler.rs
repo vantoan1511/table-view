@@ -49,6 +49,10 @@ struct Payload {
     all_schemas: bool,
     #[serde(default)]
     schema_name: String,
+    #[serde(default)]
+    message: String,
+    #[serde(default)]
+    level: String,
 }
 
 pub async fn handle_message(
@@ -144,6 +148,15 @@ pub async fn handle_message(
             let mut p = pool.lock().await;
             p.close_all().await;
             std::process::exit(0);
+        }
+
+        "log" => {
+            match payload.level.as_str() {
+                "error" => log::error!("[UI] {}", payload.message),
+                "warn" => log::warn!("[UI] {}", payload.message),
+                "debug" => log::debug!("[UI] {}", payload.message),
+                _ => log::info!("[UI] {}", payload.message),
+            }
         }
 
         _ => {

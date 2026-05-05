@@ -28,10 +28,13 @@ The `db-bridge` extension handles all direct database interactions. It is writte
   - **fetchTableData**: Returns flattened `rows`, `fields`, and `executionTime` for the data grid.
   - **executeQuery**: Executes raw SQL and returns `rows`, `fields`, and `executionTime`.
   - **updateCell/insertRow/deleteRows**: Core CRUD operations.
+  - **log**: Consolidates UI logs (intercepted `console` methods) into the central `.log` file.
 
 ### UI Layout
 - **Fixed Architecture**: The application uses a fixed workspace layout with a Bottom panel (Console, Timeline, Value Viewer) and a Right panel (Inspector). 
+- **Tab Strip**: Supports horizontal scrolling and drag-and-drop reordering.
 - **Persistence**: Panel visibilities and sizes are persisted using Neutralino storage to maintain user preferences across sessions.
+- **Logging**: A centralized `.log` file in the application root contains both backend (Rust) and frontend (UI) diagnostic information.
 
 ## Build & Deployment
 - **Bundling**: `neutralino.config.json` is configured to exclude all source code, `node_modules`, and intermediate build files, including only the production frontend assets and the compiled extension binary.

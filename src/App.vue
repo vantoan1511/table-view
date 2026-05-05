@@ -32,22 +32,6 @@ const updaterStore = useUpdaterStore()
 
 useKeyboardShortcuts()
 
-// ─── Drop Zone ────────────────────────────────────────────────────────────────
-const onDrop = () => {
-  if (tabsStore.draggingTabId) {
-    tabsStore.moveTabToBottom(tabsStore.draggingTabId)
-    tabsStore.draggingTabId = null
-  }
-}
-
-// ─── Bottom Panel Actions ─────────────────────────────────────────────────────
-const minimizeBottomPanel = () => {
-  if (tabsStore.bottomTabId) {
-    const id = tabsStore.bottomTabId
-    tabsStore.closeBottomPanel()
-    tabsStore.minimizeTab(id)
-  }
-}
 
 // When active tab changes, sync global connection/schema and load table data
 watch(
@@ -139,15 +123,6 @@ onMounted(async () => {
           </template>
         </WorkspaceContainer>
 
-        <!-- Drop Zone Overlay (Existing system) -->
-        <div v-if="tabsStore.draggingTabId"
-          class="absolute bottom-0 left-0 right-0 h-1/2 z-50 bg-primary/5 border-t-2 border-primary border-dashed flex items-center justify-center pointer-events-auto transition-all"
-          @dragover.prevent @drop="onDrop">
-          <div
-            class="bg-surface/80 backdrop-blur px-6 py-3 rounded-xl border border-primary/20 text-primary font-medium shadow-lg pointer-events-none">
-            Drop here to open in split view
-          </div>
-        </div>
       </div>
     </div>
 
