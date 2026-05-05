@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-05-06
+
+### Changed
+- **Neutralino: Modernized configuration for v6**: Updated `neutralino.config.json` to the latest v6 structure and refined build exclusion patterns.
+
+### Fixed
+- **Build: Resolved path resolution error**: Fixed `ENOENT` error during `neu build --release` by correctly configuring the frontend library patch mechanism.
+
 ## [0.1.3] - 2026-05-05
 
 ### Added
