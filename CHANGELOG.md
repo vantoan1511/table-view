@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-05-05
+
+### Added
+- **SQL Editor: Query Persistence**: Implemented automatic state saving for SQL queries using Neutralino storage, ensuring work is never lost.
+- **SQL Editor: Tab Lifecycle Management**: Closed tabs are now marked as 'closed' instead of being deleted, allowing them to be recovered later.
+- **SQL Editor: Tab Selector Dialog**: Added a new dialog that appears when multiple editors exist for a connection, allowing users to choose or create new ones.
+- **SQL Editor: Tab Renaming**: Enabled double-click renaming for editor tabs to improve workspace organization.
+- **SQL Editor: Delete Permanently**: Added explicit deletion controls via context menu and selector dialog.
+
+### Changed
+- **Persistence: Debounced Writes**: Optimized storage performance by debouncing state writes to disk.
+- **Reactivity: Editor Synchronization**: Resolved issues with SQL content not populating correctly by using unique tab keys for component lifecycle management.
+
+### Fixed
+- **Stability: Storage Key Format**: Fixed a critical issue where storage keys with dots were rejected by Neutralino, causing persistence failures.
+- **Bug: Tab Content Recovery**: Fixed root cause where closing a tab deleted its content permanently.
+
+## [0.1.2] - 2026-05-05
+
 ### Added
 - **Logging: Centralized Application Logging**: Consolidated both frontend (UI) and backend (Rust) diagnostic information into a single `.log` file in the application root.
 - **UI: Tab Reordering**: Implemented drag-and-drop tab reordering in the TitleBar for better workspace organization.
