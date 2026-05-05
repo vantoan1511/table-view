@@ -1,30 +1,36 @@
 <script setup lang="ts">
-import ContextMenu from '@/components/ui/ContextMenu.vue'
+import ResizeHandle from '@/components/ui/ResizeHandle.vue'
+import { useDebounce } from '@/composables/useDebounce'
 import { useGridStore } from '@/stores/grid'
 import { useSchemaStore } from '@/stores/schema'
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { useTabsStore } from '@/stores/tabs'
+import type { Tab } from '@/types'
 import { PostgreSQL, sql } from '@codemirror/lang-sql'
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { Compartment, EditorState, Prec } from '@codemirror/state'
 import { keymap } from '@codemirror/view'
-import { EditorView, basicSetup } from 'codemirror'
 import { tags as t } from '@lezer/highlight'
+import { EditorView, basicSetup } from 'codemirror'
 import {
-  Check,
-  ChevronDown,
   Clock,
-  Play
+  Download,
+  Loader2,
+  Play,
+  Save
 } from 'lucide-vue-next'
-import { useDebounce } from '@/composables/useDebounce'
 import { onMounted, ref, watch } from 'vue'
 import ResultsGrid from './ResultsGrid.vue'
 
+const props = defineProps<{
+  tab: Tab
+}>()
+
 const gridStore = useGridStore()
 const schemaStore = useSchemaStore()
+const tabsStore = useTabsStore()
 const editorContainer = ref<HTMLElement>()
 const activeResultTab = ref<'results' | 'messages'>('results')
-
-
-
+const editorWidth = ref(600) // Initial width for editor pane
 
 let editorView: EditorView | null = null
 const sqlCompartment = new Compartment()
@@ -50,25 +56,34 @@ const sqlHighlightStyle = HighlightStyle.define([
   { tag: t.invalid, color: '#FB7185' },
 ])
 
+const buildSqlExtension = () => {
+  const schemaMap: Record<string, string[]> = {}
+  for (const table of schemaStore.schema.tables) {
+    schemaMap[table.name] = []
+  }
+  for (const view of schemaStore.schema.views) {
+    schemaMap[view.name] = []
+  }
+  return sql({ dialect: PostgreSQL, schema: schemaMap })
+}
+
 /**
  * Extract the SQL statement at the current cursor position.
- * Splits the document by semicolons, maps each statement to its
- * character range, and returns the one the cursor falls within.
  */
-const getQueryAtCursor = () : string => {
+const getQueryAtCursor = (): string => {
   if (!editorView) return ''
   const doc = editorView.state.doc.toString()
   const cursor = editorView.state.selection.main.head
 
-  // Split into statements by semicolon, tracking each one's range
   const statements: { text: string; start: number; end: number }[] = []
   let offset = 0
   const parts = doc.split(';')
 
   for (let i = 0; i < parts.length; i++) {
     const raw = parts[i]
-    if (!raw) continue;
-    const end = offset + raw.length + (i < parts.length - 1 ? 1 : 0) // +1 for the ';'
+    if (raw === undefined) continue
+
+    const end = offset + raw.length + (i < parts.length - 1 ? 1 : 0)
     const trimmed = raw.trim()
     if (trimmed) {
       statements.push({ text: trimmed, start: offset, end })
@@ -78,15 +93,12 @@ const getQueryAtCursor = () : string => {
 
   if (statements.length === 0) return ''
 
-  // Find the statement whose range contains the cursor.
-  // Use <= for end so that a cursor right after a ';' still matches that statement.
   for (const stmt of statements) {
     if (cursor >= stmt.start && cursor <= stmt.end) {
       return stmt.text
     }
   }
 
-  // Fallback: return the last statement (cursor might be past everything)
   return statements[statements.length - 1]?.text ?? ''
 }
 
@@ -98,12 +110,11 @@ const executeRun = () => {
     editorView.state.selection.main.to,
   )
 
-  // Priority: selected text > statement at cursor > entire document
   const queryAtCursor = getQueryAtCursor()
   const query = selection.trim() || queryAtCursor || editorView.state.doc.toString()
   if (!query) return
 
-  gridStore.runQuery(query)
+  gridStore.runQuery(query, gridStore.sqlLimit, props.tab.connectionId)
   activeResultTab.value = 'results'
 }
 
@@ -113,32 +124,36 @@ const handleRun = useDebounce(() => {
 }, { delay: 300 })
 
 
-onMounted(() => {
+const initEditor = () => {
+  if (editorView) {
+    editorView.destroy()
+    editorView = null
+  }
   if (!editorContainer.value) return
 
-  const buildSqlExtension = () => {
-    // Build a schema map from current store data: { tableName: [col, col, ...] }
-    const schemaMap: Record<string, string[]> = {}
-    for (const table of schemaStore.schema.tables) {
-      schemaMap[table.name] = [] // column names can be added when we fetch them later
-    }
-    for (const view of schemaStore.schema.views) {
-      schemaMap[view.name] = []
-    }
-    return sql({ dialect: PostgreSQL, schema: schemaMap })
-  }
-
   const state = EditorState.create({
-    doc: '',
+    doc: props.tab.query || '',
     extensions: [
       basicSetup,
       syntaxHighlighting(sqlHighlightStyle),
       sqlCompartment.of(buildSqlExtension()),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          tabsStore.updateTabQuery(props.tab.id, update.state.doc.toString())
+        }
+      }),
       Prec.highest(keymap.of([
         {
           key: 'Mod-Enter',
           run: () => {
             handleRun()
+            return true
+          },
+        },
+        {
+          key: 'Mod-s',
+          run: () => {
+            tabsStore.saveSqlTab(props.tab.id)
             return true
           },
         },
@@ -180,6 +195,10 @@ onMounted(() => {
     state,
     parent: editorContainer.value,
   })
+}
+
+onMounted(() => {
+  initEditor()
 
   // Re-configure SQL extension when schema loads
   watch(
@@ -193,6 +212,7 @@ onMounted(() => {
     { deep: true }
   )
 })
+
 </script>
 
 <template>
@@ -219,24 +239,43 @@ onMounted(() => {
     <!-- Split Content -->
     <div class="flex flex-1 min-h-0">
       <!-- Editor Pane -->
-      <div class="flex flex-col w-1/2 border-r border-border min-h-0">
+      <div class="flex flex-col border-r border-border min-h-0" :style="{ width: editorWidth + 'px' }">
         <div ref="editorContainer" class="flex-1 overflow-auto min-h-0"></div>
 
         <!-- Run Bar -->
         <div class="flex items-center gap-3 px-3 py-1.5 border-t border-border bg-muted">
           <button id="btn-run-query"
             class="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed text-text-inverse rounded-lg text-[12px] font-medium cursor-pointer transition-colors shadow-sm"
-            :disabled="gridStore.isLoading"
-            @click="handleRun">
+            :disabled="gridStore.isLoading" @click="handleRun">
             <Loader2 v-if="gridStore.isLoading" :size="13" class="animate-spin" />
             <Play v-else :size="13" fill="currentColor" />
             {{ gridStore.isLoading ? 'Running...' : 'Run' }}
           </button>
-          <button class="flex items-center gap-1 text-[11px] text-primary hover:text-primary-hover cursor-pointer">
-            <ChevronDown :size="12" />
+
+          <button
+            class="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border hover:border-border-strong text-text-secondary rounded-lg text-[12px] cursor-pointer transition-colors"
+            @click="tabsStore.saveSqlTab(tab.id)" title="Save (Ctrl+S)">
+            <Save :size="13" />
           </button>
 
+          <button
+            class="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border hover:border-border-strong text-text-secondary rounded-lg text-[12px] cursor-pointer transition-colors"
+            @click="tabsStore.exportSqlTab(tab.id)" title="Export to .sql file">
+            <Download :size="13" />
+            <span>Export</span>
+          </button>
 
+          <div class="flex items-center gap-1 border-l border-border pl-3 ml-1 h-5">
+            <span class="text-[11px] text-text-tertiary">Limit:</span>
+            <select v-model="gridStore.sqlLimit"
+              class="bg-transparent border-none outline-none text-[11px] text-text-primary cursor-pointer hover:text-primary">
+              <option :value="100">100</option>
+              <option :value="200">200</option>
+              <option :value="500">500</option>
+              <option :value="1000">1000</option>
+              <option :value="5000">5000</option>
+            </select>
+          </div>
 
           <div class="flex items-center gap-1 text-[11px] text-text-secondary ml-auto">
             <Clock :size="12" class="text-success" />
@@ -245,9 +284,12 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Resize Handle -->
+      <ResizeHandle orientation="horizontal" v-model="editorWidth" />
+
       <!-- Results Pane -->
       <div class="flex-1 overflow-auto min-h-0">
-        <div v-if="activeResultTab === 'results'">
+        <div v-if="activeResultTab === 'results'" class="h-full">
           <ResultsGrid />
         </div>
         <div v-else class="p-3 text-[12px] font-(--font-mono) text-text-secondary">

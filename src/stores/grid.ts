@@ -36,7 +36,7 @@ export const useGridStore = defineStore('grid', () => {
   const sqlRows = ref<GridRow[]>([])
   const sqlRowCount = ref(0)
   const sqlExecutionTime = ref(0)
-  const sqlLimit = ref(100)
+  const sqlLimit = ref(200)
   const sqlMessages = ref<Array<{ type: string; text: string; timestamp: string }>>([])
 
   const totalPages = computed(() => Math.max(1, Math.ceil(totalRows.value / rowsPerPage.value)))
@@ -162,7 +162,7 @@ export const useGridStore = defineStore('grid', () => {
     })
   }
 
-  const runQuery = async (sql: string) => {
+  const runQuery = async (sql: string, limit?: number, connectionId?: string) => {
     if (!sql || !window.NL_PORT) return
 
     const reqId = Date.now().toString()
@@ -199,8 +199,9 @@ export const useGridStore = defineStore('grid', () => {
     Neutralino.events.on('dbBridge.executeQueryResult', onResult)
     Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.executeQuery', {
       reqId,
-      connectionId: connectionsStore.activeConnectionId,
-      sql
+      connectionId: connectionId || connectionsStore.activeConnectionId,
+      sql,
+      limit: limit || sqlLimit.value
     })
   }
 

@@ -64,6 +64,14 @@ All core database management features are functional. The application has a robu
 - [x] Implement drag-and-drop tab reordering.
 - [x] Simplify TitleBar UI by removing redundant Home and More menus.
 
+### Phase 9: SQL Editor Persistence & Tab Lifecycle
+- [x] Automatic SQL query persistence (Internal storage)
+- [x] Manual SQL export (.sql files)
+- [x] Tab renaming functionality
+- [x] Persistent tab lifecycle (Closed tabs are recoverable)
+- [x] Tab Selector Dialog for multi-editor connections
+- [x] Debounced storage writes for performance
+
 ## Upcoming Tasks
 
 ### 🛠️ Immediate Improvements

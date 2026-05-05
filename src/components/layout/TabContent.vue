@@ -9,7 +9,7 @@ defineProps<{
 </script>
 
 <template>
-  <div :key="tab?.id" class="flex flex-col flex-1 min-w-0 min-h-0 animate-fade-in-scale">
+  <div v-if="tab" :key="tab.id" class="flex-1 flex flex-col min-h-0 min-w-0 bg-surface relative">
     <!-- Table -->
     <template v-if="tab?.type === 'table'">
       <DataGrid />
@@ -17,7 +17,7 @@ defineProps<{
 
     <!-- SQL Editor -->
     <template v-else-if="tab?.type === 'sql'">
-      <SqlEditor />
+      <SqlEditor v-if="tab" :tab="tab" />
     </template>
 
     <!-- No tab: empty state -->

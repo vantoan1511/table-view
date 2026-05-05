@@ -14,6 +14,7 @@ import { useLayoutStore } from '@/stores/layout'
 import { useSchemaStore } from '@/stores/schema'
 import { useTabsStore } from '@/stores/tabs'
 import { useUpdaterStore } from '@/stores/updater'
+import * as Neutralino from '@neutralinojs/lib'
 import { defineAsyncComponent, onMounted, watch } from 'vue'
 
 // Lazy load secondary components
@@ -22,6 +23,7 @@ const GlobalErrorDialog = defineAsyncComponent(() => import('@/components/ui/Glo
 const ToastContainer = defineAsyncComponent(() => import('@/components/ui/ToastContainer.vue'))
 const UpdaterDialog = defineAsyncComponent(() => import('@/components/ui/UpdaterDialog.vue'))
 const AboutDialog = defineAsyncComponent(() => import('@/components/ui/AboutDialog.vue'))
+const TabSelectorDialog = defineAsyncComponent(() => import('@/components/ui/TabSelectorDialog.vue'))
 
 const tabsStore = useTabsStore()
 const gridStore = useGridStore()
@@ -92,7 +94,41 @@ onMounted(async () => {
     loader.classList.add('fade-out')
     setTimeout(() => loader.remove(), 600)
   }
+
+  // Load persisted tabs
+  tabsStore.loadTabsFromStorage()
+
+  // Handle window close
+  if (window.NL_PORT) {
+    Neutralino.events.on('windowClose', async () => {
+      // Always exit immediately now, state is auto-persisted via watch
+      exitApp()
+    })
+  }
 })
+
+const handleSaveClose = async () => {
+  // Logic removed as it's auto-saved
+}
+
+const handleDiscardClose = async () => {
+  // Logic removed as it's auto-saved
+}
+
+const handleCancelClose = () => {
+  tabsStore.isAppClosing = false
+}
+
+const exitApp = async () => {
+  if (window.NL_PORT) {
+    try {
+      await Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.shutdown', {})
+    } catch (e) {
+      console.error('Failed to send shutdown signal:', e)
+    }
+    Neutralino.app.exit()
+  }
+}
 </script>
 
 <template>
@@ -135,5 +171,6 @@ onMounted(async () => {
     <ToastContainer />
     <UpdaterDialog />
     <AboutDialog />
+    <TabSelectorDialog />
   </div>
 </template>

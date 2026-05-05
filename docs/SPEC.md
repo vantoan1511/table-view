@@ -33,6 +33,7 @@ The `db-bridge` extension handles all direct database interactions. It is writte
 ### UI Layout
 - **Fixed Architecture**: The application uses a fixed workspace layout with a Bottom panel (Console, Timeline, Value Viewer) and a Right panel (Inspector). 
 - **Tab Strip**: Supports horizontal scrolling and drag-and-drop reordering.
+- **SQL Editor Persistence**: SQL editor states are automatically persisted using Neutralino storage. Closing a tab marks it as 'closed' instead of deleting it, allowing for retrieval via a dedicated Tab Selector dialog when multiple editors exist for a connection.
 - **Persistence**: Panel visibilities and sizes are persisted using Neutralino storage to maintain user preferences across sessions.
 - **Logging**: A centralized `.log` file in the application root contains both backend (Rust) and frontend (UI) diagnostic information.
 

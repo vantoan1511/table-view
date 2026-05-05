@@ -45,15 +45,6 @@ if (window.NL_PORT) {
     }
   }
   setWindowTitle()
-
-  Neutralino.events.on('windowClose', async () => {
-    try {
-      await Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.shutdown', {})
-    } catch (e) {
-      console.error('Failed to send shutdown signal:', e)
-    }
-    Neutralino.app.exit()
-  })
 }
 
 app.mount('#app')

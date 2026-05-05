@@ -6,8 +6,10 @@ import {
   Minus,
   Plus,
   Search,
-  X
+  X,
+  Trash2
 } from 'lucide-vue-next'
+import type { Tab } from '@/types'
 import { onMounted, ref } from 'vue'
 
 const connectionsStore = useConnectionsStore()
@@ -39,24 +41,33 @@ const closeTab = () => {
 
 const closeOthers = () => {
   if (menuTargetTabId.value) {
-    const toClose = tabsStore.tabs.filter(t => t.id !== menuTargetTabId.value).map(t => t.id)
-    toClose.forEach(id => tabsStore.closeTab(id))
+    const toClose = tabsStore.tabs
+      .filter((t: Tab) => t.id !== menuTargetTabId.value)
+      .map((t: Tab) => t.id)
+    toClose.forEach((id: string) => tabsStore.closeTab(id))
   }
   closeMenu()
 }
 
 const closeAll = () => {
-  const toClose = tabsStore.tabs.map(t => t.id)
-  toClose.forEach(id => tabsStore.closeTab(id))
+  const toClose = tabsStore.tabs.map((t: Tab) => t.id)
+  toClose.forEach((id: string) => tabsStore.closeTab(id))
   closeMenu()
 }
 
 const openNewQueryConsole = () => {
-  tabsStore.openSqlEditor()
+  tabsStore.openSqlEditor(undefined, '', true, true)
 }
 
 const minimizeTab = () => {
   if (menuTargetTabId.value) tabsStore.minimizeTab(menuTargetTabId.value)
+  closeMenu()
+}
+
+const deleteTab = () => {
+  if (menuTargetTabId.value) {
+    tabsStore.deleteTab(menuTargetTabId.value)
+  }
   closeMenu()
 }
 
@@ -97,6 +108,22 @@ onMounted(() => {
     }
   })
 })
+
+// ─── Renaming Logic ──────────────────────────────────────────────────────────
+const renamingTabId = ref<string | null>(null)
+const tempTitle = ref('')
+
+const startRenaming = (tabId: string, currentTitle: string) => {
+  renamingTabId.value = tabId
+  tempTitle.value = currentTitle
+}
+
+const finishRenaming = () => {
+  if (renamingTabId.value && tempTitle.value.trim()) {
+    tabsStore.renameTab(renamingTabId.value, tempTitle.value.trim())
+  }
+  renamingTabId.value = null
+}
 </script>
 
 <template>
@@ -114,7 +141,16 @@ onMounted(() => {
         @drop="onDrop($event, tab.id)">
         <LayoutGrid :size="14" class="shrink-0"
           :class="tabsStore.activeTabId === tab.id ? 'text-primary' : 'text-text-tertiary'" />
-        <span class="truncate flex-1 text-left">{{ tab.title }}</span>
+
+        <span v-if="renamingTabId !== tab.id" class="truncate flex-1 text-left"
+          @dblclick="startRenaming(tab.id, tab.title)">
+          {{ tab.title }}
+        </span>
+        <input v-else v-model="tempTitle"
+          class="flex-1 bg-muted border border-primary/50 outline-none px-1 rounded text-[13px] text-text-primary"
+          @blur="finishRenaming" @keydown.enter="finishRenaming" @keydown.esc="renamingTabId = null" autofocus />
+
+        <div v-if="tab.isDirty" class="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
         <span
           class="flex items-center justify-center w-4 h-4 rounded opacity-0 group-hover:opacity-100 hover:bg-border transition-opacity"
           @click.stop="tabsStore.closeTab(tab.id)">
@@ -168,6 +204,11 @@ onMounted(() => {
       </button>
       <button class="w-full text-left px-3 py-1.5 hover:bg-hover text-text-primary" @click="closeAll">
         Close All
+      </button>
+      <div class="h-px bg-border my-1"></div>
+      <button class="w-full text-left px-3 py-1.5 hover:bg-danger/10 text-danger flex items-center gap-2" @click="deleteTab">
+        <Trash2 :size="13" />
+        Delete Permanently
       </button>
     </div>
   </header>

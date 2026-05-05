@@ -65,7 +65,7 @@ const handleContextAction = (action: string) => {
   if (!id) return
 
   if (action === 'sql') {
-    tabsStore.openSqlEditor()
+    tabsStore.openSqlEditor(id, '', true)
   } else if (action === 'edit') {
     const conn = connectionsStore.connections.find(c => c.id === id)
     if (conn) {
