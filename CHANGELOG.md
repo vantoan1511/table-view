@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-05-07
+
+### Added
+- **Architecture: Multi-Connection Schema Support**: Refactored `schemaStore` to support independent schema state for multiple concurrent database connections.
+- **UI: Unified Database Tree**: Replaced legacy `ConnectionList` and `SchemaTree` with a consolidated `DatabaseTree.vue` hierarchical view.
+- **Store: Connection-Aware Tabs**: Updated `tabsStore` to handle connection-specific table opening, preventing cross-database state leakage.
+- **UI: DB-Specific Icons**: Added a new set of database icons (`DbIcon.vue`) for improved visual hierarchy.
+
+### Changed
+- **Build: Neutralino Globals Path**: Standardized the Neutralino globals script path in `index.html` to use `%PUBLIC_URL%` for production builds.
+
 ## [0.1.5] - 2026-05-06
 
 ### Changed
