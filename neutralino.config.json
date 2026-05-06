@@ -46,8 +46,8 @@
     "resourcesExclude": ".*\\.ts$|.*\\.tsx$|.*\\.map$",
     "extensionsPath": "/extensions/",
     "extensionsExclude": "node_modules|internal|drivers|vendor|.*\\.go$|.*\\.js$|.*\\.mod$|.*\\.sum$|.*\\.log$|package.*\\.json|target|.*\\.rs$|Cargo.*",
-    "binaryVersion": "6.5.0",
-    "clientVersion": "6.5.0",
+    "binaryVersion": "6.7.0",
+    "clientVersion": "6.7.0",
     "frontendLibrary": {
       "patchFile": "/index.html",
       "devUrl": "http://localhost:5173",

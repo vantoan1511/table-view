@@ -16,7 +16,7 @@
     "@codemirror/lang-sql": "^6.10.0",
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.41.1",
-    "@neutralinojs/lib": "^6.5.0",
+    "@neutralinojs/lib": "^6.7.0",
     "@tailwindcss/vite": "^4.2.4",
     "codemirror": "^6.0.2",
     "lucide-vue-next": "^1.0.0",
