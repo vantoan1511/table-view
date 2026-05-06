@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-05-06
+
+### Changed
+- **Neutralino: Core Dependency Update**: Updated `@neutralinojs/lib` and runtime binaries to v6.7.0.
+- **Security: Production Hardening**: Enforced `tokenSecurity: "one-time"` and disabled the developer inspector for production builds.
+
 ## [0.1.4] - 2026-05-06
 
 ### Changed
-- **Neutralino: Modernized configuration for v6**: Updated `neutralino.config.json` and `@neutralinojs/lib` to v6.7.0, refined build exclusion patterns, and enforced production security settings.
+- **Neutralino: Modernized configuration for v6**: Updated `neutralino.config.json` to the latest v6 structure and refined build exclusion patterns.
 
 ### Fixed
 - **Build: Resolved path resolution error**: Fixed `ENOENT` error during `neu build --release` by correctly configuring the frontend library patch mechanism.
