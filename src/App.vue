@@ -35,7 +35,7 @@ const updaterStore = useUpdaterStore()
 useKeyboardShortcuts()
 
 
-// When active tab changes, sync global connection/schema and load table data
+// When active tab changes, sync connection and load table data
 watch(
   () => [tabsStore.activeTab, connectionsStore.connections.length] as const,
   async ([tab, connCount]) => {
@@ -55,19 +55,20 @@ watch(
         }
       }
 
-      // Sync schema selection
-      if (tab.schema && tab.schema !== schemaStore.selectedSchema) {
-        schemaStore.setSelectedSchema(tab.schema)
-        if (conn?.type === 'oracle') {
-          await schemaStore.loadSchema(schemaStore.loadedAllSchemas, tab.connectionId, tab.schema)
+      // Sync schema selection for this specific connection
+      if (tab.schema) {
+        const currentSelected = schemaStore.selectedSchemaByConnection[tab.connectionId]
+        if (tab.schema !== currentSelected) {
+          schemaStore.setSelectedSchema(tab.schema, tab.connectionId)
+          if (conn?.type === 'oracle') {
+            await schemaStore.loadSchema(schemaStore.loadedAllSchemas, tab.connectionId, tab.schema)
+          }
         }
       }
     }
 
     if (tab.type === 'table' && tab.tableName) {
-      // Trigger loading state early for better UX
       gridStore.isLoading = true
-      // Explicitly pass connectionId to avoid using stale global state
       gridStore.loadTable(tab.tableName, tab.connectionId, tab.schema)
     }
   },

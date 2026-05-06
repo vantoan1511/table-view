@@ -108,10 +108,11 @@ export const useTabsStore = defineStore('tabs', () => {
     }
   }
 
-  const openTable = (tableName: string, schemaName?: string) => {
+  const openTable = (tableName: string, schemaName?: string, connectionId?: string) => {
     const targetSchema = schemaName || schemaStore.selectedSchema
+    const targetConnectionId = connectionId ?? connectionsStore.activeConnectionId ?? undefined
     const existing = tabs.value.find(
-      (t) => t.type === 'table' && t.tableName === tableName && t.schema === targetSchema,
+      (t) => t.type === 'table' && t.tableName === tableName && t.schema === targetSchema && t.connectionId === targetConnectionId,
     )
     if (existing) {
       activeTabId.value = existing.id
@@ -122,7 +123,7 @@ export const useTabsStore = defineStore('tabs', () => {
       type: 'table',
       title: targetSchema ? `${targetSchema}.${tableName}` : tableName,
       tableName,
-      connectionId: connectionsStore.activeConnectionId ?? undefined,
+      connectionId: targetConnectionId,
       schema: targetSchema,
     }
     tabs.value.push(tab)

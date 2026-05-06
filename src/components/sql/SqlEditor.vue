@@ -58,10 +58,13 @@ const sqlHighlightStyle = HighlightStyle.define([
 
 const buildSqlExtension = () => {
   const schemaMap: Record<string, string[]> = {}
-  for (const table of schemaStore.schema.tables) {
+  const connId = props.tab.connectionId
+  const connSchema = connId ? schemaStore.schemasByConnection[connId] : undefined
+  const source = connSchema ?? schemaStore.schema
+  for (const table of source.tables) {
     schemaMap[table.name] = []
   }
-  for (const view of schemaStore.schema.views) {
+  for (const view of source.views) {
     schemaMap[view.name] = []
   }
   return sql({ dialect: PostgreSQL, schema: schemaMap })
@@ -200,9 +203,9 @@ const initEditor = () => {
 onMounted(() => {
   initEditor()
 
-  // Re-configure SQL extension when schema loads
+  // Re-configure SQL extension when schema for this connection loads
   watch(
-    () => schemaStore.schema,
+    () => props.tab.connectionId ? schemaStore.schemasByConnection[props.tab.connectionId] : schemaStore.schema,
     () => {
       if (!editorView) return
       editorView.dispatch({

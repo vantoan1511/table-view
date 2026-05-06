@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import ColorPicker from '@/components/ui/ColorPicker.vue'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
+import DbIcon from '@/components/icons/DbIcon.vue'
+import { DB_TYPES } from '@/lib/dbTypes'
 import { useConnectionsStore } from '@/stores/connections'
 import { useErrorStore } from '@/stores/error'
 import type { Connection, DbType, OracleConnectType, OracleRole } from '@/types'
@@ -22,15 +24,6 @@ const showPassword = ref(false)
 const testStatus = ref<'ready' | 'testing' | 'success' | 'error'>('ready')
 const importError = ref('')
 
-const dbTypes: { key: DbType; label: string; icon: string }[] = [
-  { key: 'postgresql', label: 'PostgreSQL', icon: '🐘' },
-  { key: 'mysql', label: 'MySQL', icon: '🐬' },
-  { key: 'sqlite', label: 'SQLite', icon: '📦' },
-  { key: 'oracle', label: 'Oracle', icon: '⭕' },
-  { key: 'sqlserver', label: 'SQL Server', icon: '🔷' },
-  { key: 'mariadb', label: 'MariaDB', icon: '🦭' },
-  { key: 'redis', label: 'Redis', icon: '🔴' },
-]
 
 const form = reactive<Omit<Connection, 'id' | 'isConnected'>>({
   name: '',
@@ -88,17 +81,13 @@ watch(
   { immediate: true }
 )
 
-const portDefaults: Partial<Record<DbType, number>> = {
-  postgresql: 5432,
-  mysql: 3306,
-  oracle: 1521,
-  sqlserver: 1433,
-  mariadb: 3306,
-  redis: 6379,
-}
+const portDefaults: Partial<Record<DbType, number>> = Object.fromEntries(
+  DB_TYPES.filter((d) => d.defaultPort > 0).map((d) => [d.key, d.defaultPort]),
+) as Partial<Record<DbType, number>>
 
 import * as Neutralino from '@neutralinojs/lib'
 
+// TODO: Handle default value properly and should not override manual input
 const selectDbType = (type: DbType) => {
   form.type = type
   form.port = portDefaults[type] ?? 5432
@@ -239,7 +228,8 @@ const handleClose = () => {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
       @click.self="handleClose">
       <!-- Modal -->
-      <div id="new-connection-modal" class="bg-surface rounded-xl shadow-modal w-[920px] max-h-[90vh] flex flex-col overflow-hidden animate-in modal-container">
+      <div id="new-connection-modal"
+        class="bg-surface rounded-xl shadow-modal w-[920px] max-h-[90vh] flex flex-col overflow-hidden animate-in modal-container">
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-3.5 border-b border-border">
           <h2 class="text-[15px] font-semibold text-text-primary">
@@ -260,13 +250,13 @@ const handleClose = () => {
               Connection Type
             </div>
             <div class="flex-1 px-2">
-              <button v-for="db in dbTypes" :key="db.key"
+              <button v-for="db in DB_TYPES" :key="db.key"
                 class="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[13px] cursor-pointer transition-all duration-150 mb-0.5"
                 :class="form.type === db.key
                   ? 'bg-active text-primary font-medium border border-primary/20'
                   : 'text-text-primary hover:bg-hover border border-transparent'
                   " @click="selectDbType(db.key)">
-                <span class="text-base">{{ db.icon }}</span>
+                <DbIcon :type="db.key" size="18" />
                 <span>{{ db.label }}</span>
               </button>
             </div>
@@ -347,7 +337,8 @@ const handleClose = () => {
                 <!-- Database -->
                 <div>
                   <label class="block text-[12px] font-medium text-text-secondary mb-1.5">
-                    {{ form.type === 'oracle' ? (form.oracleConnectType === 'sid' ? 'SID' : 'Service Name') : 'Database' }}
+                    {{ form.type === 'oracle' ? (form.oracleConnectType === 'sid' ? 'SID' : 'Service Name') : 'Database'
+                    }}
                   </label>
                   <input v-model="form.database" type="text"
                     class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
@@ -395,7 +386,8 @@ const handleClose = () => {
                   <div class="flex items-center gap-1.5 mt-2">
                     <ToggleSwitch v-model="form.displayAllSchemas" />
                     <span class="text-[12px] text-text-secondary">Display all schemas</span>
-                    <CircleHelp :size="13" class="text-text-tertiary" title="If enabled, loads all schemas instead of just the default public schema." />
+                    <CircleHelp :size="13" class="text-text-tertiary"
+                      title="If enabled, loads all schemas instead of just the default public schema." />
                   </div>
                 </div>
 
