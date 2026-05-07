@@ -19,11 +19,7 @@ export interface Connection {
   username: string
   password: string
   color: ConnectionColor
-  environment: 'development' | 'staging' | 'production'
-  connectionTimeout: number
-  queryTimeout: number
-  applicationName: string
-  comment: string
+  tags?: string
   savePassword: boolean
   displayAllSchemas: boolean
   oracleConnectType?: OracleConnectType

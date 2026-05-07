@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-05-07
+
+### Added
+- **UI: Connection Color Flags**: Implemented a vertical color indicator system in the sidebar and matching horizontal color strips on workspace tabs for immediate environment context (e.g., Prod vs Dev).
+- **UI: Color Preview**: Added a real-time flag preview in the New Connection modal when selecting connection colors.
+- **UI: Multi-Tag Support**: Connections now support multiple comma-separated tags, rendered as individual stylized badges in the sidebar.
+
+### Changed
+- **UI: Connection Modal Cleanup**: Simplified the connection setup by removing redundant fields (Environment, Timeout, Application Name, Comment) in favor of flexible tagging.
+- **Production: Hardening**: Verified production settings for NeutralinoJS, including one-time token security and inspector disabled states.
+
 ## [0.1.7] - 2026-05-07
 
 ### Changed

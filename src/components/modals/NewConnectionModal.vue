@@ -34,11 +34,7 @@ const form = reactive<Omit<Connection, 'id' | 'isConnected'>>({
   username: 'postgres',
   password: '',
   color: 'indigo',
-  environment: 'development',
-  connectionTimeout: 30,
-  queryTimeout: 60,
-  applicationName: 'Table View',
-  comment: '',
+  tags: '',
   savePassword: false,
   displayAllSchemas: false,
   oracleConnectType: 'serviceName',
@@ -66,11 +62,7 @@ watch(
         username: 'postgres',
         password: '',
         color: 'indigo',
-        environment: 'development',
-        connectionTimeout: 30,
-        queryTimeout: 60,
-        applicationName: 'Table View',
-        comment: '',
+        tags: '',
         savePassword: false,
         displayAllSchemas: false,
         oracleConnectType: 'serviceName',
@@ -150,11 +142,7 @@ const handleImportConnection = async () => {
       username: conn.username || conn.user || '',
       password: conn.password || '',
       color: conn.color || 'indigo',
-      environment: conn.environment || 'development',
-      connectionTimeout: conn.connectionTimeout || 30,
-      queryTimeout: conn.queryTimeout || 60,
-      applicationName: conn.applicationName || 'Table View',
-      comment: conn.comment || '',
+      tags: conn.tags || '',
       savePassword: conn.savePassword ?? false,
       displayAllSchemas: conn.displayAllSchemas ?? false,
       oracleConnectType: (conn.oracleConnectType || 'serviceName') as OracleConnectType,
@@ -290,10 +278,17 @@ const handleClose = () => {
             <div class="flex-1 overflow-y-auto px-5 py-4">
               <div v-if="activeTab === 'general'" class="grid grid-cols-2 gap-x-6 gap-y-4">
                 <!-- Connection Name -->
-                <div>
+                <div class="relative">
                   <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Connection Name</label>
-                  <input v-model="form.name" type="text" placeholder="e.g. Local Postgres"
-                    class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface placeholder-text-tertiary focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
+                  <div class="relative">
+                    <!-- Flag Preview -->
+                    <div 
+                      class="absolute left-0 top-0 bottom-0 w-[4px] rounded-l-lg transition-colors duration-200"
+                      :class="form.color ? `bg-conn-${form.color}` : 'bg-conn-gray'"
+                    />
+                    <input v-model="form.name" type="text" placeholder="e.g. Local Postgres"
+                      class="w-full pl-4 pr-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface placeholder-text-tertiary focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
+                  </div>
                 </div>
 
                 <!-- Connection Color -->
@@ -309,28 +304,10 @@ const handleClose = () => {
                     class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
                 </div>
 
-                <!-- Environment -->
-                <div>
-                  <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Environment</label>
-                  <select v-model="form.environment"
-                    class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer">
-                    <option value="development">Development</option>
-                    <option value="staging">Staging</option>
-                    <option value="production">Production</option>
-                  </select>
-                </div>
-
                 <!-- Port -->
                 <div>
                   <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Port</label>
                   <input v-model.number="form.port" type="number"
-                    class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
-                </div>
-
-                <!-- Connection Timeout -->
-                <div>
-                  <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Connection Timeout (s)</label>
-                  <input v-model.number="form.connectionTimeout" type="number"
                     class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
                 </div>
 
@@ -344,13 +321,6 @@ const handleClose = () => {
                     class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
                 </div>
 
-                <!-- Query Timeout -->
-                <div>
-                  <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Query Timeout (s)</label>
-                  <input v-model.number="form.queryTimeout" type="number"
-                    class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
-                </div>
-
                 <!-- Username -->
                 <div>
                   <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Username</label>
@@ -358,11 +328,12 @@ const handleClose = () => {
                     class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
                 </div>
 
-                <!-- Application Name -->
+                <!-- Tags -->
                 <div>
-                  <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Application Name</label>
-                  <input v-model="form.applicationName" type="text"
-                    class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
+                  <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Tags <span
+                      class="font-normal text-text-tertiary">(max 6 chars per tag, comma separated)</span></label>
+                  <input v-model="form.tags" type="text" placeholder="e.g. PROD, DEV"
+                    class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface placeholder-text-tertiary focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all" />
                 </div>
 
                 <!-- Password -->
@@ -391,13 +362,6 @@ const handleClose = () => {
                   </div>
                 </div>
 
-                <!-- Comment -->
-                <div>
-                  <label class="block text-[12px] font-medium text-text-secondary mb-1.5">Comment <span
-                      class="font-normal text-text-tertiary">(optional)</span></label>
-                  <textarea v-model="form.comment" rows="3" placeholder="Add any notes about this connection..."
-                    class="w-full px-3 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface placeholder-text-tertiary focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all resize-y"></textarea>
-                </div>
               </div>
 
               <!-- SSL Tab -->

@@ -188,25 +188,40 @@ const isActiveTable = (tableName: string, schemaName: string) =>
       <div v-for="conn in connectionsStore.connections" :key="conn.id">
         <!-- Connection row -->
         <div
-          class="group flex items-center gap-1.5 w-full px-2 py-1.5 cursor-pointer transition-colors duration-100 hover:bg-hover"
+          class="group relative flex items-center gap-1.5 w-full px-2 py-1.5 cursor-pointer transition-colors duration-100 hover:bg-hover overflow-hidden"
           :class="connectionsStore.activeConnectionId === conn.id ? 'bg-active' : ''" @click="toggleConnection(conn)"
           @contextmenu.prevent.stop="onContextMenu($event, conn.id)">
+          
+          <!-- Connection Color Flag -->
+          <div 
+            class="absolute left-0 top-0 bottom-0 w-[3px] transition-all duration-200"
+            :class="[
+              colorMap[conn.color] ?? 'bg-conn-gray',
+              connectionsStore.activeConnectionId === conn.id ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'
+            ]"
+          />
+
           <!-- Expand chevron -->
-          <ChevronRight :size="13" class="shrink-0 text-text-tertiary transition-transform duration-150"
+          <ChevronRight :size="13" class="shrink-0 text-text-tertiary transition-transform duration-150 ml-1"
             :class="expandedConnections[conn.id] ? 'rotate-90' : ''" />
 
-          <!-- Status dot -->
-          <span class="w-2 h-2 rounded-full shrink-0"
-            :class="conn.isConnected ? 'bg-success' : (colorMap[conn.color] ?? 'bg-conn-gray')" />
+          <!-- Status dot (simplified to only show connection status) -->
+          <span v-if="conn.isConnected" class="w-1.5 h-1.5 rounded-full shrink-0 bg-success animate-pulse" />
 
           <!-- DB type icon -->
-          <DbIcon :type="conn.type" size="14" />
+          <DbIcon :type="conn.type" size="14" :class="conn.isConnected ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'" />
 
           <!-- Name + host -->
           <div class="flex-1 min-w-0">
-            <div class="text-[13px] font-medium truncate leading-tight"
-              :class="connectionsStore.activeConnectionId === conn.id ? 'text-primary' : 'text-text-primary'">
-              {{ conn.name }}
+            <div class="flex items-center gap-1.5 overflow-hidden">
+              <span class="text-[13px] font-medium truncate leading-tight"
+                :class="connectionsStore.activeConnectionId === conn.id ? 'text-primary' : 'text-text-primary'">
+                {{ conn.name }}
+              </span>
+              <span v-for="tag in (conn.tags?.split(',') || []).map(t => t.trim()).filter(Boolean)" :key="tag"
+                class="shrink-0 px-1 py-0.5 rounded text-[9px] font-bold uppercase leading-none bg-primary/10 text-primary border border-primary/20">
+                {{ tag }}
+              </span>
             </div>
             <div class="text-[11px] text-text-tertiary truncate leading-tight">
               {{ conn.host }}:{{ conn.port }}

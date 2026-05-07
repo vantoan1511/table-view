@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useConnectionsStore } from '@/stores/connections'
 import { useTabsStore } from '@/stores/tabs'
 import type { Tab } from '@/types'
 import {
@@ -11,6 +12,14 @@ import {
 import { onMounted, ref } from 'vue'
 
 const tabsStore = useTabsStore()
+const connectionsStore = useConnectionsStore()
+
+const getTabColorClass = (connectionId?: string) => {
+  if (!connectionId) return ''
+  const conn = connectionsStore.connections.find(c => c.id === connectionId)
+  if (!conn) return ''
+  return `bg-conn-${conn.color}`
+}
 
 // ─── Search Ref ──────────────────────────────────────────────────────────────
 const searchInputRef = ref<HTMLElement | null>(null)
@@ -129,6 +138,13 @@ const finishRenaming = () => {
           " @click="tabsStore.setActiveTab(tab.id)" @contextmenu.prevent="onContextMenu($event, tab.id)"
         @dragstart="onDragStart($event, tab.id)" @dragend="onDragEnd" @dragover="onDragOver"
         @drop="onDrop($event, tab.id)">
+        <!-- Connection color indicator -->
+        <div 
+          v-if="tab.connectionId"
+          class="absolute top-0 left-0 right-0 h-[2px] transition-all duration-200"
+          :class="getTabColorClass(tab.connectionId)"
+        />
+
         <LayoutGrid :size="14" class="shrink-0"
           :class="tabsStore.activeTabId === tab.id ? 'text-primary' : 'text-text-tertiary'" />
 
