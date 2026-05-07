@@ -63,3 +63,4 @@ __screenshots__/
 # Rust
 target/
 Cargo.lock
+scratch/
