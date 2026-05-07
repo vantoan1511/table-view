@@ -350,15 +350,7 @@ const isActiveTable = (tableName: string, schemaName: string) =>
       </div>
     </div>
 
-    <!-- Add Connection button -->
-    <div class="border-t border-border px-3 py-2 shrink-0">
-      <button
-        class="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-[12px] text-text-secondary hover:bg-hover hover:text-text-primary transition-colors cursor-pointer"
-        @click="connectionsStore.toggleConnectionModal(true)">
-        <Plus :size="14" />
-        <span>Add Connection</span>
-      </button>
-    </div>
+
 
     <!-- Context Menu -->
     <ContextMenu :show="contextMenu.show" :x="contextMenu.x" :y="contextMenu.y" @close="closeContextMenu">

@@ -11,14 +11,13 @@ const schemaStore = useSchemaStore()
 <template>
   <aside class="flex flex-col w-(--sidebar-width) bg-sidebar border-r border-border shrink-0 overflow-hidden">
     <!-- Header -->
-    <div class="flex items-center justify-between px-3 py-2.5 border-b border-border shrink-0">
-      <span class="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Connections</span>
-      <button
-        class="flex items-center justify-center w-6 h-6 rounded-md text-text-tertiary hover:text-text-primary hover:bg-hover transition-colors cursor-pointer"
-        title="Add Connection"
+    <div class="px-2.5 py-2.5 border-b border-border shrink-0">
+      <button id="btn-new-connection"
+        class="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 bg-primary hover:bg-primary-hover text-text-inverse rounded-lg text-[12px] font-medium cursor-pointer transition-colors shadow-sm"
         @click="connectionsStore.toggleConnectionModal(true)"
       >
         <Plus :size="14" />
+        New Connection
       </button>
     </div>
 

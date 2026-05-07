@@ -40,11 +40,11 @@ watch(
   () => [tabsStore.activeTab, connectionsStore.connections.length] as const,
   async ([tab, connCount]) => {
     if (!tab || connCount === 0) return
-    
+
     // Sync UI to tab's connection context
     if (tab.connectionId) {
       const conn = connectionsStore.connections.find(c => c.id === tab.connectionId)
-      
+
       // Ensure we are connected to this database in the bridge
       if (!conn?.isConnected || tab.connectionId !== connectionsStore.activeConnectionId) {
         try {
@@ -107,18 +107,6 @@ onMounted(async () => {
     })
   }
 })
-
-const handleSaveClose = async () => {
-  // Logic removed as it's auto-saved
-}
-
-const handleDiscardClose = async () => {
-  // Logic removed as it's auto-saved
-}
-
-const handleCancelClose = () => {
-  tabsStore.isAppClosing = false
-}
 
 const exitApp = async () => {
   if (window.NL_PORT) {

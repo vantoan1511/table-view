@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { DbType } from '@/types'
-import { computed } from 'vue'
+import type { DbType } from '@/types';
+import { computed } from 'vue';
 
 const props = defineProps<{
   type: DbType | string
@@ -103,11 +103,14 @@ const color = computed(() => dbColors[normalizedType.value] || 'currentColor')
     </svg>
 
     <!-- Oracle (Red O) -->
-    <svg v-else-if="normalizedType === 'oracle'" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="100"
-      height="100" viewBox="0 0 48 48">
-      <path fill="#EF0F14"
-        d="M2.861,21.998h2.917c1.05,0,2.261,0.896,2.261,2s-1.21,2-2.261,2H2.861c-1.05,0-1.861-0.895-1.861-2C1,22.893,1.811,21.998,2.861,21.998z M43.021,20.998c-1.401,0-2.521,1.343-2.521,3s1.13,3,2.521,3h4.019l0.96-1h-5c-0.898-0.047-1.289-0.638-1.5-1.5h5.54l0.96-1h-6.5c0.213-0.861,0.592-1.495,1.5-1.5h4.04l0.96-1H43.021z M34,20.998v5.426c0,0.148,0.095,0.292,0.201,0.402s0.249,0.172,0.405,0.172L38.54,27l1-1L35,25.998V21L34,20.998z M27.842,20.998c-1.591,0-2.851,1.346-2.851,3.003s1.26,2.997,2.851,2.997l3.649-0.012l1.149-0.988h-4.819c-1.05,0-1.84-0.894-1.84-1.999s0.79-2.001,1.84-2.001l3.689,0.016l1.13-1.016H27.842z M21,20.998c-0.258,0-0.522,0.215-0.67,0.483l-2.83,5.517h1l2.5-5l1.691,3H20.04l0.941,0.98l2.181-0.006l0.658,1.025l1.081-0.009l-3.277-5.507C21.394,21.112,21.25,20.998,21,20.998z M10,20.998v6h1v-5h3c0.515,0,1,0.464,1,1s-0.485,1-1,1h-2.5l3.481,3H16.5l-2.5-2l0.337-0.009C15.077,24.99,16,24.119,16,22.998c0-1.121-0.687-1.986-1.553-2H10z M2.882,20.998c-1.591,0-2.882,1.344-2.882,3s1.291,3,2.882,3H5.76c1.591,0,3.24-1.343,3.24-3s-1.649-3-3.24-3H2.882z">
-      </path>
+    <svg v-else-if="normalizedType === 'oracle'" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+      <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+      <g id="SVGRepo_iconCarrier">
+        <path fill="#EA1B22" fill-rule="evenodd"
+          d="M.1 8c0 2.761 2.237 5 4.997 5h5.806A4.999 4.999 0 0015.9 8c0-2.761-2.237-5-4.997-5H5.097A4.999 4.999 0 00.1 8zm13.911 0a3.235 3.235 0 01-3.234 3.237h-5.55A3.235 3.235 0 011.991 8a3.235 3.235 0 013.234-3.236h5.551A3.235 3.235 0 0114.011 8z"
+          clip-rule="evenodd"></path>
+      </g>
     </svg>
 
     <!-- SQL Server (Box/Microsoft style) -->
