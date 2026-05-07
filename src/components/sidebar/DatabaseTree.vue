@@ -120,7 +120,7 @@ const handleContextAction = (action: string) => {
   if (!id) return
 
   if (action === 'sql') {
-    tabsStore.openSqlEditor(id, '', true, true)
+    tabsStore.openSqlEditor(id)
   } else if (action === 'edit') {
     const conn = connectionsStore.connections.find((c) => c.id === id)
     if (conn) connectionsStore.toggleConnectionModal(true, conn)
