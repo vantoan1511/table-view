@@ -152,9 +152,21 @@ impl PostgresDriver {
 impl DatabaseDriver for PostgresDriver {
     async fn connect(&mut self, config: &Config) -> Result<(), String> {
         let ssl_mode = if config.ssl { "require" } else { "disable" };
+        let host = if config.host.contains(':') && !config.host.starts_with('[') {
+            format!("[{}]", config.host)
+        } else {
+            config.host.clone()
+        };
+        
         let dsn = format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}&options=-c%20search_path=public&application_name=db_manager&connect_timeout={}&tcp_user_timeout=5000",
-            config.username, config.password, config.host, config.port, config.database, ssl_mode, config.connection_timeout
+            urlencoding::encode(&config.username),
+            urlencoding::encode(&config.password),
+            host,
+            config.port,
+            urlencoding::encode(&config.database),
+            ssl_mode,
+            config.connection_timeout
         );
 
         let pool = PgPoolOptions::new()

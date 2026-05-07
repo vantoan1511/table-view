@@ -1,18 +1,15 @@
 <script setup lang="ts">
-import { useConnectionsStore } from '@/stores/connections'
 import { useTabsStore } from '@/stores/tabs'
+import type { Tab } from '@/types'
 import {
   LayoutGrid,
   Minus,
   Plus,
-  Search,
-  X,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-vue-next'
-import type { Tab } from '@/types'
 import { onMounted, ref } from 'vue'
 
-const connectionsStore = useConnectionsStore()
 const tabsStore = useTabsStore()
 
 // ─── Search Ref ──────────────────────────────────────────────────────────────
@@ -100,13 +97,6 @@ const onDrop = (event: DragEvent, targetTabId: string) => {
 
 onMounted(() => {
   window.addEventListener('click', closeMenu)
-  // ⌘K / Ctrl+K to focus the search input
-  window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-      e.preventDefault()
-      searchInputRef.value?.focus()
-    }
-  })
 })
 
 // ─── Renaming Logic ──────────────────────────────────────────────────────────
@@ -165,25 +155,6 @@ const finishRenaming = () => {
       </button>
     </nav>
 
-    <!-- Right Actions -->
-    <div class="flex items-center gap-2 shrink-0 ml-2">
-      <!-- Search -->
-      <div
-        class="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border rounded-lg text-text-tertiary text-[12px] focus-within:border-primary/50 transition-colors">
-        <Search :size="13" />
-        <input ref="searchInputRef" type="text" placeholder="Search..."
-          class="bg-transparent outline-none text-[12px] text-text-primary placeholder-text-tertiary w-20 focus:w-32 transition-all" />
-        <kbd class="ml-1 px-1 py-0.5 bg-muted border border-border rounded text-[10px] font-mono">⌘K</kbd>
-      </div>
-
-      <!-- New Connection Button -->
-      <button id="btn-new-connection"
-        class="flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-text-inverse rounded-lg text-[12px] font-medium cursor-pointer transition-colors shadow-sm"
-        @click="connectionsStore.toggleConnectionModal(true)">
-        New Connection
-      </button>
-    </div>
-
     <!-- Context Menu Overlay -->
     <div v-if="showMenu"
       class="fixed z-100 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[160px] text-[12px]"
@@ -206,9 +177,10 @@ const finishRenaming = () => {
         Close All
       </button>
       <div class="h-px bg-border my-1"></div>
-      <button class="w-full text-left px-3 py-1.5 hover:bg-danger/10 text-danger flex items-center gap-2" @click="deleteTab">
+      <button class="w-full text-left px-3 py-1.5 hover:bg-danger/10 text-danger flex items-center gap-2"
+        @click="deleteTab">
         <Trash2 :size="13" />
-        Delete Permanently
+        Delete
       </button>
     </div>
   </header>

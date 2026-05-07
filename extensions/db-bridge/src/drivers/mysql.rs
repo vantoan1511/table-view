@@ -139,9 +139,19 @@ impl MysqlDriver {
 #[async_trait]
 impl DatabaseDriver for MysqlDriver {
     async fn connect(&mut self, config: &Config) -> Result<(), String> {
+        let host = if config.host.contains(':') && !config.host.starts_with('[') {
+            format!("[{}]", config.host)
+        } else {
+            config.host.clone()
+        };
+
         let dsn = format!(
             "mysql://{}:{}@{}:{}/{}",
-            config.username, config.password, config.host, config.port, config.database
+            urlencoding::encode(&config.username),
+            urlencoding::encode(&config.password),
+            host,
+            config.port,
+            urlencoding::encode(&config.database)
         );
 
         let pool = MySqlPoolOptions::new()

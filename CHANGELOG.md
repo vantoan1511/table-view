@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **SQL Editor**: Restored editor tab persistence feature. The database tree context menu no longer forces a new SQL editor tab every time, correctly prioritizing existing active editor sessions.
+- **Database**: Resolved 'empty host' connection failures by URL-encoding credentials to safely handle special characters like `@` or `#` in passwords for PostgreSQL and MySQL.
 
 ## [0.1.6] - 2026-05-07
 

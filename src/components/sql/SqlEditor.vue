@@ -288,7 +288,7 @@ onMounted(() => {
       </div>
 
       <!-- Resize Handle -->
-      <ResizeHandle orientation="horizontal" v-model="editorWidth" />
+      <ResizeHandle orientation="horizontal" v-model="editorWidth"/>
 
       <!-- Results Pane -->
       <div class="flex-1 overflow-auto min-h-0">
