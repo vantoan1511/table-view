@@ -62,7 +62,7 @@ const toggleConnection = async (conn: Connection) => {
         : await connectionsStore.setActiveConnection(conn.id)
 
       if (!schemaStore.hasSchemaLoaded(conn.id)) {
-        schemaStore.loadSchema(conn.displayAllSchemas, conn.id)
+        schemaStore.loadSchema(conn.displayAllDatabases, conn.id)
       }
     }
   }

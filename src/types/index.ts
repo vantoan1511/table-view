@@ -21,7 +21,7 @@ export interface Connection {
   color: ConnectionColor
   tags?: string
   savePassword: boolean
-  displayAllSchemas: boolean
+  displayAllDatabases: boolean
   oracleConnectType?: OracleConnectType
   oracleRole?: OracleRole
   isConnected: boolean

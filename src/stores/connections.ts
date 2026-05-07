@@ -101,7 +101,7 @@ export const useConnectionsStore = defineStore('connections', () => {
               const { useSchemaStore } = await import('./schema')
               const schemaStore = useSchemaStore()
               schemaStore.setSelectedSchema('')
-              schemaStore.loadSchema(conn.displayAllSchemas, id)
+              schemaStore.loadSchema(conn.displayAllDatabases, id)
               resolve(true)
             } else {
               conn.isConnected = false

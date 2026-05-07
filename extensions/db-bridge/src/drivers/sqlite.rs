@@ -116,7 +116,7 @@ impl DatabaseDriver for SqliteDriver {
 
     async fn get_schema(
         &self,
-        _all_schemas: bool,
+        _all_databases: bool,
         _schema_name: Option<&str>,
     ) -> Result<SchemaResult, String> {
         let pool = self.pool()?;
@@ -158,6 +158,7 @@ impl DatabaseDriver for SqliteDriver {
             views,
             functions: vec![],
             schemas: None,
+            databases: None,
         })
     }
 

@@ -11,11 +11,12 @@ use std::collections::HashMap;
 
 pub struct MysqlDriver {
     pool: Option<MySqlPool>,
+    database: String,
 }
 
 impl MysqlDriver {
     pub fn new() -> Self {
-        Self { pool: None }
+        Self { pool: None, database: String::new() }
     }
 
     fn pool(&self) -> Result<&MySqlPool, String> {
@@ -162,6 +163,7 @@ impl DatabaseDriver for MysqlDriver {
             .map_err(|e| e.to_string())?;
 
         self.pool = Some(pool);
+        self.database = config.database.clone();
         Ok(())
     }
 
@@ -174,14 +176,17 @@ impl DatabaseDriver for MysqlDriver {
 
     async fn get_schema(
         &self,
-        all_schemas: bool,
-        _schema_name: Option<&str>,
+        all_databases: bool,
+        schema_name: Option<&str>,
     ) -> Result<SchemaResult, String> {
         let pool = self.pool()?;
-        let where_clause = if all_schemas {
-            "WHERE TABLE_SCHEMA NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')"
+        
+        let (where_clause, params) = if all_databases {
+            ("WHERE TABLE_SCHEMA NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')".to_string(), vec![])
+        } else if let Some(s) = schema_name {
+            ("WHERE TABLE_SCHEMA = ?".to_string(), vec![Value::String(s.to_string())])
         } else {
-            "WHERE TABLE_SCHEMA = DATABASE()"
+            ("WHERE TABLE_SCHEMA = DATABASE()".to_string(), vec![])
         };
 
         let table_sql = format!(
@@ -197,23 +202,30 @@ impl DatabaseDriver for MysqlDriver {
             "SELECT ROUTINE_NAME as routine_name, ROUTINE_SCHEMA as routine_schema, ROUTINE_TYPE as routine_type FROM information_schema.ROUTINES {} ORDER BY ROUTINE_NAME",
             routine_where
         );
-        let schema_where = where_clause.replace("TABLE_SCHEMA", "SCHEMA_NAME");
-        let schema_sql = format!(
-            "SELECT SCHEMA_NAME as schema_name FROM information_schema.SCHEMATA {} ORDER BY SCHEMA_NAME",
-            schema_where
-        );
-
-        let (table_res, view_res, func_res, schema_res) = tokio::join!(
-            Self::execute_query(pool, &table_sql, &[]),
-            Self::execute_query(pool, &view_sql, &[]),
-            Self::execute_query(pool, &func_sql, &[]),
-            Self::execute_query(pool, &schema_sql, &[])
+        
+        // In MySQL, schemas are databases. We always fetch all schemas.
+        let all_schemas_sql = "SELECT SCHEMA_NAME as schema_name FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys') ORDER BY SCHEMA_NAME".to_string();
+        
+        // Databases listing depends on all_databases flag
+        let db_sql = if all_databases {
+            "SELECT SCHEMA_NAME as db_name FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys') ORDER BY SCHEMA_NAME".to_string()
+        } else {
+            format!("SELECT SCHEMA_NAME as db_name FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '{}'", self.database)
+        };
+        
+        let (table_res, view_res, func_res, schema_res, db_res) = tokio::join!(
+            Self::execute_query(pool, &table_sql, &params),
+            Self::execute_query(pool, &view_sql, &params),
+            Self::execute_query(pool, &func_sql, &params),
+            Self::execute_query(pool, &all_schemas_sql, &[]),
+            Self::execute_query(pool, &db_sql, &[])
         );
 
         let (table_rows, _, _) = table_res?;
         let (view_rows, _, _) = view_res?;
         let (func_rows, _, _) = func_res?;
         let (schema_rows, _, _) = schema_res?;
+        let (db_rows, _, _) = db_res?;
 
         let tables: Vec<SchemaObject> = table_rows
             .iter()
@@ -251,11 +263,21 @@ impl DatabaseDriver for MysqlDriver {
             })
             .collect();
 
+        let databases: Vec<SchemaObject> = db_rows
+            .iter()
+            .map(|r| SchemaObject {
+                name: r.get("db_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                schema: None,
+                obj_type: None,
+            })
+            .collect();
+
         Ok(SchemaResult {
             tables,
             views,
             functions,
             schemas: Some(schemas),
+            databases: Some(databases),
         })
     }
 

@@ -189,15 +189,15 @@ impl DatabaseDriver for PostgresDriver {
 
     async fn get_schema(
         &self,
-        all_schemas: bool,
-        _schema_name: Option<&str>,
+        all_databases: bool,
+        schema_name: Option<&str>,
     ) -> Result<SchemaResult, String> {
         let pool = self.pool()?;
-        let where_clause = if all_schemas {
-            "WHERE table_schema NOT IN ('information_schema', 'pg_catalog')"
-        } else {
-            "WHERE table_schema = 'public'"
-        };
+        
+        // We always fetch all schemas, tables, views, and functions (excluding system ones)
+        // because the user wants to see everything in the tree.
+        let where_clause = "WHERE table_schema NOT IN ('information_schema', 'pg_catalog')";
+        let params = vec![];
 
         // Run all schema queries in parallel
         let table_sql = format!(
@@ -208,23 +208,33 @@ impl DatabaseDriver for PostgresDriver {
             "SELECT table_name::text, table_schema::text FROM information_schema.tables {} AND table_type = 'VIEW' ORDER BY table_name",
             where_clause
         );
+        let routine_where = where_clause.replace("table_schema", "routine_schema");
         let func_sql = format!(
             "SELECT routine_name::text, routine_schema::text, data_type::text FROM information_schema.routines {} ORDER BY routine_name",
-            where_clause.replace("table_schema", "routine_schema")
+            routine_where
         );
         let schema_sql = "SELECT schema_name::text FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema', 'pg_catalog') ORDER BY schema_name";
 
-        let (table_res, view_res, func_res, schema_res) = tokio::join!(
-            Self::execute_query(pool, &table_sql, &[]),
-            Self::execute_query(pool, &view_sql, &[]),
-            Self::execute_query(pool, &func_sql, &[]),
-            Self::execute_query(pool, schema_sql, &[])
+        // Optional database list
+        let db_sql = if all_databases {
+            "SELECT datname::text as name FROM pg_database WHERE datistemplate = false ORDER BY datname"
+        } else {
+            "SELECT current_database()::text as name"
+        };
+
+        let (table_res, view_res, func_res, schema_res, db_res) = tokio::join!(
+            Self::execute_query(pool, &table_sql, &params),
+            Self::execute_query(pool, &view_sql, &params),
+            Self::execute_query(pool, &func_sql, &params),
+            Self::execute_query(pool, schema_sql, &[]),
+            Self::execute_query(pool, db_sql, &[])
         );
 
         let (table_rows, _, _) = table_res?;
         let (view_rows, _, _) = view_res?;
         let (func_rows, _, _) = func_res?;
         let (schema_rows, _, _) = schema_res?;
+        let (db_rows, _, _) = db_res?;
 
         let tables: Vec<SchemaObject> = table_rows
             .iter()
@@ -262,11 +272,21 @@ impl DatabaseDriver for PostgresDriver {
             })
             .collect();
 
+        let databases: Vec<SchemaObject> = db_rows
+            .iter()
+            .map(|r| SchemaObject {
+                name: r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                schema: None,
+                obj_type: None,
+            })
+            .collect();
+
         Ok(SchemaResult {
             tables,
             views,
             functions,
             schemas: Some(schemas),
+            databases: Some(databases),
         })
     }
 

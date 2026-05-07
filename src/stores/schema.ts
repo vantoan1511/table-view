@@ -36,8 +36,7 @@ export const useSchemaStore = defineStore('schema', () => {
     return id ? (selectedSchemaByConnection.value[id] ?? '') : ''
   })
 
-  // Keep a legacy ref for one-way compatibility; prefer computed above
-  const loadedAllSchemas = ref(false)
+  const loadedAllDatabases = ref(false)
   const activeSchemaRequestId = ref('')
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -133,7 +132,7 @@ export const useSchemaStore = defineStore('schema', () => {
 
   // ─── Load schema for a specific connection ───────────────────────────────────
   const loadSchema = async (
-    allSchemas?: boolean,
+    allDatabases?: boolean,
     connectionId?: string,
     schemaName?: string,
   ) => {
@@ -144,13 +143,13 @@ export const useSchemaStore = defineStore('schema', () => {
     if (!targetConnectionId) return
 
     const connection = connectionsStore.connections.find((c) => c.id === targetConnectionId)
-    const targetAllSchemas = allSchemas ?? connection?.displayAllSchemas ?? loadedAllSchemas.value
+    const targetAllDatabases = allDatabases ?? connection?.displayAllDatabases ?? loadedAllDatabases.value
     const fallbackSchema = resolveFallbackSchema(connection?.type, connection?.username)
     const requestedSchemaName = schemaName || selectedSchemaByConnection.value[targetConnectionId] || ''
-    const targetSchemaName = requestedSchemaName || (targetAllSchemas ? '' : fallbackSchema)
+    const targetSchemaName = requestedSchemaName || (targetAllDatabases ? '' : fallbackSchema)
 
     // Update legacy ref for compat
-    loadedAllSchemas.value = targetAllSchemas
+    loadedAllDatabases.value = targetAllDatabases
     activeSchemaRequestId.value = reqId
 
     // Mark loading
@@ -237,7 +236,7 @@ export const useSchemaStore = defineStore('schema', () => {
       {
         reqId,
         connectionId: targetConnectionId,
-        allSchemas: targetAllSchemas,
+        allDatabases: targetAllDatabases,
         schemaName: targetSchemaName,
       },
     )
@@ -267,6 +266,6 @@ export const useSchemaStore = defineStore('schema', () => {
     filteredTables,
     filteredViews,
     filteredFunctions,
-    loadedAllSchemas,
+    loadedAllDatabases,
   }
 })

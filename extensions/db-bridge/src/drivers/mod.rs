@@ -33,6 +33,8 @@ pub struct Config {
     pub oracle_connect_type: String,
     #[serde(rename = "oracleRole", default = "default_oracle_role")]
     pub oracle_role: String,
+    #[serde(rename = "displayAllDatabases", default)]
+    pub display_all_databases: bool,
 }
 
 fn default_timeout() -> u32 {
@@ -94,6 +96,8 @@ pub struct SchemaResult {
     pub functions: Vec<SchemaObject>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub schemas: Option<Vec<SchemaObject>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub databases: Option<Vec<SchemaObject>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -131,7 +135,7 @@ pub trait DatabaseDriver: Send + Sync {
     async fn disconnect(&mut self) -> Result<(), String>;
     async fn get_schema(
         &self,
-        all_schemas: bool,
+        all_databases: bool,
         schema_name: Option<&str>,
     ) -> Result<SchemaResult, String>;
     async fn fetch_table_data(

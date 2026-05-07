@@ -36,7 +36,7 @@ const form = reactive<Omit<Connection, 'id' | 'isConnected'>>({
   color: 'indigo',
   tags: '',
   savePassword: false,
-  displayAllSchemas: false,
+  displayAllDatabases: false,
   oracleConnectType: 'serviceName',
   oracleRole: 'normal',
 })
@@ -64,7 +64,7 @@ watch(
         color: 'indigo',
         tags: '',
         savePassword: false,
-        displayAllSchemas: false,
+        displayAllDatabases: false,
         oracleConnectType: 'serviceName',
         oracleRole: 'normal',
       })
@@ -144,7 +144,7 @@ const handleImportConnection = async () => {
       color: conn.color || 'indigo',
       tags: conn.tags || '',
       savePassword: conn.savePassword ?? false,
-      displayAllSchemas: conn.displayAllSchemas ?? false,
+      displayAllDatabases: conn.displayAllDatabases ?? false,
       oracleConnectType: (conn.oracleConnectType || 'serviceName') as OracleConnectType,
       oracleRole: (conn.oracleRole || 'normal') as OracleRole,
     })
@@ -355,10 +355,10 @@ const handleClose = () => {
                     <CircleHelp :size="13" class="text-text-tertiary" />
                   </div>
                   <div class="flex items-center gap-1.5 mt-2">
-                    <ToggleSwitch v-model="form.displayAllSchemas" />
-                    <span class="text-[12px] text-text-secondary">Display all schemas</span>
+                    <ToggleSwitch v-model="form.displayAllDatabases" />
+                    <span class="text-[12px] text-text-secondary">Display all databases</span>
                     <CircleHelp :size="13" class="text-text-tertiary"
-                      title="If enabled, loads all schemas instead of just the default public schema." />
+                      title="If enabled, loads all databases from the server. Otherwise, only loads the configured database. Schemas are always fully loaded." />
                   </div>
                 </div>
 

@@ -219,7 +219,7 @@ impl DatabaseDriver for OracleDriver {
 
     async fn get_schema(
         &self,
-        all_schemas: bool,
+        all_databases: bool,
         schema_name: Option<&str>,
     ) -> Result<SchemaResult, String> {
         let pool = self.pool()?;
@@ -228,44 +228,30 @@ impl DatabaseDriver for OracleDriver {
             .filter(|name| !name.is_empty())
             .map(|name| name.to_uppercase());
 
-        let schema_sql = if all_schemas {
-            "SELECT USERNAME FROM ALL_USERS WHERE USERNAME NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'XDB', 'CTXSYS', 'MDSYS') ORDER BY USERNAME".to_string()
-        } else {
-            "SELECT USERNAME FROM ALL_USERS WHERE USERNAME = :1 ORDER BY USERNAME".to_string()
-        };
-        let schema_params = if all_schemas {
-            Vec::new()
-        } else {
-            vec![JsonValue::String(
-                requested_schema
-                    .clone()
-                    .unwrap_or_else(|| self.current_schema.clone()),
-            )]
-        };
+        // Always fetch all users (schemas)
+        let schema_sql = "SELECT USERNAME FROM ALL_USERS WHERE USERNAME NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'XDB', 'CTXSYS', 'MDSYS') ORDER BY USERNAME";
+        let (schema_rows, _, _) = Self::execute_query(pool, schema_sql, &[]).await?;
 
-        let (schema_rows, _, _) = Self::execute_query(pool, &schema_sql, &schema_params).await?;
-        let resolved_schema = requested_schema.unwrap_or_else(|| {
-            if all_schemas {
-                schema_rows
-                    .iter()
-                    .find_map(|r| r.get("USERNAME").and_then(|v| v.as_str()).map(str::to_string))
-                    .unwrap_or_else(|| self.current_schema.clone())
-            } else {
-                self.current_schema.clone()
-            }
-        });
-        let params = vec![JsonValue::String(resolved_schema.clone())];
+        // Determine object filtering
+        let (where_clause, params) = if all_databases {
+            ("WHERE OWNER NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'XDB', 'CTXSYS', 'MDSYS')".to_string(), vec![])
+        } else {
+            let owner = requested_schema.unwrap_or_else(|| self.current_schema.clone());
+            ("WHERE OWNER = :1".to_string(), vec![JsonValue::String(owner)])
+        };
 
         log::info!(
-            "oracle: loading schema objects for owner {} (allSchemas={})",
-            resolved_schema,
-            all_schemas
+            "oracle: loading schema objects (all_databases={}, where={})",
+            all_databases,
+            where_clause
         );
 
-        let table_sql = "SELECT TABLE_NAME, OWNER FROM ALL_TABLES WHERE OWNER = :1 ORDER BY OWNER, TABLE_NAME";
-        let view_sql = "SELECT VIEW_NAME, OWNER FROM ALL_VIEWS WHERE OWNER = :1 ORDER BY OWNER, VIEW_NAME";
-        let func_sql =
-            "SELECT OBJECT_NAME, OWNER, OBJECT_TYPE FROM ALL_OBJECTS WHERE OWNER = :1 AND OBJECT_TYPE IN ('PROCEDURE', 'FUNCTION') ORDER BY OWNER, OBJECT_NAME";
+        let table_sql = format!("SELECT TABLE_NAME, OWNER FROM ALL_TABLES {} ORDER BY OWNER, TABLE_NAME", where_clause);
+        let view_sql = format!("SELECT VIEW_NAME, OWNER FROM ALL_VIEWS {} ORDER BY OWNER, VIEW_NAME", where_clause);
+        let func_sql = format!(
+            "SELECT OBJECT_NAME, OWNER, OBJECT_TYPE FROM ALL_OBJECTS {} AND OBJECT_TYPE IN ('PROCEDURE', 'FUNCTION') ORDER BY OWNER, OBJECT_NAME",
+            where_clause
+        );
 
         let (table_res, view_res, func_res) = tokio::join!(
             Self::execute_query(pool, &table_sql, &params),
@@ -318,11 +304,19 @@ impl DatabaseDriver for OracleDriver {
             })
             .collect();
 
+        // For Oracle, we'll just put the current schema as the "database" if not listing all
+        let databases = vec![SchemaObject {
+            name: self.current_schema.clone(),
+            schema: None,
+            obj_type: None,
+        }];
+
         Ok(SchemaResult {
             tables,
             views,
             functions,
             schemas: Some(schemas),
+            databases: Some(databases),
         })
     }
 
