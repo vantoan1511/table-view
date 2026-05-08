@@ -60,11 +60,12 @@ jobs:
         shell: pwsh
         run: |
           # Extract version for the installer
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/v}
-          else
-            VERSION=$(node -p "require('./neutralino.config.json').version")
-          fi
+          if ("${{ github.ref }}" -like "refs/tags/v*") {
+            $VERSION = "${{ github.ref }}".Replace("refs/tags/v", "")
+          } else {
+            $VERSION = node -p "require('./neutralino.config.json').version"
+          }
+          Write-Host "Building installer for version $VERSION"
           ./scripts/build-installer.ps1 -Version $VERSION
 
       - name: Extract Release Notes

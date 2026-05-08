@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-08
+
+### Fixed
+- **CI/CD: Release Workflow**: Fixed a PowerShell syntax error in the GitHub Actions workflow that caused Windows installer builds to fail.
+- **Production: Build Assets**: Added `data-skip-asset` to the Neutralino globals script to prevent Vite from attempting to bundle it during production builds.
+
+
 ## [0.2.0] - 2026-05-08
 
 ### Added
