@@ -2,7 +2,10 @@
   "applicationId": "com.github.vantoan1511.tableview",
   "applicationName": "Table View",
   "author": "Toan Nguyen",
+  "applicationIcon": "icon.png",
+  "description": "Lightweight, high-performance desktop database management tool for PostgreSQL, MySQL, SQLite, and Oracle.",
   "version": "0.2.0",
+  "copyright": "Copyright © Table View 2026. All rights reserved.",
   "defaultMode": "window",
   "documentRoot": "/build/",
   "url": "/",
@@ -36,7 +39,7 @@
       "minWidth": 1024,
       "minHeight": 720,
       "center": true,
-      "icon": "/public/favicon.ico",
+      "icon": "icon.png",
       "enableInspector": false
     }
   },
