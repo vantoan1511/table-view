@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-08
+
+### Added
+- **Distribution: Windows Installer**: Implemented a professional Windows installer using Inno Setup. It provides a per-user installation path, desktop shortcuts, and an integrated uninstaller.
+- **CI/CD: Automated Packaging**: Updated the GitHub Actions release workflow to automatically compile and attach the `setup.exe` installer to every new release tag.
+
+### Fixed
+- **UI: All Databases Toggle**: Fixed a TypeScript compilation error in `App.vue` that prevented builds when the `displayAllDatabases` flag was enabled.
+
+
 ## [0.1.9] - 2026-05-08
 
 ### Added
