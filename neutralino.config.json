@@ -44,6 +44,9 @@
     "binaryName": "table-view",
     "resourcesPath": "/build/",
     "resourcesExclude": ".*\\.ts$|.*\\.tsx$|.*\\.map$",
+    "copyItems": [
+      "icon.ico"
+    ],
     "extensionsPath": "/extensions/",
     "extensionsExclude": "node_modules|internal|drivers|vendor|.*\\.go$|.*\\.js$|.*\\.mod$|.*\\.sum$|.*\\.log$|package.*\\.json|target|.*\\.rs$|Cargo.*",
     "binaryVersion": "6.7.0",

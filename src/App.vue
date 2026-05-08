@@ -61,7 +61,7 @@ watch(
         if (tab.schema !== currentSelected) {
           schemaStore.setSelectedSchema(tab.schema, tab.connectionId)
           if (conn?.type === 'oracle') {
-            await schemaStore.loadSchema(schemaStore.loadedAllSchemas, tab.connectionId, tab.schema)
+            await schemaStore.loadSchema(schemaStore.loadedAllDatabases, tab.connectionId, tab.schema)
           }
         }
       }

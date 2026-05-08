@@ -25,7 +25,6 @@ lerna-debug.log*
 
 node_modules
 .DS_Store
-dist
 dist-ssr
 coverage
 *.local
@@ -64,3 +63,7 @@ __screenshots__/
 target/
 Cargo.lock
 scratch/
+
+# Installer
+/scripts/Output/
+.neutralino/

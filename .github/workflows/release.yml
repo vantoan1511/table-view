@@ -55,6 +55,17 @@ jobs:
           # Wait for Rust build to finish
           wait $RUST_PID
           cp extensions/db-bridge/target/release/db-bridge.exe extensions/db-bridge/
+          
+      - name: Build Windows Installer
+        shell: pwsh
+        run: |
+          # Extract version for the installer
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(node -p "require('./neutralino.config.json').version")
+          fi
+          ./scripts/build-installer.ps1 -Version $VERSION
 
       - name: Extract Release Notes
         id: extract_notes
@@ -89,6 +100,7 @@ jobs:
             dist/*.zip
             dist/table-view/resources.neu
             extensions/db-bridge/db-bridge.exe
+            scripts/Output/setup.exe
           body_path: release_notes.md
           generate_release_notes: false
 
