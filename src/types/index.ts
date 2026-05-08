@@ -71,6 +71,8 @@ export interface SchemaInfo {
   views: SchemaView[]
   functions: SchemaFunction[]
   schemas: string[]
+  /** Populated when allDatabases=true. Lists all database names on the server. */
+  databases?: string[]
 }
 
 // ─── Grid ───────────────────────────────────────────────────────────────────

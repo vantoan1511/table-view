@@ -17,15 +17,17 @@ export const useTabsStore = defineStore('tabs', () => {
   const showTabSelector = ref(false)
   const selectorConnectionId = ref<string | null>(null)
 
-  // Persistence logic
+  // Persistence logic — only SQL editor tabs are persisted, never table tabs
   const saveTabsToStorage = async () => {
     if (!window.NL_PORT) return
     try {
-      const data = JSON.stringify(tabs.value)
+      const sqlTabs = tabs.value.filter(t => t.type === 'sql')
+      const data = JSON.stringify(sqlTabs)
       await Neutralino.storage.setData('app_tabs', data)
-      await Neutralino.storage.setData('app_activeTabId', activeTabId.value)
-      console.log(`[TabsStore] Saved ${tabs.value.length} tabs to storage`)
-      console.log(`[TabsStore] Active tab: ${activeTabId.value}`)
+      // Only persist activeTabId when it belongs to a sql tab
+      const activeIsSql = sqlTabs.some(t => t.id === activeTabId.value)
+      await Neutralino.storage.setData('app_activeTabId', activeIsSql ? activeTabId.value : '')
+      console.log(`[TabsStore] Saved ${sqlTabs.length} SQL tabs to storage`)
     } catch (err) {
       console.error('Failed to save tabs to storage:', err)
     }
@@ -37,11 +39,13 @@ export const useTabsStore = defineStore('tabs', () => {
       const data = await Neutralino.storage.getData('app_tabs')
       if (data) {
         const parsed = JSON.parse(data)
-        tabs.value = parsed
-        console.log(`[TabsStore] Loaded ${parsed.length} tabs from storage`)
+        // Safety guard: only restore sql tabs, discard any stale table tabs
+        const sqlOnly = (parsed as Tab[]).filter(t => t.type === 'sql')
+        tabs.value = sqlOnly
+        console.log(`[TabsStore] Loaded ${sqlOnly.length} SQL tabs from storage`)
       }
       const activeId = await Neutralino.storage.getData('app_activeTabId')
-      if (activeId) {
+      if (activeId && tabs.value.some(t => t.id === activeId)) {
         activeTabId.value = activeId
       }
     } catch (err) {

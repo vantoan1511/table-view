@@ -13,6 +13,19 @@ export const useSchemaStore = defineStore('schema', () => {
   // Per-connection loading state
   const loadingByConnection = ref<Record<string, boolean>>({})
 
+  // Per-connection, per-database schema cache for allDatabases mode
+  // Shape: { [connectionId]: { [dbName]: SchemaInfo } }
+  const perDbSchemas = ref<Record<string, Record<string, SchemaInfo>>>({})
+
+  // Loading state per (connectionId, dbName)
+  const loadingDbByConnection = ref<Record<string, Record<string, boolean>>>({})
+
+  // Error state per (connectionId, dbName)
+  const errorDbByConnection = ref<Record<string, Record<string, string>>>({})
+
+  // Per-connection expanded databases in the tree
+  const expandedDbsByConnection = ref<Record<string, Record<string, boolean>>>({})
+
   // Per-connection expanded schemas (which schema nodes are open in the tree)
   const expandedSchemasByConnection = ref<Record<string, Record<string, boolean>>>({})
 
@@ -41,7 +54,7 @@ export const useSchemaStore = defineStore('schema', () => {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
   function emptySchema(): SchemaInfo {
-    return { tables: [], views: [], functions: [], schemas: [] }
+    return { tables: [], views: [], functions: [], schemas: [], databases: undefined }
   }
 
   const sameSchema = (a: string, b: string) =>
@@ -126,6 +139,29 @@ export const useSchemaStore = defineStore('schema', () => {
     return loadingByConnection.value[connectionId] ?? false
   }
 
+  const isDbLoading = (connectionId: string, dbName: string) => {
+    return loadingDbByConnection.value[connectionId]?.[dbName] ?? false
+  }
+
+  const isDbExpanded = (connectionId: string, dbName: string) => {
+    return expandedDbsByConnection.value[connectionId]?.[dbName] ?? false
+  }
+
+  const setDbExpanded = (connectionId: string, dbName: string, expanded: boolean) => {
+    if (!expandedDbsByConnection.value[connectionId]) {
+      expandedDbsByConnection.value[connectionId] = {}
+    }
+    expandedDbsByConnection.value[connectionId][dbName] = expanded
+  }
+
+  const getDbSchema = (connectionId: string, dbName: string): SchemaInfo | null => {
+    return perDbSchemas.value[connectionId]?.[dbName] ?? null
+  }
+
+  const getDbError = (connectionId: string, dbName: string): string | null => {
+    return errorDbByConnection.value[connectionId]?.[dbName] ?? null
+  }
+
   const hasSchemaLoaded = (connectionId: string) => {
     return !!schemasByConnection.value[connectionId]
   }
@@ -167,6 +203,10 @@ export const useSchemaStore = defineStore('schema', () => {
 
       if (payload.success) {
         const backendSchemas = payload.schema.schemas || []
+        // When allDatabases=true the backend returns a `databases` list in addition.
+        // These are kept separate: `schemas` = schemas of the configured database,
+        // `databases` = all server databases (shown as a read-only tier in the tree).
+        const backendDatabases: any[] = payload.schema.databases || []
         const defaultObjectSchema = resolveFallbackSchema(connection?.type, connection?.username)
         const nextSchema: SchemaInfo = {
           tables: (payload.schema.tables || []).map((t: any) => ({
@@ -182,7 +222,12 @@ export const useSchemaStore = defineStore('schema', () => {
             schema: f.schema || defaultObjectSchema,
             returnType: f.type || 'unknown',
           })),
+          // Schemas of the configured (connected) database
           schemas: backendSchemas.length > 0 ? backendSchemas.map((s: any) => s.name || s) : [],
+          // All database names on the server — only set when allDatabases mode is active
+          databases: backendDatabases.length > 0
+            ? backendDatabases.map((d: any) => d.name || d)
+            : undefined,
         }
 
         // Store in per-connection map
@@ -242,19 +287,114 @@ export const useSchemaStore = defineStore('schema', () => {
     )
   }
 
+  // ─── Load schema for a specific database (allDatabases mode) ────────────────
+  const loadDbSchema = async (connectionId: string, dbName: string) => {
+    if (!window.NL_PORT) return
+    // Already loaded or loading — skip
+    if (
+      loadingDbByConnection.value[connectionId]?.[dbName] ||
+      perDbSchemas.value[connectionId]?.[dbName]
+    ) return
+
+    if (!loadingDbByConnection.value[connectionId])
+      loadingDbByConnection.value[connectionId] = {}
+    if (!errorDbByConnection.value[connectionId])
+      errorDbByConnection.value[connectionId] = {}
+
+    loadingDbByConnection.value[connectionId][dbName] = true
+    delete errorDbByConnection.value[connectionId][dbName]
+
+    const reqId = `${connectionId}::${dbName}::${Date.now()}`
+    const connection = connectionsStore.connections.find((c) => c.id === connectionId)
+    const defaultObjectSchema = resolveFallbackSchema(connection?.type, connection?.username)
+
+    const onResult = (evt: any) => {
+      const payload = evt.detail
+      if (payload.reqId !== reqId) return
+      Neutralino.events.off('dbBridge.getDbSchemaResult', onResult)
+
+      if (!loadingDbByConnection.value[connectionId])
+        loadingDbByConnection.value[connectionId] = {}
+      loadingDbByConnection.value[connectionId][dbName] = false
+
+      if (payload.success) {
+        const backendSchemas = payload.schemas || []
+        const dbSchema: SchemaInfo = {
+          tables: (payload.tables || []).map((t: any) => ({
+            name: t.name,
+            schema: t.schema || defaultObjectSchema,
+          })),
+          views: (payload.views || []).map((v: any) => ({
+            name: v.name,
+            schema: v.schema || defaultObjectSchema,
+          })),
+          functions: (payload.functions || []).map((f: any) => ({
+            name: f.name,
+            schema: f.schema || defaultObjectSchema,
+            returnType: f.type || 'unknown',
+          })),
+          schemas: backendSchemas.map((s: any) => s.name || s),
+        }
+        if (!perDbSchemas.value[connectionId]) perDbSchemas.value[connectionId] = {}
+        perDbSchemas.value[connectionId][dbName] = dbSchema
+      } else {
+        if (!errorDbByConnection.value[connectionId])
+          errorDbByConnection.value[connectionId] = {}
+        errorDbByConnection.value[connectionId][dbName] = payload.error || 'Unknown error'
+        console.error(`[schema] Failed to load schema for ${dbName}:`, payload.error)
+      }
+    }
+
+    Neutralino.events.on('dbBridge.getDbSchemaResult', onResult)
+    Neutralino.extensions.dispatch(
+      'com.github.vantoan1511.table-view.db-bridge',
+      'dbBridge.getDbSchema',
+      { reqId, connectionId, targetDatabase: dbName },
+    )
+  }
+
+  // Clear cached schema for a specific database (triggers reload on next expand)
+  const clearDbSchema = (connectionId: string, dbName: string) => {
+    if (perDbSchemas.value[connectionId]) {
+      delete perDbSchemas.value[connectionId][dbName]
+    }
+    if (errorDbByConnection.value[connectionId]) {
+      delete errorDbByConnection.value[connectionId][dbName]
+    }
+  }
+
+  // Refresh (force-reload) a specific database's schema
+  const refreshDbSchema = async (connectionId: string, dbName: string) => {
+    clearDbSchema(connectionId, dbName)
+    await loadDbSchema(connectionId, dbName)
+  }
+
   return {
     // New per-connection API
     schemasByConnection,
     selectedSchemaByConnection,
     expandedSchemasByConnection,
+    expandedDbsByConnection,
     loadingByConnection,
+    perDbSchemas,
+    loadingDbByConnection,
+    errorDbByConnection,
     getFilteredTables,
     getFilteredViews,
     getFilteredFunctions,
     setSchemaExpanded,
     isSchemaExpanded,
     isConnectionLoading,
+    isDbLoading,
+    isDbExpanded,
+    setDbExpanded,
+    getDbSchema,
+    getDbError,
     hasSchemaLoaded,
+    // Per-DB actions
+    loadDbSchema,
+    clearDbSchema,
+    refreshDbSchema,
     // Shared
     filterQuery,
     setFilter,

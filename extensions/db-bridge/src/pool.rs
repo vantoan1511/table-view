@@ -1,4 +1,4 @@
-use crate::drivers::DatabaseDriver;
+use crate::drivers::{Config, DatabaseDriver};
 use std::collections::{HashMap, VecDeque};
 use tokio::sync::Mutex;
 use std::sync::Arc;
@@ -11,6 +11,8 @@ const MAX_SIZE: usize = 5;
 pub struct Pool {
     order: VecDeque<String>,       // front = most recently used
     drivers: HashMap<String, Arc<Mutex<Box<dyn DatabaseDriver>>>>,
+    /// Stored config per connectionId, used for spawning per-DB sub-connections.
+    configs: HashMap<String, Config>,
 }
 
 impl Pool {
@@ -18,6 +20,7 @@ impl Pool {
         Self {
             order: VecDeque::new(),
             drivers: HashMap::new(),
+            configs: HashMap::new(),
         }
     }
 
@@ -32,10 +35,10 @@ impl Pool {
         }
     }
 
-    /// Register a driver under the given connectionId.
+    /// Register a driver under the given connectionId, storing its Config for future sub-connections.
     /// If the pool is already at MAX_SIZE, the LRU entry is evicted first.
     /// If an entry for id already exists it is replaced (old driver is disconnected).
-    pub async fn put(&mut self, id: String, driver: Box<dyn DatabaseDriver>) {
+    pub async fn put(&mut self, id: String, driver: Box<dyn DatabaseDriver>, config: Config) {
         // Replace existing
         if let Some(old) = self.drivers.remove(&id) {
             let mut d = old.lock().await;
@@ -59,11 +62,18 @@ impl Pool {
                         );
                     }
                 }
+                self.configs.remove(&oldest_id);
             }
         }
 
         self.order.push_front(id.clone());
+        self.configs.insert(id.clone(), config);
         self.drivers.insert(id, Arc::new(Mutex::new(driver)));
+    }
+
+    /// Retrieve the stored Config for a connectionId (used to create per-DB sub-connections).
+    pub fn get_config(&self, id: &str) -> Option<&Config> {
+        self.configs.get(id)
     }
 
     /// Explicitly close and remove a connection from the pool.

@@ -3,6 +3,7 @@ import { useConnectionsStore } from '@/stores/connections'
 import { useTabsStore } from '@/stores/tabs'
 import type { Tab } from '@/types'
 import {
+  Code2,
   LayoutGrid,
   Minus,
   Plus,
@@ -145,7 +146,10 @@ const finishRenaming = () => {
           :class="getTabColorClass(tab.connectionId)"
         />
 
-        <LayoutGrid :size="14" class="shrink-0"
+        <component
+          :is="tab.type === 'sql' ? Code2 : LayoutGrid"
+          :size="14"
+          class="shrink-0"
           :class="tabsStore.activeTabId === tab.id ? 'text-primary' : 'text-text-tertiary'" />
 
         <span v-if="renamingTabId !== tab.id" class="truncate flex-1 text-left"

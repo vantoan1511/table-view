@@ -152,6 +152,16 @@ export const useConnectionsStore = defineStore('connections', () => {
     if (conn) {
       Object.assign(conn, updates)
       await saveConnections()
+
+      // If the connection is active and connected, invalidate + reload its schema
+      // so settings like displayAllDatabases take effect immediately.
+      if (conn.isConnected && activeConnectionId.value === id) {
+        const { useSchemaStore } = await import('./schema')
+        const schemaStore = useSchemaStore()
+        // Clear the cached schema so the tree reloads cleanly
+        delete schemaStore.schemasByConnection[id]
+        schemaStore.loadSchema(conn.displayAllDatabases, id)
+      }
     }
   }
 

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-05-08
+
+### Added
+- **Feature: All Databases Toggle**: Migrated `displayAllSchemas` to `displayAllDatabases` across the UI and backend drivers. Users can now choose to fetch all databases on a server or only the configured one for Postgres, MySQL, and SQLite.
+
+### Fixed
+- **Database: SQLite Driver**: Fixed a Rust build error in the SQLite driver caused by a missing `databases` field in the schema result payload.
+
+### Changed
+- **Production: Hardening**: Finalized production-ready settings in `neutralino.config.json`, enforcing `tokenSecurity: "one-time"` and disabling the developer inspector.
+
 ## [0.1.8] - 2026-05-07
 
 ### Added
