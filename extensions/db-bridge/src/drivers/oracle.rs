@@ -11,6 +11,7 @@ use std::collections::{HashMap, HashSet};
 pub struct OracleDriver {
     pool: Option<Pool>,
     current_schema: String,
+    service_name: String,
 }
 
 impl OracleDriver {
@@ -18,6 +19,7 @@ impl OracleDriver {
         Self {
             pool: None,
             current_schema: String::new(),
+            service_name: String::new(),
         }
     }
 
@@ -208,6 +210,7 @@ impl DatabaseDriver for OracleDriver {
         drop(conn);
 
         self.current_schema = config.username.to_uppercase();
+        self.service_name = config.database.clone();
         self.pool = Some(pool);
         Ok(())
     }
@@ -223,45 +226,57 @@ impl DatabaseDriver for OracleDriver {
         schema_name: Option<&str>,
     ) -> Result<SchemaResult, String> {
         let pool = self.pool()?;
+        let is_sys = self.current_schema == "SYS";
         let requested_schema = schema_name
             .map(str::trim)
             .filter(|name| !name.is_empty())
             .map(|name| name.to_uppercase());
 
         // Always fetch all users (schemas)
-        let schema_sql = "SELECT USERNAME FROM ALL_USERS WHERE USERNAME NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'XDB', 'CTXSYS', 'MDSYS') ORDER BY USERNAME";
+        let schema_sql = if is_sys {
+            "SELECT USERNAME FROM DBA_USERS ORDER BY USERNAME"
+        } else {
+            "SELECT USERNAME FROM ALL_USERS WHERE USERNAME NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'XDB', 'CTXSYS', 'MDSYS') ORDER BY USERNAME"
+        };
         let (schema_rows, _, _) = Self::execute_query(pool, schema_sql, &[]).await?;
 
         // Determine object filtering
         let (where_clause, params) = if all_databases {
-            ("WHERE OWNER NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'XDB', 'CTXSYS', 'MDSYS')".to_string(), vec![])
+            if is_sys {
+                ("".to_string(), vec![])
+            } else {
+                ("WHERE OWNER NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'XDB', 'CTXSYS', 'MDSYS')".to_string(), vec![])
+            }
         } else {
             let owner = requested_schema.unwrap_or_else(|| self.current_schema.clone());
             ("WHERE OWNER = :1".to_string(), vec![JsonValue::String(owner)])
         };
 
         log::info!(
-            "oracle: loading schema objects (all_databases={}, where={})",
+            "oracle: loading schema objects (is_sys={}, all_databases={}, where={})",
+            is_sys,
             all_databases,
             where_clause
         );
 
-        let table_sql = format!("SELECT TABLE_NAME, OWNER FROM ALL_TABLES {} ORDER BY OWNER, TABLE_NAME", where_clause);
-        let view_sql = format!("SELECT VIEW_NAME, OWNER FROM ALL_VIEWS {} ORDER BY OWNER, VIEW_NAME", where_clause);
+        let table_view = if is_sys { "DBA_TABLES" } else { "ALL_TABLES" };
+        let view_view = if is_sys { "DBA_VIEWS" } else { "ALL_VIEWS" };
+        let obj_view = if is_sys { "DBA_OBJECTS" } else { "ALL_OBJECTS" };
+
+        let table_sql = format!("SELECT TABLE_NAME, OWNER FROM {} {} ORDER BY OWNER, TABLE_NAME", table_view, where_clause);
+        let view_sql = format!("SELECT VIEW_NAME, OWNER FROM {} {} ORDER BY OWNER, VIEW_NAME", view_view, where_clause);
         let func_sql = format!(
-            "SELECT OBJECT_NAME, OWNER, OBJECT_TYPE FROM ALL_OBJECTS {} AND OBJECT_TYPE IN ('PROCEDURE', 'FUNCTION') ORDER BY OWNER, OBJECT_NAME",
-            where_clause
+            "SELECT OBJECT_NAME, OWNER, OBJECT_TYPE FROM {} {} {} OBJECT_TYPE IN ('PROCEDURE', 'FUNCTION') ORDER BY OWNER, OBJECT_NAME",
+            obj_view,
+            where_clause,
+            if where_clause.is_empty() { "WHERE" } else { "AND" }
         );
 
-        let (table_res, view_res, func_res) = tokio::join!(
-            Self::execute_query(pool, &table_sql, &params),
-            Self::execute_query(pool, &view_sql, &params),
-            Self::execute_query(pool, &func_sql, &params),
-        );
-
-        let (table_rows, _, _) = table_res?;
-        let (view_rows, _, _) = view_res?;
-        let (func_rows, _, _) = func_res?;
+        // Execute queries sequentially for Oracle to avoid "Connection refused" issues
+        // which can happen when administrative accounts trigger rapid concurrent connection attempts.
+        let (table_rows, _, _) = Self::execute_query(pool, &table_sql, &params).await?;
+        let (view_rows, _, _) = Self::execute_query(pool, &view_sql, &params).await?;
+        let (func_rows, _, _) = Self::execute_query(pool, &func_sql, &params).await?;
 
         let tables = table_rows
             .iter()
@@ -304,19 +319,25 @@ impl DatabaseDriver for OracleDriver {
             })
             .collect();
 
-        // For Oracle, we'll just put the current schema as the "database" if not listing all
-        let databases = vec![SchemaObject {
-            name: self.current_schema.clone(),
-            schema: None,
-            obj_type: None,
-        }];
+        // For Oracle, we use the service name as the "database" if not listing all.
+        // If listing all, we return None for databases so that schemas are listed directly under the connection,
+        // which avoids trying to spawn sub-connections for schema names (which would fail as they aren't service names).
+        let databases = if all_databases {
+            None
+        } else {
+            Some(vec![SchemaObject {
+                name: self.service_name.clone(),
+                schema: None,
+                obj_type: None,
+            }])
+        };
 
         Ok(SchemaResult {
             tables,
             views,
             functions,
             schemas: Some(schemas),
-            databases: Some(databases),
+            databases,
         })
     }
 

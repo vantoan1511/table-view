@@ -44,6 +44,10 @@ export function useSchemaActions(
         }
       )
 
+      if (!payload) {
+        throw new Error('Empty response from database bridge')
+      }
+
       const backendSchemas = payload.schemas || []
       const backendDatabases: any[] = payload.databases || []
       const defaultObjectSchema = resolveFallbackSchema(connection?.type, connection?.username)
@@ -131,6 +135,10 @@ export function useSchemaActions(
         'dbBridge.getDbSchemaResult',
         { connectionId, targetDatabase: dbName }
       )
+
+      if (!payload) {
+        throw new Error('Empty response from database bridge')
+      }
 
       const backendSchemas = payload.schemas || []
       const dbSchema: SchemaInfo = {
