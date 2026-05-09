@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useConnectionsStore } from '@/stores/connections';
 import { useTabsStore } from '@/stores/tabs';
-import type { Tab } from '@/types';
+import { TabType, type Tab } from '@/types';
 import { Code2, LayoutGrid, Minus, Plus, Trash2, X } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
@@ -19,12 +19,14 @@ const getTabColorClass = (connectionId?: string) => {
 const showMenu = ref(false);
 const menuPos = ref({ x: 0, y: 0 });
 const menuTargetTabId = ref<string | null>(null);
+const targetTab = ref<Tab | null | undefined>(null);
 
 const onContextMenu = (e: MouseEvent, tabId: string) => {
   e.preventDefault();
   showMenu.value = true;
   menuPos.value = { x: e.clientX, y: e.clientY };
   menuTargetTabId.value = tabId;
+  targetTab.value = tabsStore.getById(tabId);
 };
 
 const closeMenu = () => {
@@ -145,7 +147,7 @@ const finishRenaming = () => {
         <!-- Connection color indicator -->
         <div
           v-if="tab.connectionId"
-          class="absolute top-0 right-0 left-0 h-[2px] transition-all duration-200"
+          class="absolute top-0 right-0 left-0 h-0.5 transition-all duration-200"
           :class="getTabColorClass(tab.connectionId)"
         />
 
@@ -193,7 +195,7 @@ const finishRenaming = () => {
     <!-- Context Menu Overlay -->
     <div
       v-if="showMenu"
-      class="bg-surface border-border fixed z-100 min-w-[160px] rounded-lg border py-1 text-[12px] shadow-lg"
+      class="bg-surface border-border fixed z-100 min-w-40 rounded-lg border py-1 text-[12px] shadow-lg"
       :style="{ left: menuPos.x + 'px', top: menuPos.y + 'px' }"
       @click.stop
     >
@@ -226,6 +228,7 @@ const finishRenaming = () => {
       </button>
       <div class="bg-border my-1 h-px"></div>
       <button
+        v-if="targetTab?.type === TabType.SQL"
         class="hover:bg-danger/10 text-danger flex w-full items-center gap-2 px-3 py-1.5 text-left"
         @click="deleteTab"
       >

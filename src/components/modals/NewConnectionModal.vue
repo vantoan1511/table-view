@@ -5,7 +5,8 @@ import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
 import { DB_TYPES } from '@/lib/dbTypes';
 import { useConnectionsStore } from '@/stores/connections';
 import { useErrorStore } from '@/stores/error';
-import type { Connection, DbType, OracleConnectType, OracleRole } from '@/types';
+import { ConnectionColor, DbType, OracleConnectType, OracleRole, type Connection } from '@/types';
+import * as Neutralino from '@neutralinojs/lib';
 import { CircleHelp, Download, Eye, EyeOff, Loader2, X } from 'lucide-vue-next';
 import { reactive, ref, watch } from 'vue';
 
@@ -18,19 +19,19 @@ const testStatus = ref<'ready' | 'testing' | 'success' | 'error'>('ready');
 const importError = ref('');
 
 const form = reactive<Omit<Connection, 'id' | 'isConnected'>>({
-  name: '',
-  type: 'postgresql',
+  name: 'New connection',
+  type: DbType.POSTGRESQL,
   host: 'localhost',
   port: 5432,
   database: 'postgres',
   username: 'postgres',
   password: '',
-  color: 'indigo',
+  color: ConnectionColor.INDIGO,
   tags: '',
   savePassword: false,
   displayAllDatabases: false,
-  oracleConnectType: 'serviceName',
-  oracleRole: 'normal'
+  oracleConnectType: OracleConnectType.SERVICE_NAME,
+  oracleRole: OracleRole.NORMAL
 });
 
 // Initialize form if editing
@@ -69,16 +70,14 @@ const portDefaults: Partial<Record<DbType, number>> = Object.fromEntries(
   DB_TYPES.filter((d) => d.defaultPort > 0).map((d) => [d.key, d.defaultPort])
 ) as Partial<Record<DbType, number>>;
 
-import * as Neutralino from '@neutralinojs/lib';
-
 // TODO: Handle default value properly and should not override manual input
 const selectDbType = (type: DbType) => {
   form.type = type;
   form.port = portDefaults[type] ?? 5432;
   if (type === 'oracle') {
     form.database = form.database === 'postgres' ? 'FREEPDB1' : form.database;
-    form.oracleConnectType = form.oracleConnectType ?? 'serviceName';
-    form.oracleRole = form.oracleRole ?? 'normal';
+    form.oracleConnectType = form.oracleConnectType ?? OracleConnectType.SERVICE_NAME;
+    form.oracleRole = form.oracleRole ?? OracleRole.NORMAL;
   }
 };
 

@@ -57,7 +57,7 @@ const isActive = (tableName: string) =>
 
 const openObject = (name: string) => {
   if (props.groupType === 'tables' || props.groupType === 'views') {
-    tabsStore.openTable(name, props.schemaName, props.connectionId, props.dbName);
+    tabsStore.openTableTab(name, props.schemaName, props.connectionId, props.dbName);
   }
 };
 </script>

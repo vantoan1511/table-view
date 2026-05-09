@@ -1,4 +1,4 @@
-import type { Tab } from '@/types';
+import { TabType, type Tab } from '@/types';
 import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
 
@@ -49,21 +49,9 @@ export const useTabsStore = defineStore('tabs', () => {
     }
   };
 
-  // Watch for changes and save (debounced via setTimeout to avoid too many writes)
-  let saveTimeout: any = null;
-  watch(
-    tabs,
-    () => {
-      if (saveTimeout) clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(saveTabsToStorage, 500);
-    },
-    { deep: true }
-  );
-
   watch(activeTabId, () => saveTabsToStorage());
 
   const activeTab = computed(() => tabs.value.find((t) => t.id === activeTabId.value) ?? null);
-
   const mainTabs = computed(() => tabs.value.filter((t) => !t.minimized && !t.closed));
   const minimizedTabs = computed(() => tabs.value.filter((t) => t.minimized && !t.closed));
 
@@ -104,13 +92,13 @@ export const useTabsStore = defineStore('tabs', () => {
   };
 
   const renameTab = (id: string, newTitle: string) => {
-    const tab = tabs.value.find((t) => t.id === id);
+    const tab = tabs.value.find((t) => t.id === id && t.type === TabType.SQL);
     if (tab) {
       tab.title = newTitle;
     }
   };
 
-  const openTable = (
+  const openTableTab = (
     tableName: string,
     schemaName?: string,
     connectionId?: string,
@@ -118,21 +106,23 @@ export const useTabsStore = defineStore('tabs', () => {
   ) => {
     const targetSchema = schemaName || schemaStore.selectedSchema;
     const targetConnectionId = connectionId ?? connectionsStore.activeConnectionId ?? undefined;
-    const existing = tabs.value.find(
+    const cached = tabs.value.find(
       (t) =>
-        t.type === 'table' &&
+        t.type === TabType.TABLE &&
         t.tableName === tableName &&
-        t.schema === targetSchema &&
-        t.connectionId === targetConnectionId &&
+        t.schema === schemaName &&
+        t.connectionId === connectionId &&
         t.dbName === dbName
     );
-    if (existing) {
-      activeTabId.value = existing.id;
+    if (cached) {
+      cached.closed = false;
+      cached.minimized = false;
+      activeTabId.value = cached.id;
       return;
     }
     const tab: Tab = {
       id: `tab-${targetSchema}-${tableName}-${Date.now()}`,
-      type: 'table',
+      type: TabType.TABLE,
       title: targetSchema ? `${targetSchema}.${tableName}` : tableName,
       tableName,
       connectionId: targetConnectionId,
@@ -191,7 +181,7 @@ export const useTabsStore = defineStore('tabs', () => {
 
     const tab: Tab = {
       id: `tab-sql-${Date.now()}`,
-      type: 'sql',
+      type: TabType.SQL,
       title: `${connName}-${nextNum}`,
       connectionId: connId,
       schema: schemaStore.selectedSchema,
@@ -255,7 +245,7 @@ export const useTabsStore = defineStore('tabs', () => {
   };
 
   const deleteTab = (id: string) => {
-    const idx = tabs.value.findIndex((t) => t.id === id);
+    const idx = tabs.value.findIndex((t) => t.id === id && t.type === TabType.SQL);
     if (idx !== -1) {
       tabs.value.splice(idx, 1);
       if (activeTabId.value === id) {
@@ -263,6 +253,13 @@ export const useTabsStore = defineStore('tabs', () => {
         activeTabId.value = next?.id ?? '';
       }
     }
+  };
+
+  const getById = (tabId?: string) => {
+    if (!tabId) {
+      return null;
+    }
+    return tabs.value.find((t) => t.id === tabId);
   };
 
   return {
@@ -275,7 +272,7 @@ export const useTabsStore = defineStore('tabs', () => {
     minimizedTabs,
     setActiveTab,
     reorderTab,
-    openTable,
+    openTableTab,
     openSqlEditor,
     updateTabQuery,
     saveSqlTab,
@@ -286,6 +283,7 @@ export const useTabsStore = defineStore('tabs', () => {
     deleteTab,
     minimizeTab,
     restoreTab,
+    getById,
     showTabSelector,
     selectorConnectionId
   };

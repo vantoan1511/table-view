@@ -1,26 +1,36 @@
 // ─── Connection ─────────────────────────────────────────────────────────────
 
-export type DbType =
-  | 'postgresql'
-  | 'mysql'
-  | 'sqlite'
-  | 'oracle'
-  | 'sqlserver'
-  | 'mariadb'
-  | 'redis';
+export enum DbType {
+  POSTGRESQL = 'postgresql',
+  MYSQL = 'mysql',
+  SQLITE = 'sqlite',
+  ORACLE = 'oracle',
+  SQLSERVER = 'sqlserver',
+  MARIADB = 'mariadb',
+  REDIS = 'redis'
+}
 
-export type OracleConnectType = 'serviceName' | 'sid';
-export type OracleRole = 'normal' | 'sysdba' | 'sysoper';
+export enum OracleConnectType {
+  SERVICE_NAME = 'serviceName',
+  SID = 'sid'
+}
 
-export type ConnectionColor =
-  | 'indigo'
-  | 'blue'
-  | 'teal'
-  | 'green'
-  | 'amber'
-  | 'orange'
-  | 'pink'
-  | 'gray';
+export enum OracleRole {
+  NORMAL = 'normal',
+  SYSDBA = 'sysdba',
+  SYSOPER = 'sysoper'
+}
+
+export enum ConnectionColor {
+  INDIGO = 'indigo',
+  BLUE = 'blue',
+  TEAL = 'teal',
+  GREEN = 'green',
+  AMBER = 'amber',
+  ORANGE = 'orange',
+  PINK = 'pink',
+  GRAY = 'gray'
+}
 
 export interface Connection {
   id: string;
@@ -42,7 +52,10 @@ export interface Connection {
 
 // ─── Tabs ───────────────────────────────────────────────────────────────────
 
-export type TabType = 'table' | 'sql' | 'home';
+export enum TabType {
+  TABLE = 'table',
+  SQL = 'sql'
+}
 
 export interface Tab {
   id: string;

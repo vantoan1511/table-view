@@ -16,6 +16,7 @@ import { useTabsStore } from '@/stores/tabs';
 import { useUpdaterStore } from '@/stores/updater';
 import * as Neutralino from '@neutralinojs/lib';
 import { defineAsyncComponent, onMounted, watch } from 'vue';
+import { DbType, TabType } from './types';
 
 // Lazy load secondary components
 const NewConnectionModal = defineAsyncComponent(
@@ -65,7 +66,7 @@ watch(
         const currentSelected = schemaStore.selectedSchemaByConnection[tab.connectionId];
         if (tab.schema !== currentSelected) {
           schemaStore.setSelectedSchema(tab.schema, tab.connectionId);
-          if (conn?.type === 'oracle') {
+          if (conn?.type === DbType.ORACLE) {
             await schemaStore.loadSchema(
               schemaStore.loadedAllDatabases,
               tab.connectionId,
@@ -76,7 +77,7 @@ watch(
       }
     }
 
-    if (tab.type === 'table' && tab.tableName) {
+    if (tab.type === TabType.TABLE && tab.tableName) {
       gridStore.isLoading = true;
       gridStore.loadTable(tab.tableName, tab.connectionId, tab.schema, tab.dbName);
     }
