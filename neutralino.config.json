@@ -39,7 +39,7 @@
       "minWidth": 1024,
       "minHeight": 720,
       "center": true,
-      "icon": "icon.png",
+      "icon": "/icon.png",
       "enableInspector": false
     }
   },
@@ -48,7 +48,8 @@
     "resourcesPath": "/build/",
     "resourcesExclude": ".*\\.ts$|.*\\.tsx$|.*\\.map$",
     "copyItems": [
-      "icon.ico"
+      "icon.ico",
+      "icon.png"
     ],
     "extensionsPath": "/extensions/",
     "extensionsExclude": "node_modules|internal|drivers|vendor|.*\\.go$|.*\\.js$|.*\\.mod$|.*\\.sum$|.*\\.log$|package.*\\.json|target|.*\\.rs$|Cargo.*",
