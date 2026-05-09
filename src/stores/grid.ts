@@ -2,24 +2,18 @@ import type { GridColumn, GridRow } from '@/types'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-import * as Neutralino from '@neutralinojs/lib'
 import { useConnectionsStore } from './connections'
+import { useTableData } from './grid/useTableData'
+import { useSqlQuery } from './grid/useSqlQuery'
+import { BridgeService } from '@/services/bridge'
 
 export const useGridStore = defineStore('grid', () => {
   const connectionsStore = useConnectionsStore()
-  // Table data grid state
-  const columns = ref<GridColumn[]>([])
-  const rows = ref<GridRow[]>([])
-  const totalRows = ref(0)
-  const currentPage = ref(1)
-  const rowsPerPage = ref(100)
-  const sortColumn = ref<string | undefined>()
-  const sortDirection = ref<'asc' | 'desc' | undefined>()
-  const executionTime = ref(0)
-  const activeTableName = ref('')
-  const activeTableSchema = ref('')
-  const filterText = ref('')
   const isLoading = ref(false)
+
+  // Use sub-composables
+  const tableData = useTableData(connectionsStore)
+  const sqlQuery = useSqlQuery(connectionsStore)
 
   // Row selection state
   const selectedRowIndices = ref<Set<number>>(new Set())
@@ -31,201 +25,61 @@ export const useGridStore = defineStore('grid', () => {
   // Column widths state (column name -> width in px)
   const columnWidths = ref<Record<string, number>>({})
 
-  // SQL result state
-  const sqlColumns = ref<GridColumn[]>([])
-  const sqlRows = ref<GridRow[]>([])
-  const sqlRowCount = ref(0)
-  const sqlExecutionTime = ref(0)
-  const sqlLimit = ref(200)
-  const sqlMessages = ref<Array<{ type: string; text: string; timestamp: string }>>([])
-
-  const totalPages = computed(() => Math.max(1, Math.ceil(totalRows.value / rowsPerPage.value)))
-
-  const resolveConnection = (connectionId?: string) =>
-    connectionsStore.connections.find((conn) => conn.id === (connectionId || connectionsStore.activeConnectionId)) ?? null
-
-  const resolveBackendTableName = (
-    tableName: string,
-    connectionId?: string,
-    schemaName?: string,
-  ) => {
-    const connection = resolveConnection(connectionId)
-    const targetSchema = schemaName || activeTableSchema.value
-
-    if (connection?.type === 'oracle' && targetSchema) {
-      return `${targetSchema}.${tableName}`
-    }
-
-    return tableName
-  }
+  const totalPages = computed(() => 
+    Math.max(1, Math.ceil(tableData.totalRows.value / tableData.rowsPerPage.value))
+  )
 
   const setPage = (page: number) => {
-    currentPage.value = page
-    loadTable(activeTableName.value)
+    tableData.currentPage.value = page
+    tableData.loadTable(tableData.activeTableName.value, isLoading)
   }
 
   const setRowsPerPage = (count: number) => {
-    rowsPerPage.value = count
-    currentPage.value = 1
-    loadTable(activeTableName.value)
+    tableData.rowsPerPage.value = count
+    tableData.currentPage.value = 1
+    tableData.loadTable(tableData.activeTableName.value, isLoading)
   }
-
-  const loadTable = async (tableName: string, connectionId?: string, schemaName?: string) => {
-    if (!tableName || !window.NL_PORT) return
-
-    activeTableName.value = tableName
-    if (schemaName) {
-      activeTableSchema.value = schemaName
-    }
-    const reqId = Date.now().toString()
-    const offset = (currentPage.value - 1) * rowsPerPage.value
-    const startTime = performance.now()
-    isLoading.value = true
-
-    // Use provided connectionId or fallback to active one
-    const targetConnectionId = connectionId || connectionsStore.activeConnectionId || undefined
-    const backendTableName = resolveBackendTableName(tableName, targetConnectionId, schemaName)
-
-    const onResult = (evt: any) => {
-      const payload = evt.detail
-      if (payload.reqId === reqId) {
-        if (payload.success) {
-          rows.value = payload.rows
-          columns.value = payload.fields.map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID), isPrimaryKey: !!f.isPrimaryKey }))
-          totalRows.value = payload.totalCount
-          executionTime.value = payload.executionTime ?? Math.round(performance.now() - startTime)
-        } else {
-          console.error("Failed to fetch table data:", payload.error)
-        }
-        isLoading.value = false
-        Neutralino.events.off('dbBridge.fetchTableDataResult', onResult)
-      }
-    }
-
-    Neutralino.events.on('dbBridge.fetchTableDataResult', onResult)
-    Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.fetchTableData', {
-      reqId,
-      connectionId: targetConnectionId,
-      tableName: backendTableName,
-      limit: rowsPerPage.value,
-      offset,
-      sortColumn: sortColumn.value,
-      sortDirection: sortDirection.value,
-      filter: filterText.value
-    })
-  }
-
 
   const updateCell = async (rowIndex: number, column: GridColumn, newValue: any) => {
-    const row = rows.value[rowIndex]
+    const row = tableData.rows.value[rowIndex]
     if (!row || !window.NL_PORT) return false
 
-    // Don't update if value hasn't changed
     if (row[column.name] === newValue) return true
     
-    // Primary key found?
-    const pkColumn = columns.value.find(c => c.isPrimaryKey)
+    const pkColumn = tableData.columns.value.find(c => c.isPrimaryKey)
     if (!pkColumn) {
-      console.warn('Cannot update cell: No primary key found for table', activeTableName.value)
+      console.warn('Cannot update cell: No primary key found for table', tableData.activeTableName.value)
       return false
     }
 
     const pkValue = row[pkColumn.name]
-    const reqId = Date.now().toString()
-
-    return new Promise<boolean>((resolve) => {
-      const onResult = (evt: any) => {
-        const payload = evt.detail
-        if (payload.reqId === reqId) {
-          if (payload.success) {
-            // Update the local reactive state
-            row[column.name] = newValue
-            resolve(true)
-          } else {
-            console.error('Failed to update cell:', payload.error)
-            resolve(false)
-          }
-          Neutralino.events.off('dbBridge.updateCellResult', onResult)
-        }
-      }
-
-      Neutralino.events.on('dbBridge.updateCellResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.updateCell', {
-        reqId,
+    
+    try {
+      await BridgeService.request('dbBridge.updateCell', 'dbBridge.updateCellResult', {
         connectionId: connectionsStore.activeConnectionId,
-        tableName: resolveBackendTableName(activeTableName.value),
+        tableName: tableData.resolveBackendTableName(tableData.activeTableName.value),
         pkColumn: pkColumn.name,
         pkValue,
         targetColumn: column.name,
         newValue
       })
-    })
-  }
-
-  const runQuery = async (sql: string, limit?: number, connectionId?: string) => {
-    if (!sql || !window.NL_PORT) return
-
-    const reqId = Date.now().toString()
-    const startTime = performance.now()
-    sqlMessages.value = [] // clear previous messages
-    isLoading.value = true
-
-    const onResult = (evt: any) => {
-      const payload = evt.detail
-      if (payload.reqId === reqId) {
-        sqlExecutionTime.value = payload.executionTime ?? Math.round(performance.now() - startTime)
-        if (payload.success) {
-          sqlRows.value = payload.rows || []
-          sqlColumns.value = (payload.fields || []).map((f: any) => ({ name: f.name, dataType: String(f.dataTypeID), isPrimaryKey: !!f.isPrimaryKey }))
-          sqlRowCount.value = payload.rowCount || 0
-
-          sqlMessages.value.push({
-            type: 'info',
-            text: `Query executed successfully. ${sqlRowCount.value} rows affected.`,
-            timestamp: new Date().toISOString(),
-          })
-        } else {
-          sqlMessages.value.push({
-            type: 'error',
-            text: `Error: ${payload.error}`,
-            timestamp: new Date().toISOString(),
-          })
-        }
-        isLoading.value = false
-        Neutralino.events.off('dbBridge.executeQueryResult', onResult)
-      }
+      
+      row[column.name] = newValue
+      return true
+    } catch (error: any) {
+      console.error('Failed to update cell:', error.message)
+      return false
     }
-
-    Neutralino.events.on('dbBridge.executeQueryResult', onResult)
-    Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.executeQuery', {
-      reqId,
-      connectionId: connectionId || connectionsStore.activeConnectionId,
-      sql,
-      limit: limit || sqlLimit.value
-    })
   }
 
   const toggleSort = (colName: string) => {
-    if (sortColumn.value === colName) {
-      if (sortDirection.value === 'asc') {
-        sortDirection.value = 'desc'
-      } else if (sortDirection.value === 'desc') {
-        sortColumn.value = undefined
-        sortDirection.value = undefined
-      }
-    } else {
-      sortColumn.value = colName
-      sortDirection.value = 'asc'
-    }
-    currentPage.value = 1
-    loadTable(activeTableName.value)
+    tableData.toggleSort(colName, isLoading)
   }
 
   const toggleRowSelection = (rowIdx: number, event: MouseEvent) => {
     const newSet = new Set(selectedRowIndices.value)
 
     if (event.shiftKey && selectedRowIndices.value.size > 0) {
-      // Range select: find the last selected index and fill between
       const lastIdx = Math.max(...selectedRowIndices.value)
       const start = Math.min(lastIdx, rowIdx)
       const end = Math.max(lastIdx, rowIdx)
@@ -233,14 +87,12 @@ export const useGridStore = defineStore('grid', () => {
         newSet.add(i)
       }
     } else if (event.ctrlKey || event.metaKey) {
-      // Toggle individual row
       if (newSet.has(rowIdx)) {
         newSet.delete(rowIdx)
       } else {
         newSet.add(rowIdx)
       }
     } else {
-      // Single select
       if (newSet.has(rowIdx)) {
         newSet.delete(rowIdx)
       } else {
@@ -253,7 +105,7 @@ export const useGridStore = defineStore('grid', () => {
   }
 
   const toggleSelectAllRows = () => {
-    if (selectedRowIndices.value.size === rows.value.length) {
+    if (selectedRowIndices.value.size === tableData.rows.value.length) {
       clearSelection()
     } else {
       selectAllRows()
@@ -266,7 +118,7 @@ export const useGridStore = defineStore('grid', () => {
 
   const selectAllRows = () => {
     const newSet = new Set<number>()
-    for (let i = 0; i < rows.value.length; i++) {
+    for (let i = 0; i < tableData.rows.value.length; i++) {
       newSet.add(i)
     }
     selectedRowIndices.value = newSet
@@ -285,7 +137,7 @@ export const useGridStore = defineStore('grid', () => {
   }
 
   const startEditCell = (rowIndex: number, column: GridColumn) => {
-    const value = rows.value[rowIndex]?.[column.name]
+    const value = tableData.rows.value[rowIndex]?.[column.name]
     editingCell.value = {
       rowIndex,
       column,
@@ -307,24 +159,19 @@ export const useGridStore = defineStore('grid', () => {
     }
   }
 
-  // ─── New Row Inline Adding ───────────────────────────────────────────────
   const newRowIdx = ref<number | null>(null)
   const newRowData = ref<Record<string, string>>({})
 
   const createNewRow = () => {
-    // Insert a placeholder row at the top
     const placeholder: GridRow = {}
-    // Fill placeholder with empty strings for each column
-    for (const col of columns.value) {
+    for (const col of tableData.columns.value) {
       placeholder[col.name] = ''
     }
-    // Prepend to rows and track its index (0 after prepend)
-    rows.value = [placeholder, ...rows.value]
-    totalRows.value += 1
+    tableData.rows.value = [placeholder, ...tableData.rows.value]
+    tableData.totalRows.value += 1
     newRowIdx.value = 0
-    // Initialize data object for binding
     const data: Record<string, string> = {}
-    for (const col of columns.value) {
+    for (const col of tableData.columns.value) {
       data[col.name] = ''
     }
     newRowData.value = data
@@ -332,9 +179,8 @@ export const useGridStore = defineStore('grid', () => {
 
   const cancelNewRow = () => {
     if (newRowIdx.value === null) return
-    // Remove the temporary row
-    rows.value.splice(newRowIdx.value, 1)
-    totalRows.value -= 1
+    tableData.rows.value.splice(newRowIdx.value, 1)
+    tableData.totalRows.value -= 1
     newRowIdx.value = null
     newRowData.value = {}
   }
@@ -349,30 +195,24 @@ export const useGridStore = defineStore('grid', () => {
   const saveNewRow = async () => {
     if (newRowIdx.value === null) return
     try {
-      // Filter out empty strings so the DB can apply default values (e.g. for Serial PKs)
-      // For UUID columns without a DB default, we generate one automatically.
       const cleanData: Record<string, string> = {}
-      for (const col of columns.value) {
+      for (const col of tableData.columns.value) {
         const val = newRowData.value[col.name]
 
         if (!val || val === '') {
-          // If it's a primary key or UUID column and left blank, auto-generate a UUID.
-          // Note: Postgres driver returns OIDs for dataType (e.g. 2950 for uuid, 1043 for varchar, 25 for text)
           const type = col.dataType ? col.dataType.toLowerCase() : ''
           const isUuid = type.includes('uuid') || type === '2950'
           const isStringPk = col.isPrimaryKey && (['1043', '25', '1042'].includes(type) || type.includes('char') || type.includes('text'))
           if (isUuid || isStringPk) {
             cleanData[col.name] = crypto.randomUUID()
           }
-          // Otherwise, drop it so DB defaults or NULL apply.
         } else {
           cleanData[col.name] = val
         }
       }
 
       const savedRow = await insertRowToDB(cleanData)
-      // Replace placeholder with actual row returned from DB
-      rows.value.splice(newRowIdx.value, 1, savedRow)
+      tableData.rows.value.splice(newRowIdx.value, 1, savedRow)
       newRowIdx.value = null
       newRowData.value = {}
     } catch (err) {
@@ -381,150 +221,93 @@ export const useGridStore = defineStore('grid', () => {
     }
   }
 
-  // Internal DB insertion (used by saveNewRow and legacy calls)
   const insertRowToDB = async (data: Record<string, string> = {}): Promise<GridRow> => {
-    return new Promise((resolve, reject) => {
-      if (!window.NL_PORT) return resolve({})
-      const reqId = Date.now().toString()
-
-      const onResult = (evt: any) => {
-        const payload = evt.detail
-        if (payload.reqId !== reqId) return
-        Neutralino.events.off('dbBridge.insertRowResult', onResult)
-        if (payload.success) {
-          resolve(payload.row)
-        } else {
-          reject(new Error(payload.error))
-        }
-      }
-
-      Neutralino.events.on('dbBridge.insertRowResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.insertRow', {
-        reqId,
-        connectionId: connectionsStore.activeConnectionId,
-        tableName: resolveBackendTableName(activeTableName.value),
-        data,
-      })
+    if (!window.NL_PORT) return {}
+    const payload = await BridgeService.request('dbBridge.insertRow', 'dbBridge.insertRowResult', {
+      connectionId: connectionsStore.activeConnectionId,
+      tableName: tableData.resolveBackendTableName(tableData.activeTableName.value),
+      data,
     })
+    return payload.row
   }
 
-  // Backwards‑compatible wrapper used by UI (old call)
   const insertRow = async (data: Record<string, string> = {}): Promise<void> => {
     await insertRowToDB(data)
   }
 
-  const deleteRows = (indices: number[]): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (!window.NL_PORT) return resolve()
-      const pkCol = columns.value.find(c => c.isPrimaryKey)
-      if (!pkCol) return reject(new Error('No primary key column found'))
+  const deleteRows = async (indices: number[]): Promise<void> => {
+    if (!window.NL_PORT) return
+    const pkCol = tableData.columns.value.find(c => c.isPrimaryKey)
+    if (!pkCol) throw new Error('No primary key column found')
 
-      const pkValues = indices.map(i => rows.value[i]?.[pkCol.name]).filter(v => v !== undefined)
-      if (pkValues.length === 0) return resolve()
+    const pkValues = indices.map(i => tableData.rows.value[i]?.[pkCol.name]).filter(v => v !== undefined)
+    if (pkValues.length === 0) return
 
-      const reqId = Date.now().toString()
-
-      const onResult = (evt: any) => {
-        const payload = evt.detail
-        if (payload.reqId !== reqId) return
-        Neutralino.events.off('dbBridge.deleteRowsResult', onResult)
-        if (payload.success) {
-          // Remove deleted rows locally
-          const idxSet = new Set(indices)
-          rows.value = rows.value.filter((_, i) => !idxSet.has(i))
-          totalRows.value -= indices.length
-          clearSelection()
-          resolve()
-        } else {
-          reject(new Error(payload.error))
-        }
-      }
-
-      Neutralino.events.on('dbBridge.deleteRowsResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.deleteRows', {
-        reqId,
-        connectionId: connectionsStore.activeConnectionId,
-        tableName: resolveBackendTableName(activeTableName.value),
-        pkColumn: pkCol.name,
-        pkValues,
-      })
+    await BridgeService.request('dbBridge.deleteRows', 'dbBridge.deleteRowsResult', {
+      connectionId: connectionsStore.activeConnectionId,
+      tableName: tableData.resolveBackendTableName(tableData.activeTableName.value),
+      pkColumn: pkCol.name,
+      pkValues,
     })
+
+    const idxSet = new Set(indices)
+    tableData.rows.value = tableData.rows.value.filter((_, i) => !idxSet.has(i))
+    tableData.totalRows.value -= indices.length
+    clearSelection()
   }
 
-  const getTableColumns = (tableName: string): Promise<any[]> => {
-    return new Promise((resolve, reject) => {
-      if (!window.NL_PORT) return resolve([])
-      const reqId = Date.now().toString()
-      const onResult = (evt: any) => {
-        const payload = evt.detail
-        if (payload.reqId !== reqId) return
-        Neutralino.events.off('dbBridge.getTableColumnsResult', onResult)
-        if (payload.success) resolve(payload.columns)
-        else reject(new Error(payload.error))
-      }
-      Neutralino.events.on('dbBridge.getTableColumnsResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.getTableColumns', {
-        reqId,
-        connectionId: connectionsStore.activeConnectionId,
-        tableName: resolveBackendTableName(tableName),
-      })
+  const getTableColumns = async (tableName: string): Promise<any[]> => {
+    if (!window.NL_PORT) return []
+    const payload = await BridgeService.request('dbBridge.getTableColumns', 'dbBridge.getTableColumnsResult', {
+      connectionId: connectionsStore.activeConnectionId,
+      tableName: tableData.resolveBackendTableName(tableName),
     })
+    return payload.columns
   }
 
-  const alterTable = (tableName: string, operations: any[]): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (!window.NL_PORT) return resolve()
-      const reqId = Date.now().toString()
-      const onResult = (evt: any) => {
-        const payload = evt.detail
-        if (payload.reqId !== reqId) return
-        Neutralino.events.off('dbBridge.alterTableResult', onResult)
-        if (payload.success) resolve()
-        else reject(new Error(payload.error))
-      }
-      Neutralino.events.on('dbBridge.alterTableResult', onResult)
-      Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.alterTable', {
-        reqId,
-        connectionId: connectionsStore.activeConnectionId,
-        tableName: resolveBackendTableName(tableName),
-        operations,
-      })
+  const alterTable = async (tableName: string, operations: any[]): Promise<void> => {
+    if (!window.NL_PORT) return
+    await BridgeService.request('dbBridge.alterTable', 'dbBridge.alterTableResult', {
+      connectionId: connectionsStore.activeConnectionId,
+      tableName: tableData.resolveBackendTableName(tableName),
+      operations,
     })
   }
 
   return {
-    columns,
-    rows,
-    totalRows,
-    currentPage,
-    rowsPerPage,
-    sortColumn,
-    sortDirection,
-    executionTime,
-    activeTableName,
-    activeTableSchema,
-    filterText,
+    // Re-export from tableData
+    columns: tableData.columns,
+    rows: tableData.rows,
+    totalRows: tableData.totalRows,
+    currentPage: tableData.currentPage,
+    rowsPerPage: tableData.rowsPerPage,
+    sortColumn: tableData.sortColumn,
+    sortDirection: tableData.sortDirection,
+    executionTime: tableData.executionTime,
+    activeTableName: tableData.activeTableName,
+    activeTableSchema: tableData.activeTableSchema,
+    filterText: tableData.filterText,
+    loadTable: (tableName: string, connectionId?: string, schemaName?: string, dbName?: string) => 
+      tableData.loadTable(tableName, isLoading, connectionId, schemaName, dbName),
+    
+    // Re-export from sqlQuery
+    sqlColumns: sqlQuery.sqlColumns,
+    sqlRows: sqlQuery.sqlRows,
+    sqlRowCount: sqlQuery.sqlRowCount,
+    sqlExecutionTime: sqlQuery.sqlExecutionTime,
+    sqlLimit: sqlQuery.sqlLimit,
+    sqlMessages: sqlQuery.sqlMessages,
+    runQuery: (sql: string, limit?: number, connectionId?: string, dbName?: string) => 
+      sqlQuery.runQuery(sql, isLoading, limit, connectionId, dbName),
+
+    // Grid specific
     isLoading,
     totalPages,
     selectedRowIndices,
     columnWidths,
-    sqlColumns,
-    sqlRows,
-    sqlRowCount,
-    sqlExecutionTime,
-    sqlLimit,
-    sqlMessages,
     setPage,
     setRowsPerPage,
-    loadTable,
     updateCell,
-    runQuery,
-    // Inline row addition
-    newRowIdx,
-    newRowData,
-    createNewRow,
-    cancelNewRow,
-    saveNewRow,
     toggleSort,
     toggleRowSelection,
     toggleSelectAllRows,
@@ -538,6 +321,12 @@ export const useGridStore = defineStore('grid', () => {
     cancelEditCell,
     saveEditCell,
     setColumnWidth,
+    // New Row addition
+    newRowIdx,
+    newRowData,
+    createNewRow,
+    cancelNewRow,
+    saveNewRow,
     insertRow,
     deleteRows,
     getTableColumns,

@@ -83,43 +83,28 @@ export const useConnectionsStore = defineStore('connections', () => {
     const conn = connections.value.find(c => c.id === id)
     if (!conn) return
 
-    // 2. If already marked connected, we might still want to ensure bridge has it (stateless extension)
-    // but we can skip the wait if we're confident. 
-    // Actually, always dispatching connect is safest for the bridge's pool.
-
     if (window.NL_PORT) {
-      return new Promise((resolve, reject) => {
-        const reqId = Date.now().toString()
-
-        const onConnectResult = async (evt: any) => {
-          const payload = evt.detail
-          if (payload.reqId === reqId) {
-            Neutralino.events.off('dbBridge.connectResult', onConnectResult)
-            if (payload.success) {
-              conn.isConnected = true
-              // Import dynamically to avoid circular dependency
-              const { useSchemaStore } = await import('./schema')
-              const schemaStore = useSchemaStore()
-              schemaStore.setSelectedSchema('')
-              schemaStore.loadSchema(conn.displayAllDatabases, id)
-              resolve(true)
-            } else {
-              conn.isConnected = false
-              // Rollback if this specific connection attempt failed
-              activeConnectionId.value = previousActiveConnectionId
-              console.error("Failed to connect:", payload.error)
-              reject(new Error(payload.error || `Failed to connect to database: ${conn.name}`))
-            }
-          }
-        }
-
-        Neutralino.events.on('dbBridge.connectResult', onConnectResult)
-        Neutralino.extensions.dispatch('com.github.vantoan1511.table-view.db-bridge', 'dbBridge.connect', {
-          reqId,
+      const { BridgeService } = await import('@/services/bridge')
+      try {
+        await BridgeService.request('dbBridge.connect', 'dbBridge.connectResult', {
           connectionId: id,
           config: conn
         })
-      })
+        
+        conn.isConnected = true
+        // Import dynamically to avoid circular dependency
+        const { useSchemaStore } = await import('./schema')
+        const schemaStore = useSchemaStore()
+        schemaStore.setSelectedSchema('')
+        schemaStore.loadSchema(conn.displayAllDatabases, id)
+        return true
+      } catch (error: any) {
+        conn.isConnected = false
+        // Rollback if this specific connection attempt failed
+        activeConnectionId.value = previousActiveConnectionId
+        console.error("Failed to connect:", error.message)
+        throw error
+      }
     }
   }
 

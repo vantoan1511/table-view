@@ -2,7 +2,7 @@ import type { Tab } from '@/types'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
-import * as Neutralino from '@neutralinojs/lib'
+import { NativeService } from '@/services/native'
 import { useConnectionsStore } from './connections'
 import { useSchemaStore } from './schema'
 
@@ -19,14 +19,14 @@ export const useTabsStore = defineStore('tabs', () => {
 
   // Persistence logic — only SQL editor tabs are persisted, never table tabs
   const saveTabsToStorage = async () => {
-    if (!window.NL_PORT) return
     try {
       const sqlTabs = tabs.value.filter(t => t.type === 'sql')
-      const data = JSON.stringify(sqlTabs)
-      await Neutralino.storage.setData('app_tabs', data)
+      await NativeService.storage.set('app_tabs', sqlTabs)
+      
       // Only persist activeTabId when it belongs to a sql tab
       const activeIsSql = sqlTabs.some(t => t.id === activeTabId.value)
-      await Neutralino.storage.setData('app_activeTabId', activeIsSql ? activeTabId.value : '')
+      await NativeService.storage.set('app_activeTabId', activeIsSql ? activeTabId.value : '')
+      
       console.log(`[TabsStore] Saved ${sqlTabs.length} SQL tabs to storage`)
     } catch (err) {
       console.error('Failed to save tabs to storage:', err)
@@ -34,17 +34,13 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   const loadTabsFromStorage = async () => {
-    if (!window.NL_PORT) return
     try {
-      const data = await Neutralino.storage.getData('app_tabs')
-      if (data) {
-        const parsed = JSON.parse(data)
-        // Safety guard: only restore sql tabs, discard any stale table tabs
-        const sqlOnly = (parsed as Tab[]).filter(t => t.type === 'sql')
+      const sqlOnly = await NativeService.storage.get<Tab[]>('app_tabs')
+      if (sqlOnly) {
         tabs.value = sqlOnly
         console.log(`[TabsStore] Loaded ${sqlOnly.length} SQL tabs from storage`)
       }
-      const activeId = await Neutralino.storage.getData('app_activeTabId')
+      const activeId = await NativeService.storage.get<string>('app_activeTabId')
       if (activeId && tabs.value.some(t => t.id === activeId)) {
         activeTabId.value = activeId
       }
@@ -112,11 +108,11 @@ export const useTabsStore = defineStore('tabs', () => {
     }
   }
 
-  const openTable = (tableName: string, schemaName?: string, connectionId?: string) => {
+  const openTable = (tableName: string, schemaName?: string, connectionId?: string, dbName?: string) => {
     const targetSchema = schemaName || schemaStore.selectedSchema
     const targetConnectionId = connectionId ?? connectionsStore.activeConnectionId ?? undefined
     const existing = tabs.value.find(
-      (t) => t.type === 'table' && t.tableName === tableName && t.schema === targetSchema && t.connectionId === targetConnectionId,
+      (t) => t.type === 'table' && t.tableName === tableName && t.schema === targetSchema && t.connectionId === targetConnectionId && t.dbName === dbName,
     )
     if (existing) {
       activeTabId.value = existing.id
@@ -129,6 +125,7 @@ export const useTabsStore = defineStore('tabs', () => {
       tableName,
       connectionId: targetConnectionId,
       schema: targetSchema,
+      dbName,
     }
     tabs.value.push(tab)
     activeTabId.value = tab.id
@@ -146,12 +143,12 @@ export const useTabsStore = defineStore('tabs', () => {
     return existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1
   }
 
-  const openSqlEditor = (connectionId?: string, query: string = '', isDraft: boolean = true, forceNew: boolean = false) => {
+  const openSqlEditor = (connectionId?: string, query: string = '', isDraft: boolean = true, forceNew: boolean = false, dbName?: string) => {
     const connId = connectionId || connectionsStore.activeConnectionId || undefined
     
-    // If not forcing new, try to find an existing editor for this connection
+    // If not forcing new, try to find an existing editor for this connection and database
     if (!forceNew && connId) {
-      const existingTabs = tabs.value.filter(t => t.type === 'sql' && t.connectionId === connId)
+      const existingTabs = tabs.value.filter(t => t.type === 'sql' && t.connectionId === connId && t.dbName === dbName)
       if (existingTabs.length > 1) {
         selectorConnectionId.value = connId
         showTabSelector.value = true
@@ -206,15 +203,15 @@ export const useTabsStore = defineStore('tabs', () => {
 
   const exportSqlTab = async (id: string) => {
     const tab = tabs.value.find(t => t.id === id)
-    if (!tab || tab.type !== 'sql' || !window.NL_PORT) return
+    if (!tab || tab.type !== 'sql') return
 
-    const res = await Neutralino.os.showSaveDialog('Export SQL Query', {
+    const res = await NativeService.os.showSaveDialog('Export SQL Query', {
       filters: [{ name: 'SQL Files', extensions: ['sql'] }]
     })
     if (!res) return
 
     try {
-      await Neutralino.filesystem.writeFile(res, tab.query || '')
+      await NativeService.fs.writeFile(res, tab.query || '')
       tab.filePath = res
       tab.isDirty = false
       // Optional: rename tab to file name

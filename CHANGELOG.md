@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **Database: Schema Loading**: Fixed "infinite loading" issue in the database tree by correcting the payload structure handling in `useSchemaActions.ts` and ensuring the `db-bridge` binary is synchronized with the latest handlers.
+- **Security: Driver Hardening**: Resolved potential SQL injection vulnerabilities in database drivers by using parameterized queries.
+- **Performance: Redundant Fetching**: Removed redundant schema fetching logic in `DatabaseTree.vue` to improve sidebar responsiveness.
 - **CI/CD: Release Workflow**: Fixed a PowerShell syntax error in the GitHub Actions workflow that caused Windows installer builds to fail.
 - **Production: Build Assets**: Added `data-skip-asset` to the Neutralino globals script to prevent Vite from attempting to bundle it during production builds.
 

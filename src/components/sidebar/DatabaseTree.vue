@@ -1,30 +1,21 @@
 <script setup lang="ts">
-import DbIcon from '@/components/icons/DbIcon.vue'
 import { useConnectionsStore } from '@/stores/connections'
 import { useSchemaStore } from '@/stores/schema'
 import { useTabsStore } from '@/stores/tabs'
 import { useToastStore } from '@/stores/toast'
 import type { Connection } from '@/types'
 import {
-  ChevronRight,
   Code2,
   Copy,
-  Database,
-  Eye,
-  FunctionSquare,
   Layers,
-  Loader2,
-  Lock,
-  MoreVertical,
   Pencil,
-  Plus,
   RefreshCw,
-  Table2,
   Trash2,
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import ConfirmDialog from '../ui/ConfirmDialog.vue'
-import ContextMenu from '../ui/ContextMenu.vue'
+import ConnectionNode from './ConnectionNode.vue'
+import ConnectionContextMenu from './ConnectionContextMenu.vue'
 
 const connectionsStore = useConnectionsStore()
 const schemaStore = useSchemaStore()
@@ -32,17 +23,13 @@ const tabsStore = useTabsStore()
 const toastStore = useToastStore()
 
 // ─── Tree Expansion State ─────────────────────────────────────────────────────
-// Which connection nodes are expanded in the tree
 const expandedConnections = ref<Record<string, boolean>>({})
-// Which object-group nodes are expanded per connection+schema key
-const expandedGroups = ref<Record<string, boolean>>({})
 
 const toggleConnection = async (conn: Connection) => {
   const wasExpanded = expandedConnections.value[conn.id]
   expandedConnections.value[conn.id] = !wasExpanded
 
   if (!wasExpanded) {
-    // Expanding: ensure connection is active and schema is loaded
     if (!conn.isConnected) {
       try {
         await connectionsStore.setActiveConnection(conn.id)
@@ -57,38 +44,15 @@ const toggleConnection = async (conn: Connection) => {
         })
       }
     } else {
-      // Already connected but may not have schema yet for this connection
-      connectionsStore.activeConnectionId === conn.id
-        ? null
-        : await connectionsStore.setActiveConnection(conn.id)
+      if (connectionsStore.activeConnectionId !== conn.id) {
+        await connectionsStore.setActiveConnection(conn.id)
+      }
 
       if (!schemaStore.hasSchemaLoaded(conn.id)) {
         schemaStore.loadSchema(conn.displayAllDatabases, conn.id)
       }
     }
   }
-}
-
-const toggleSchema = (connectionId: string, schemaName: string) => {
-  schemaStore.setSchemaExpanded(
-    connectionId,
-    schemaName,
-    !schemaStore.isSchemaExpanded(connectionId, schemaName),
-  )
-}
-
-const groupKey = (connectionId: string, schemaName: string, group: string) =>
-  `${connectionId}::${schemaName}::${group}`
-
-const toggleGroup = (connectionId: string, schemaName: string, group: string) => {
-  const key = groupKey(connectionId, schemaName, group)
-  expandedGroups.value[key] = !expandedGroups.value[key]
-}
-
-const isGroupExpanded = (connectionId: string, schemaName: string, group: string) => {
-  const key = groupKey(connectionId, schemaName, group)
-  // Tables default to expanded, others collapsed
-  return expandedGroups.value[key] ?? (group === 'tables')
 }
 
 // ─── Context Menu ─────────────────────────────────────────────────────────────
@@ -106,8 +70,6 @@ const closeContextMenu = () => {
 }
 
 const onContextMenu = (event: MouseEvent, id: string) => {
-  event.preventDefault()
-  event.stopPropagation()
   let x = event.clientX
   let y = event.clientY
   if (x + 200 > window.innerWidth) x -= 200
@@ -156,320 +118,19 @@ const confirmDelete = () => {
   showDeleteConfirm.value = false
   idToDelete.value = null
 }
-
-// ─── Table / View click ───────────────────────────────────────────────────────
-const openTable = (tableName: string, schemaName: string, connectionId: string) => {
-  // Set active connection first if different
-  if (connectionsStore.activeConnectionId !== connectionId) {
-    connectionsStore.setActiveConnection(connectionId).catch(() => { })
-  }
-  tabsStore.openTable(tableName, schemaName, connectionId)
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const colorMap: Record<string, string> = {
-  indigo: 'bg-conn-indigo',
-  blue: 'bg-conn-blue',
-  teal: 'bg-conn-teal',
-  green: 'bg-conn-green',
-  amber: 'bg-conn-amber',
-  orange: 'bg-conn-orange',
-  pink: 'bg-conn-pink',
-  gray: 'bg-conn-gray',
-}
-
-const isActiveTable = (tableName: string, schemaName: string) =>
-  tabsStore.activeTab?.tableName === tableName && tabsStore.activeTab?.schema === schemaName
 </script>
 
 <template>
   <div class="flex flex-col flex-1 min-h-0 select-none">
-    <!-- Connection list -->
     <div class="flex-1 overflow-y-auto py-1">
-      <div v-for="conn in connectionsStore.connections" :key="conn.id">
-        <!-- Connection row -->
-        <div
-          class="group relative flex items-center gap-1.5 w-full px-2 py-1.5 cursor-pointer transition-colors duration-100 hover:bg-hover overflow-hidden"
-          :class="connectionsStore.activeConnectionId === conn.id ? 'bg-active' : ''" @click="toggleConnection(conn)"
-          @contextmenu.prevent.stop="onContextMenu($event, conn.id)">
-          
-          <!-- Connection Color Flag -->
-          <div 
-            class="absolute left-0 top-0 bottom-0 w-[3px] transition-all duration-200"
-            :class="[
-              colorMap[conn.color] ?? 'bg-conn-gray',
-              connectionsStore.activeConnectionId === conn.id ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'
-            ]"
-          />
-
-          <!-- Expand chevron -->
-          <ChevronRight :size="13" class="shrink-0 text-text-tertiary transition-transform duration-150 ml-1"
-            :class="expandedConnections[conn.id] ? 'rotate-90' : ''" />
-
-          <!-- Status dot (simplified to only show connection status) -->
-          <span v-if="conn.isConnected" class="w-1.5 h-1.5 rounded-full shrink-0 bg-success animate-pulse" />
-
-          <!-- DB type icon -->
-          <DbIcon :type="conn.type" size="14" :class="conn.isConnected ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'" />
-
-          <!-- Name + host -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-1.5 overflow-hidden">
-              <span class="text-[13px] font-medium truncate leading-tight"
-                :class="connectionsStore.activeConnectionId === conn.id ? 'text-primary' : 'text-text-primary'">
-                {{ conn.name }}
-              </span>
-              <span v-for="tag in (conn.tags?.split(',') || []).map(t => t.trim()).filter(Boolean)" :key="tag"
-                class="shrink-0 px-1 py-0.5 rounded text-[9px] font-bold uppercase leading-none bg-primary/10 text-primary border border-primary/20">
-                {{ tag }}
-              </span>
-            </div>
-            <div class="text-[11px] text-text-tertiary truncate leading-tight">
-              {{ conn.host }}:{{ conn.port }}
-            </div>
-          </div>
-
-          <!-- Loading spinner -->
-          <Loader2 v-if="schemaStore.isConnectionLoading(conn.id)" :size="13"
-            class="shrink-0 text-text-tertiary animate-spin" />
-
-          <!-- More button -->
-          <span
-            class="flex items-center justify-center w-5 h-5 rounded opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-text-secondary hover:bg-border shrink-0 transition-opacity"
-            @click.stop="onContextMenu($event, conn.id)">
-            <MoreVertical :size="12" />
-          </span>
-        </div>
-
-        <!-- Connection children -->
-        <div v-if="expandedConnections[conn.id] && schemaStore.hasSchemaLoaded(conn.id)">
-
-          <!-- ── ALL DATABASES MODE: show a database tier ── -->
-          <template v-if="(schemaStore.schemasByConnection[conn.id]?.databases ?? []).length > 0">
-            <div v-for="dbName in schemaStore.schemasByConnection[conn.id]?.databases ?? []" :key="dbName">
-
-              <!-- Database row: configured DB is expandable, others are read-only -->
-              <template v-if="dbName === conn.database">
-                <!-- Configured (active) database – expandable -->
-                <div class="group flex items-center gap-1.5 pl-7 pr-2 py-1 cursor-pointer hover:bg-hover transition-colors"
-                  @click="toggleSchema(conn.id, '__db__' + dbName)">
-                  <ChevronRight :size="12" class="shrink-0 text-text-tertiary transition-transform duration-150"
-                    :class="schemaStore.isSchemaExpanded(conn.id, '__db__' + dbName) ? 'rotate-90' : ''" />
-                  <Database :size="13" class="shrink-0 text-primary" />
-                  <span class="text-[12px] font-semibold text-primary flex-1 truncate">{{ dbName }}</span>
-                  <span class="text-[9px] font-bold uppercase text-primary/60 bg-primary/10 px-1 rounded">active</span>
-                </div>
-
-                <!-- Schemas of the configured database (indented one level deeper) -->
-                <div v-if="schemaStore.isSchemaExpanded(conn.id, '__db__' + dbName)">
-                  <div v-for="schemaName in schemaStore.schemasByConnection[conn.id]?.schemas ?? []" :key="schemaName">
-                    <div class="group flex items-center gap-1.5 pl-11 pr-2 py-1 cursor-pointer hover:bg-hover transition-colors"
-                      @click="toggleSchema(conn.id, schemaName)">
-                      <ChevronRight :size="12" class="shrink-0 text-text-tertiary transition-transform duration-150"
-                        :class="schemaStore.isSchemaExpanded(conn.id, schemaName) ? 'rotate-90' : ''" />
-                      <Database :size="13" class="shrink-0 text-text-secondary" />
-                      <span class="text-[12px] font-medium text-text-secondary flex-1 truncate">{{ schemaName }}</span>
-                    </div>
-                    <!-- Object groups -->
-                    <div v-if="schemaStore.isSchemaExpanded(conn.id, schemaName)">
-                      <!-- Tables -->
-                      <div>
-                        <div class="flex items-center gap-1.5 pl-14 pr-2 py-1 cursor-pointer hover:bg-hover transition-colors"
-                          @click="toggleGroup(conn.id, schemaName, 'tables')">
-                          <ChevronRight :size="12" class="shrink-0 text-text-tertiary transition-transform duration-150"
-                            :class="isGroupExpanded(conn.id, schemaName, 'tables') ? 'rotate-90' : ''" />
-                          <Table2 :size="13" class="shrink-0 text-text-tertiary" />
-                          <span class="text-[12px] text-text-secondary flex-1">Tables</span>
-                          <span class="text-[11px] text-text-tertiary">({{ schemaStore.getFilteredTables(conn.id, schemaName).length }})</span>
-                        </div>
-                        <div v-if="isGroupExpanded(conn.id, schemaName, 'tables')">
-                          <div v-if="schemaStore.getFilteredTables(conn.id, schemaName).length === 0"
-                            class="pl-20 pr-2 py-1 text-[11px] text-text-tertiary italic">No tables found</div>
-                          <button v-for="table in schemaStore.getFilteredTables(conn.id, schemaName)"
-                            :key="`${table.schema}.${table.name}`"
-                            class="flex items-center gap-2 w-full pl-[4.5rem] pr-2 py-[3px] text-[12px] rounded-sm transition-colors"
-                            :class="isActiveTable(table.name, table.schema) ? 'bg-active text-primary font-medium' : 'text-text-primary hover:bg-hover'"
-                            @click="openTable(table.name, table.schema, conn.id)">
-                            <Table2 :size="12" class="shrink-0 opacity-60" />
-                            <span class="truncate">{{ table.name }}</span>
-                          </button>
-                        </div>
-                      </div>
-                      <!-- Views -->
-                      <div>
-                        <div class="flex items-center gap-1.5 pl-14 pr-2 py-1 cursor-pointer hover:bg-hover transition-colors"
-                          @click="toggleGroup(conn.id, schemaName, 'views')">
-                          <ChevronRight :size="12" class="shrink-0 text-text-tertiary transition-transform duration-150"
-                            :class="isGroupExpanded(conn.id, schemaName, 'views') ? 'rotate-90' : ''" />
-                          <Eye :size="13" class="shrink-0 text-text-tertiary" />
-                          <span class="text-[12px] text-text-secondary flex-1">Views</span>
-                          <span class="text-[11px] text-text-tertiary">({{ schemaStore.getFilteredViews(conn.id, schemaName).length }})</span>
-                        </div>
-                        <div v-if="isGroupExpanded(conn.id, schemaName, 'views')">
-                          <div v-if="schemaStore.getFilteredViews(conn.id, schemaName).length === 0"
-                            class="pl-20 pr-2 py-1 text-[11px] text-text-tertiary italic">No views found</div>
-                          <button v-for="view in schemaStore.getFilteredViews(conn.id, schemaName)"
-                            :key="`${view.schema}.${view.name}`"
-                            class="flex items-center gap-2 w-full pl-[4.5rem] pr-2 py-[3px] text-[12px] rounded-sm transition-colors text-text-primary hover:bg-hover">
-                            <Eye :size="12" class="shrink-0 opacity-60" />
-                            <span class="truncate">{{ view.name }}</span>
-                          </button>
-                        </div>
-                      </div>
-                      <!-- Functions -->
-                      <div>
-                        <div class="flex items-center gap-1.5 pl-14 pr-2 py-1 cursor-pointer hover:bg-hover transition-colors"
-                          @click="toggleGroup(conn.id, schemaName, 'functions')">
-                          <ChevronRight :size="12" class="shrink-0 text-text-tertiary transition-transform duration-150"
-                            :class="isGroupExpanded(conn.id, schemaName, 'functions') ? 'rotate-90' : ''" />
-                          <FunctionSquare :size="13" class="shrink-0 text-text-tertiary" />
-                          <span class="text-[12px] text-text-secondary flex-1">Functions</span>
-                          <span class="text-[11px] text-text-tertiary">({{ schemaStore.getFilteredFunctions(conn.id, schemaName).length }})</span>
-                        </div>
-                        <div v-if="isGroupExpanded(conn.id, schemaName, 'functions')">
-                          <div v-if="schemaStore.getFilteredFunctions(conn.id, schemaName).length === 0"
-                            class="pl-20 pr-2 py-1 text-[11px] text-text-tertiary italic">No functions found</div>
-                          <button v-for="fn in schemaStore.getFilteredFunctions(conn.id, schemaName)"
-                            :key="`${fn.schema}.${fn.name}`"
-                            class="flex items-center gap-2 w-full pl-[4.5rem] pr-2 py-[3px] text-[12px] rounded-sm transition-colors text-text-primary hover:bg-hover">
-                            <FunctionSquare :size="12" class="shrink-0 opacity-60" />
-                            <span class="truncate">{{ fn.name }}</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-if="(schemaStore.schemasByConnection[conn.id]?.schemas ?? []).length === 0"
-                    class="pl-14 pr-2 py-1 text-[11px] text-text-tertiary italic">No schemas found</div>
-                </div>
-              </template>
-
-              <!-- Other (non-configured) databases – read-only label -->
-              <template v-else>
-                <div class="flex items-center gap-1.5 pl-7 pr-2 py-1 opacity-50 cursor-default select-none"
-                  :title="`Not accessible via this connection (configured database: ${conn.database})`">
-                  <span class="w-3 shrink-0" />
-                  <Lock :size="11" class="shrink-0 text-text-tertiary" />
-                  <Database :size="13" class="shrink-0 text-text-tertiary" />
-                  <span class="text-[12px] text-text-tertiary flex-1 truncate">{{ dbName }}</span>
-                </div>
-              </template>
-            </div>
-          </template>
-
-          <!-- ── NORMAL MODE: schemas directly under connection ── -->
-          <template v-else>
-            <div v-for="schemaName in schemaStore.schemasByConnection[conn.id]?.schemas ?? []" :key="schemaName">
-              <!-- Schema row -->
-              <div class="group flex items-center gap-1.5 pl-7 pr-2 py-1 cursor-pointer hover:bg-hover transition-colors"
-                @click="toggleSchema(conn.id, schemaName)">
-                <ChevronRight :size="12" class="shrink-0 text-text-tertiary transition-transform duration-150"
-                  :class="schemaStore.isSchemaExpanded(conn.id, schemaName) ? 'rotate-90' : ''" />
-                <Database :size="13" class="shrink-0 text-text-secondary" />
-                <span class="text-[12px] font-medium text-text-secondary flex-1 truncate">{{ schemaName }}</span>
-              </div>
-
-              <!-- Schema children (object groups) -->
-              <div v-if="schemaStore.isSchemaExpanded(conn.id, schemaName)">
-                <!-- Tables group -->
-                <div>
-                  <div class="flex items-center gap-1.5 pl-10 pr-2 py-1 cursor-pointer hover:bg-hover transition-colors"
-                    @click="toggleGroup(conn.id, schemaName, 'tables')">
-                    <ChevronRight :size="12" class="shrink-0 text-text-tertiary transition-transform duration-150"
-                      :class="isGroupExpanded(conn.id, schemaName, 'tables') ? 'rotate-90' : ''" />
-                    <Table2 :size="13" class="shrink-0 text-text-tertiary" />
-                    <span class="text-[12px] text-text-secondary flex-1">Tables</span>
-                    <span class="text-[11px] text-text-tertiary">
-                      ({{ schemaStore.getFilteredTables(conn.id, schemaName).length }})
-                    </span>
-                  </div>
-                  <div v-if="isGroupExpanded(conn.id, schemaName, 'tables')">
-                    <div v-if="schemaStore.getFilteredTables(conn.id, schemaName).length === 0"
-                      class="pl-16 pr-2 py-1 text-[11px] text-text-tertiary italic">
-                      No tables found
-                    </div>
-                    <button v-for="table in schemaStore.getFilteredTables(conn.id, schemaName)"
-                      :key="`${table.schema}.${table.name}`"
-                      class="flex items-center gap-2 w-full pl-14 pr-2 py-[3px] text-[12px] rounded-sm transition-colors"
-                      :class="isActiveTable(table.name, table.schema)
-                        ? 'bg-active text-primary font-medium'
-                        : 'text-text-primary hover:bg-hover'" @click="openTable(table.name, table.schema, conn.id)">
-                      <Table2 :size="12" class="shrink-0 opacity-60" />
-                      <span class="truncate">{{ table.name }}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Views group -->
-                <div>
-                  <div class="flex items-center gap-1.5 pl-10 pr-2 py-1 cursor-pointer hover:bg-hover transition-colors"
-                    @click="toggleGroup(conn.id, schemaName, 'views')">
-                    <ChevronRight :size="12" class="shrink-0 text-text-tertiary transition-transform duration-150"
-                      :class="isGroupExpanded(conn.id, schemaName, 'views') ? 'rotate-90' : ''" />
-                    <Eye :size="13" class="shrink-0 text-text-tertiary" />
-                    <span class="text-[12px] text-text-secondary flex-1">Views</span>
-                    <span class="text-[11px] text-text-tertiary">
-                      ({{ schemaStore.getFilteredViews(conn.id, schemaName).length }})
-                    </span>
-                  </div>
-                  <div v-if="isGroupExpanded(conn.id, schemaName, 'views')">
-                    <div v-if="schemaStore.getFilteredViews(conn.id, schemaName).length === 0"
-                      class="pl-16 pr-2 py-1 text-[11px] text-text-tertiary italic">
-                      No views found
-                    </div>
-                    <button v-for="view in schemaStore.getFilteredViews(conn.id, schemaName)"
-                      :key="`${view.schema}.${view.name}`"
-                      class="flex items-center gap-2 w-full pl-14 pr-2 py-[3px] text-[12px] rounded-sm transition-colors text-text-primary hover:bg-hover">
-                      <Eye :size="12" class="shrink-0 opacity-60" />
-                      <span class="truncate">{{ view.name }}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Functions group -->
-                <div>
-                  <div class="flex items-center gap-1.5 pl-10 pr-2 py-1 cursor-pointer hover:bg-hover transition-colors"
-                    @click="toggleGroup(conn.id, schemaName, 'functions')">
-                    <ChevronRight :size="12" class="shrink-0 text-text-tertiary transition-transform duration-150"
-                      :class="isGroupExpanded(conn.id, schemaName, 'functions') ? 'rotate-90' : ''" />
-                    <FunctionSquare :size="13" class="shrink-0 text-text-tertiary" />
-                    <span class="text-[12px] text-text-secondary flex-1">Functions</span>
-                    <span class="text-[11px] text-text-tertiary">
-                      ({{ schemaStore.getFilteredFunctions(conn.id, schemaName).length }})
-                    </span>
-                  </div>
-                  <div v-if="isGroupExpanded(conn.id, schemaName, 'functions')">
-                    <div v-if="schemaStore.getFilteredFunctions(conn.id, schemaName).length === 0"
-                      class="pl-16 pr-2 py-1 text-[11px] text-text-tertiary italic">
-                      No functions found
-                    </div>
-                    <button v-for="fn in schemaStore.getFilteredFunctions(conn.id, schemaName)"
-                      :key="`${fn.schema}.${fn.name}`"
-                      class="flex items-center gap-2 w-full pl-14 pr-2 py-[3px] text-[12px] rounded-sm transition-colors text-text-primary hover:bg-hover">
-                      <FunctionSquare :size="12" class="shrink-0 opacity-60" />
-                      <span class="truncate">{{ fn.name }}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Empty state: connected but no schemas -->
-            <div v-if="(schemaStore.schemasByConnection[conn.id]?.schemas ?? []).length === 0"
-              class="pl-10 pr-2 py-2 text-[11px] text-text-tertiary italic">
-              No schemas found
-            </div>
-          </template>
-        </div>
-
-        <!-- Loading skeleton while fetching -->
-        <div v-else-if="expandedConnections[conn.id] && schemaStore.isConnectionLoading(conn.id)"
-          class="pl-9 pr-2 py-2">
-          <div class="h-3 bg-border rounded animate-pulse mb-1.5 w-24" />
-          <div class="h-3 bg-border rounded animate-pulse mb-1.5 w-32" />
-          <div class="h-3 bg-border rounded animate-pulse w-20" />
-        </div>
-      </div>
+      <ConnectionNode
+        v-for="conn in connectionsStore.connections"
+        :key="conn.id"
+        :connection="conn"
+        :is-expanded="!!expandedConnections[conn.id]"
+        @toggle="toggleConnection(conn)"
+        @contextmenu="onContextMenu($event, conn.id)"
+      />
 
       <!-- Empty state -->
       <div v-if="connectionsStore.connections.length === 0"
@@ -481,37 +142,14 @@ const isActiveTable = (tableName: string, schemaName: string) =>
       </div>
     </div>
 
-
-
     <!-- Context Menu -->
-    <ContextMenu :show="contextMenu.show" :x="contextMenu.x" :y="contextMenu.y" @close="closeContextMenu">
-      <button class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover"
-        @click="handleContextAction('sql')">
-        <Code2 :size="13" class="text-text-secondary" />
-        <span>Open SQL Editor</span>
-      </button>
-      <button class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover"
-        @click="handleContextAction('refresh')">
-        <RefreshCw :size="13" class="text-text-secondary" />
-        <span>Refresh Schema</span>
-      </button>
-      <button class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover"
-        @click="handleContextAction('edit')">
-        <Pencil :size="13" class="text-text-secondary" />
-        <span>Edit Connection</span>
-      </button>
-      <button class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-hover"
-        @click="handleContextAction('duplicate')">
-        <Copy :size="13" class="text-text-secondary" />
-        <span>Duplicate</span>
-      </button>
-      <div class="h-px bg-border my-1 w-full" />
-      <button class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-danger hover:bg-danger-light"
-        @click="handleContextAction('delete')">
-        <Trash2 :size="13" />
-        <span>Delete Connection</span>
-      </button>
-    </ContextMenu>
+    <ConnectionContextMenu
+      :show="contextMenu.show"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      @close="closeContextMenu"
+      @action="handleContextAction"
+    />
 
     <!-- Delete Confirmation -->
     <ConfirmDialog v-if="showDeleteConfirm" title="Delete Connection"

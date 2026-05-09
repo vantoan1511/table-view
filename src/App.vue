@@ -69,7 +69,7 @@ watch(
 
     if (tab.type === 'table' && tab.tableName) {
       gridStore.isLoading = true
-      gridStore.loadTable(tab.tableName, tab.connectionId, tab.schema)
+      gridStore.loadTable(tab.tableName, tab.connectionId, tab.schema, tab.dbName)
     }
   },
   { immediate: true },

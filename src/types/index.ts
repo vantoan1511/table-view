@@ -41,6 +41,7 @@ export interface Tab {
   minimized?: boolean
   connectionId?: string
   schema?: string
+  dbName?: string
   isDraft?: boolean
   isDirty?: boolean
   filePath?: string

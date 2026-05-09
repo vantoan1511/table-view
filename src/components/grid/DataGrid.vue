@@ -8,6 +8,7 @@ import { ArrowDown, ArrowUp, Check, Plus, RefreshCw, Trash2, Wrench, X } from 'l
 import { nextTick, ref, onMounted, onUnmounted } from 'vue'
 import GridToolbar from './GridToolbar.vue'
 import Pagination from './Pagination.vue'
+import { NativeService } from '@/services/native'
 
 const gridStore = useGridStore()
 
@@ -148,7 +149,7 @@ const handleContextAction = (action: string) => {
   else if (action === 'deleteRows') {
     if (gridStore.selectedRowIndices.size > 0) {
       gridStore.deleteRows(Array.from(gridStore.selectedRowIndices)).catch(err => {
-        Neutralino.os.showMessageBox('Error', 'Failed to delete row(s): ' + err.message, 'OK', 'ERROR')
+        NativeService.os.showMessageBox('Error', 'Failed to delete row(s): ' + err.message, 'ERROR')
       })
     }
   } else if (action === 'alterTable') gridStore.showAlterTableDialog = true

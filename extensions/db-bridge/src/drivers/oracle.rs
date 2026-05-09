@@ -515,10 +515,47 @@ impl DatabaseDriver for OracleDriver {
 
     async fn alter_table(
         &self,
-        _table_name: &str,
-        _operations: &[AlterOperation],
+        table_name: &str,
+        operations: &[AlterOperation],
     ) -> Result<(), String> {
-        Err("Oracle alter table is not implemented yet".to_string())
+        let pool = self.pool()?;
+        let (owner, table) = self.split_table_name(table_name);
+        let safe_table = Self::qualify_table(owner, table);
+
+        for op in operations {
+            let sql = match op.op_type.as_str() {
+                "ADD_COLUMN" => {
+                    let mut q = format!(
+                        "ALTER TABLE {} ADD {} {}",
+                        safe_table,
+                        Self::quote(&op.name),
+                        op.data_type
+                    );
+                    if let Some(ref d) = op.default {
+                        q.push_str(&format!(" DEFAULT {}", d));
+                    }
+                    if op.nullable == Some(false) {
+                        q.push_str(" NOT NULL");
+                    }
+                    q
+                }
+                "DROP_COLUMN" => format!(
+                    "ALTER TABLE {} DROP COLUMN {}",
+                    safe_table,
+                    Self::quote(&op.name)
+                ),
+                "RENAME_COLUMN" => format!(
+                    "ALTER TABLE {} RENAME COLUMN {} TO {}",
+                    safe_table,
+                    Self::quote(&op.old_name),
+                    Self::quote(&op.new_name)
+                ),
+                _ => continue,
+            };
+
+            Self::execute_dml(pool, &sql, &[]).await?;
+        }
+        Ok(())
     }
 
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {

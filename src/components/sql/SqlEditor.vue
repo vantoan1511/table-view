@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import ResizeHandle from '@/components/ui/ResizeHandle.vue'
+import { useSqlEditor } from '@/composables/useSqlEditor'
 import { useDebounce } from '@/composables/useDebounce'
 import { useGridStore } from '@/stores/grid'
 import { useSchemaStore } from '@/stores/schema'
 import { useTabsStore } from '@/stores/tabs'
 import type { Tab } from '@/types'
 import { PostgreSQL, sql } from '@codemirror/lang-sql'
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { syntaxHighlighting } from '@codemirror/language'
 import { Compartment, EditorState, Prec } from '@codemirror/state'
 import { keymap } from '@codemirror/view'
-import { tags as t } from '@lezer/highlight'
 import { EditorView, basicSetup } from 'codemirror'
+import { sqlHighlightStyle, editorTheme } from '@/lib/editorConfig'
 import {
   Clock,
   Download,
@@ -28,33 +29,14 @@ const props = defineProps<{
 const gridStore = useGridStore()
 const schemaStore = useSchemaStore()
 const tabsStore = useTabsStore()
+
+const { activeResultTab, executeRun, saveQuery, exportQuery } = useSqlEditor(props)
+
 const editorContainer = ref<HTMLElement>()
-const activeResultTab = ref<'results' | 'messages'>('results')
-const editorWidth = ref(600) // Initial width for editor pane
+const editorWidth = ref(600)
 
 let editorView: EditorView | null = null
 const sqlCompartment = new Compartment()
-
-const sqlHighlightStyle = HighlightStyle.define([
-  { tag: t.keyword, color: '#818CF8', fontWeight: 'bold' },
-  { tag: t.string, color: '#34D399' },
-  { tag: t.number, color: '#FBBF24' },
-  { tag: t.comment, color: '#6C7086', fontStyle: 'italic' },
-  { tag: t.operator, color: '#CDD6F4' },
-  { tag: t.meta, color: '#CDD6F4' },
-  { tag: t.typeName, color: '#818CF8' },
-  { tag: t.propertyName, color: '#CDD6F4' },
-  { tag: t.className, color: '#CDD6F4' },
-  { tag: t.labelName, color: '#CDD6F4' },
-  { tag: t.namespace, color: '#CDD6F4' },
-  { tag: t.macroName, color: '#CDD6F4' },
-  { tag: t.literal, color: '#34D399' },
-  { tag: t.bool, color: '#FBBF24' },
-  { tag: t.null, color: '#FBBF24' },
-  { tag: t.name, color: '#CDD6F4' },
-  { tag: t.heading, color: '#CDD6F4', fontWeight: 'bold' },
-  { tag: t.invalid, color: '#FB7185' },
-])
 
 const buildSqlExtension = () => {
   const schemaMap: Record<string, string[]> = {}
@@ -70,62 +52,10 @@ const buildSqlExtension = () => {
   return sql({ dialect: PostgreSQL, schema: schemaMap })
 }
 
-/**
- * Extract the SQL statement at the current cursor position.
- */
-const getQueryAtCursor = (): string => {
-  if (!editorView) return ''
-  const doc = editorView.state.doc.toString()
-  const cursor = editorView.state.selection.main.head
-
-  const statements: { text: string; start: number; end: number }[] = []
-  let offset = 0
-  const parts = doc.split(';')
-
-  for (let i = 0; i < parts.length; i++) {
-    const raw = parts[i]
-    if (raw === undefined) continue
-
-    const end = offset + raw.length + (i < parts.length - 1 ? 1 : 0)
-    const trimmed = raw.trim()
-    if (trimmed) {
-      statements.push({ text: trimmed, start: offset, end })
-    }
-    offset = end
-  }
-
-  if (statements.length === 0) return ''
-
-  for (const stmt of statements) {
-    if (cursor >= stmt.start && cursor <= stmt.end) {
-      return stmt.text
-    }
-  }
-
-  return statements[statements.length - 1]?.text ?? ''
-}
-
-const executeRun = () => {
-  if (!editorView) return
-
-  const selection = editorView.state.sliceDoc(
-    editorView.state.selection.main.from,
-    editorView.state.selection.main.to,
-  )
-
-  const queryAtCursor = getQueryAtCursor()
-  const query = selection.trim() || queryAtCursor || editorView.state.doc.toString()
-  if (!query) return
-
-  gridStore.runQuery(query, gridStore.sqlLimit, props.tab.connectionId)
-  activeResultTab.value = 'results'
-}
-
 const handleRun = useDebounce(() => {
   if (gridStore.isLoading) return
-  executeRun()
+  executeRun(editorView)
 }, { delay: 300 })
-
 
 const initEditor = () => {
   if (editorView) {
@@ -156,40 +86,12 @@ const initEditor = () => {
         {
           key: 'Mod-s',
           run: () => {
-            tabsStore.saveSqlTab(props.tab.id)
+            saveQuery()
             return true
           },
         },
       ])),
-      EditorView.theme({
-        '&': {
-          fontSize: '12px',
-          fontFamily: 'var(--font-mono)',
-          backgroundColor: 'var(--color-surface)',
-          color: 'var(--color-text-primary)',
-        },
-        '.cm-content': {
-          padding: '8px 0',
-        },
-        '.cm-gutters': {
-          backgroundColor: 'var(--color-muted)',
-          borderRight: '1px solid var(--color-border)',
-          color: 'var(--color-text-tertiary)',
-          fontSize: '11px',
-        },
-        '.cm-activeLine': {
-          backgroundColor: 'var(--color-active)',
-        },
-        '.cm-activeLineGutter': {
-          backgroundColor: 'var(--color-active)',
-        },
-        '&.cm-focused .cm-cursor': {
-          borderLeftColor: 'var(--color-primary)',
-        },
-        '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
-          backgroundColor: 'var(--color-primary-light)',
-        },
-      }, { dark: true }),
+      editorTheme,
       EditorView.lineWrapping,
     ],
   })
@@ -203,7 +105,6 @@ const initEditor = () => {
 onMounted(() => {
   initEditor()
 
-  // Re-configure SQL extension when schema for this connection loads
   watch(
     () => props.tab.connectionId ? schemaStore.schemasByConnection[props.tab.connectionId] : schemaStore.schema,
     () => {
@@ -215,7 +116,6 @@ onMounted(() => {
     { deep: true }
   )
 })
-
 </script>
 
 <template>
@@ -257,13 +157,13 @@ onMounted(() => {
 
           <button
             class="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border hover:border-border-strong text-text-secondary rounded-lg text-[12px] cursor-pointer transition-colors"
-            @click="tabsStore.saveSqlTab(tab.id)" title="Save (Ctrl+S)">
+            @click="saveQuery" title="Save (Ctrl+S)">
             <Save :size="13" />
           </button>
 
           <button
             class="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border hover:border-border-strong text-text-secondary rounded-lg text-[12px] cursor-pointer transition-colors"
-            @click="tabsStore.exportSqlTab(tab.id)" title="Export to .sql file">
+            @click="exportQuery" title="Export to .sql file">
             <Download :size="13" />
             <span>Export</span>
           </button>

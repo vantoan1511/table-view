@@ -164,14 +164,16 @@ pub async fn handle_message(
         _ => {
             let driver_arc = {
                 let mut p = pool.lock().await;
-                match p.get(&payload.connection_id) {
-                    Some(d) => d,
-                    None => {
+                let target_db = (!payload.target_database.trim().is_empty())
+                    .then_some(payload.target_database.trim());
+                match p.get_or_create(&payload.connection_id, target_db).await {
+                    Ok(d) => d,
+                    Err(e) => {
                         let result_event = format!("dbBridge.{}Result", action);
                         broadcast(&writer, &token, &result_event, json!({
                             "reqId": payload.req_id,
                             "success": false,
-                            "error": format!("not connected (connectionId={:?})", payload.connection_id)
+                            "error": e
                         })).await;
                         return;
                     }
@@ -180,87 +182,24 @@ pub async fn handle_message(
 
             let driver = driver_arc.lock().await;
             match action {
-                "getSchema" => {
+                "getSchema" | "getDbSchema" => {
                     let schema_name = (!payload.schema_name.trim().is_empty())
                          .then_some(payload.schema_name.trim());
                     let result = driver.get_schema(payload.all_databases, schema_name).await;
-                    handle_result(&writer, &token, "dbBridge.getSchemaResult", &payload.req_id, "schema", result).await;
-                }
-                "getDbSchema" => {
-                    // Fetch schema for a specific database (not the configured one).
-                    // We need the stored config so we can open a temp connection to target_database.
-                    let stored_config = {
-                        let p = pool.lock().await;
-                        p.get_config(&payload.connection_id).cloned()
-                    };
-                    drop(driver); // release driver lock before potentially long-running work
-                    match stored_config {
-                        None => {
-                            broadcast(&writer, &token, "dbBridge.getDbSchemaResult", json!({
-                                "reqId": payload.req_id,
-                                "success": false,
-                                "database": payload.target_database,
-                                "error": "connection config not found"
-                            })).await;
-                        }
-                        Some(mut cfg) => {
-                            if payload.target_database.is_empty() {
-                                broadcast(&writer, &token, "dbBridge.getDbSchemaResult", json!({
-                                    "reqId": payload.req_id,
-                                    "success": false,
-                                    "database": payload.target_database,
-                                    "error": "targetDatabase is required"
-                                })).await;
-                            } else {
-                                cfg.database = payload.target_database.clone();
-                                // Create a temporary driver, fetch schema, disconnect.
-                                match drivers::create_driver(&cfg.db_type) {
-                                    None => {
-                                        broadcast(&writer, &token, "dbBridge.getDbSchemaResult", json!({
-                                            "reqId": payload.req_id,
-                                            "success": false,
-                                            "database": payload.target_database,
-                                            "error": "unsupported driver type"
-                                        })).await;
-                                    }
-                                    Some(mut tmp_driver) => {
-                                        match tmp_driver.connect(&cfg).await {
-                                            Err(e) => {
-                                                broadcast(&writer, &token, "dbBridge.getDbSchemaResult", json!({
-                                                    "reqId": payload.req_id,
-                                                    "success": false,
-                                                    "database": payload.target_database,
-                                                    "error": format!("cannot connect to database '{}': {}", payload.target_database, e)
-                                                })).await;
-                                            }
-                                            Ok(()) => {
-                                                let schema_result = tmp_driver.get_schema(false, None).await;
-                                                let _ = tmp_driver.disconnect().await;
-                                                match schema_result {
-                                                    Ok(schema) => {
-                                                        let mut resp = serde_json::to_value(&schema).unwrap_or(json!({}));
-                                                        if let Some(obj) = resp.as_object_mut() {
-                                                            obj.insert("reqId".to_string(), json!(payload.req_id));
-                                                            obj.insert("success".to_string(), json!(true));
-                                                            obj.insert("database".to_string(), json!(payload.target_database));
-                                                        }
-                                                        broadcast(&writer, &token, "dbBridge.getDbSchemaResult", resp).await;
-                                                    }
-                                                    Err(e) => {
-                                                        broadcast(&writer, &token, "dbBridge.getDbSchemaResult", json!({
-                                                            "reqId": payload.req_id,
-                                                            "success": false,
-                                                            "database": payload.target_database,
-                                                            "error": e
-                                                        })).await;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+                    let event = if action == "getSchema" { "dbBridge.getSchemaResult" } else { "dbBridge.getDbSchemaResult" };
+                    match result {
+                        Ok(schema) => {
+                            let mut resp = serde_json::to_value(&schema).unwrap_or(json!({}));
+                            if let Some(obj) = resp.as_object_mut() {
+                                obj.insert("reqId".to_string(), json!(payload.req_id));
+                                obj.insert("success".to_string(), json!(true));
+                                if action == "getDbSchema" {
+                                    obj.insert("database".to_string(), json!(payload.target_database));
                                 }
                             }
+                            broadcast(&writer, &token, event, resp).await;
                         }
+                        Err(e) => broadcast(&writer, &token, event, json!({"reqId": payload.req_id, "success": false, "error": e})).await,
                     }
                 }
                 "fetchTableData" => {
