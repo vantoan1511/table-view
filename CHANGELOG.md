@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-05-09
+
+### Added
+- **Architecture: Modular Stores**: Refactored schema and grid stores into domain-specific actions and state modules for better maintainability.
+- **UI: Database Tree Decomposition**: Decoupled the database tree into granular node components (Connection, Database, Schema) for improved responsiveness.
+
+### Fixed
+- **Database: Schema Loading**: Resolved the "infinite loading" issue in the database sidebar by correcting payload handling and synchronizing the `db-bridge` binary.
+- **Security: Driver Hardening**: Hardened PostgreSQL, MySQL, and SQLite drivers against SQL injection using parameterized queries.
+- **Performance: Redundant Fetching**: Optimized sidebar responsiveness by removing duplicate schema fetch calls.
+
+
 ## [0.2.2] - 2026-05-09
 
 ### Changed
@@ -14,14 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Assets: Icon Paths**: Standardized icon paths and inclusion in the production bundle.
 - **Neutralino: Globals Path**: Standardized the globals script path to use `%PUBLIC_URL%`.
 
-
-
 ### Fixed
-- **Database: Schema Loading**: Fixed "infinite loading" issue in the database tree by correcting the payload structure handling in `useSchemaActions.ts` and ensuring the `db-bridge` binary is synchronized with the latest handlers.
-- **Security: Driver Hardening**: Resolved potential SQL injection vulnerabilities in database drivers by using parameterized queries.
-- **Performance: Redundant Fetching**: Removed redundant schema fetching logic in `DatabaseTree.vue` to improve sidebar responsiveness.
 - **CI/CD: Release Workflow**: Fixed a PowerShell syntax error in the GitHub Actions workflow that caused Windows installer builds to fail.
 - **Production: Build Assets**: Added `data-skip-asset` to the Neutralino globals script to prevent Vite from attempting to bundle it during production builds.
+
 
 
 ## [0.2.0] - 2026-05-08
