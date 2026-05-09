@@ -4,7 +4,7 @@
   "author": "Toan Nguyen",
   "applicationIcon": "icon.png",
   "description": "Lightweight, high-performance desktop database management tool for PostgreSQL, MySQL, SQLite, and Oracle.",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "copyright": "Copyright © Table View 2026. All rights reserved.",
   "defaultMode": "window",
   "documentRoot": "/build/",

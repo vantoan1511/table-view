@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-05-09
+
+### Added
+- **Quality: Code Standards**: Integrated ESLint and Prettier for automated linting and formatting across the entire TypeScript/Vue codebase.
+
+### Changed
+- **Production: Hardening**: Finalized production-ready settings in `neutralino.config.json` and `index.html`, enforcing `tokenSecurity: "one-time"` and disabling the developer inspector.
+- **Maintenance: Global Formatting**: Applied project-wide code style cleanup to ensure consistency across all source files.
+
+
 ## [0.2.3] - 2026-05-09
 
 ### Added
