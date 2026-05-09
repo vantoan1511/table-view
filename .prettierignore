@@ -1,0 +1,8 @@
+dist
+node_modules
+extensions/db-bridge/target
+public
+.log
+*.log
+neutralino.config.json
+manifest.json

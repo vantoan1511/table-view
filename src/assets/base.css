@@ -1,48 +1,48 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* Primary */
-  --color-primary: #4F46E5;
-  --color-primary-hover: #4338CA;
-  --color-primary-light: #EEF2FF;
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-primary-light: #eef2ff;
 
   /* Semantic */
-  --color-success: #10B981;
-  --color-success-light: #ECFDF5;
-  --color-danger: #F43F5E;
-  --color-danger-light: #FFF1F2;
-  --color-warning: #F59E0B;
+  --color-success: #10b981;
+  --color-success-light: #ecfdf5;
+  --color-danger: #f43f5e;
+  --color-danger-light: #fff1f2;
+  --color-warning: #f59e0b;
 
   /* Surfaces */
-  --color-surface: #FFFFFF;
-  --color-sidebar: #F9FAFB;
-  --color-border: #E5E7EB;
-  --color-border-strong: #D1D5DB;
-  --color-hover: #F3F4F6;
-  --color-active: #EEF2FF;
-  --color-muted: #F9FAFB;
+  --color-surface: #ffffff;
+  --color-sidebar: #f9fafb;
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+  --color-hover: #f3f4f6;
+  --color-active: #eef2ff;
+  --color-muted: #f9fafb;
 
   /* Text */
-  --color-text-primary: #1F2937;
-  --color-text-secondary: #6B7280;
-  --color-text-tertiary: #9CA3AF;
-  --color-text-inverse: #FFFFFF;
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-text-inverse: #ffffff;
 
   /* Grid */
-  --color-grid-header: #F8F9FA;
-  --color-grid-row-alt: #FAFBFC;
-  --color-grid-row-hover: #F0F4FF;
-  --color-grid-border: #E5E7EB;
+  --color-grid-header: #f8f9fa;
+  --color-grid-row-alt: #fafbfc;
+  --color-grid-row-hover: #f0f4ff;
+  --color-grid-border: #e5e7eb;
 
   /* Connection Colors */
-  --color-conn-indigo: #4F46E5;
-  --color-conn-blue: #3B82F6;
-  --color-conn-teal: #14B8A6;
-  --color-conn-green: #22C55E;
-  --color-conn-amber: #F59E0B;
-  --color-conn-orange: #F97316;
-  --color-conn-pink: #EC4899;
-  --color-conn-gray: #9CA3AF;
+  --color-conn-indigo: #4f46e5;
+  --color-conn-blue: #3b82f6;
+  --color-conn-teal: #14b8a6;
+  --color-conn-green: #22c55e;
+  --color-conn-amber: #f59e0b;
+  --color-conn-orange: #f97316;
+  --color-conn-pink: #ec4899;
+  --color-conn-gray: #9ca3af;
 
   /* Typography */
   --font-ui: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -69,30 +69,30 @@
 
 /* ─── Dark Mode Overrides ──────────────────────────────────────────────────── */
 .dark {
-  --color-primary: #818CF8;
-  --color-primary-hover: #6366F1;
+  --color-primary: #818cf8;
+  --color-primary-hover: #6366f1;
   --color-primary-light: rgba(99, 102, 241, 0.15);
 
-  --color-success: #34D399;
+  --color-success: #34d399;
   --color-success-light: rgba(16, 185, 129, 0.15);
-  --color-danger: #FB7185;
+  --color-danger: #fb7185;
   --color-danger-light: rgba(244, 63, 94, 0.15);
-  --color-warning: #FBBF24;
+  --color-warning: #fbbf24;
 
-  --color-surface: #1E1E2E;
+  --color-surface: #1e1e2e;
   --color-sidebar: #181825;
   --color-border: #313244;
-  --color-border-strong: #45475A;
+  --color-border-strong: #45475a;
   --color-hover: #313244;
   --color-active: rgba(99, 102, 241, 0.15);
   --color-muted: #181825;
 
-  --color-text-primary: #CDD6F4;
-  --color-text-secondary: #A6ADC8;
-  --color-text-tertiary: #6C7086;
-  --color-text-inverse: #1E1E2E;
+  --color-text-primary: #cdd6f4;
+  --color-text-secondary: #a6adc8;
+  --color-text-tertiary: #6c7086;
+  --color-text-inverse: #1e1e2e;
 
-  --color-grid-header: #1E1E2E;
+  --color-grid-header: #1e1e2e;
   --color-grid-row-alt: #181825;
   --color-grid-row-hover: rgba(99, 102, 241, 0.08);
   --color-grid-border: #313244;

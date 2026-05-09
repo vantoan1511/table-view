@@ -1,32 +1,25 @@
 <script setup lang="ts">
-import DbIcon from '@/components/icons/DbIcon.vue'
-import { useConnectionsStore } from '@/stores/connections'
-import { useSchemaStore } from '@/stores/schema'
-import { useToastStore } from '@/stores/toast'
-import type { Connection } from '@/types'
-import { 
-  ChevronRight, 
-  Database, 
-  Loader2, 
-  Lock, 
-  MoreVertical 
-} from 'lucide-vue-next'
-import { computed } from 'vue'
-import DatabaseNode from './DatabaseNode.vue'
-import SchemaNode from './SchemaNode.vue'
+import DbIcon from '@/components/icons/DbIcon.vue';
+import { useConnectionsStore } from '@/stores/connections';
+import { useSchemaStore } from '@/stores/schema';
+import type { Connection } from '@/types';
+import { ChevronRight, Loader2, MoreVertical } from 'lucide-vue-next';
+import { computed } from 'vue';
+import DatabaseNode from './DatabaseNode.vue';
+import SchemaNode from './SchemaNode.vue';
 
 const props = defineProps<{
-  connection: Connection
-  isExpanded: boolean
-}>()
+  connection: Connection;
+  isExpanded: boolean;
+}>();
 
 const emit = defineEmits<{
-  (e: 'toggle'): void
-  (e: 'contextmenu', event: MouseEvent): void
-}>()
+  (e: 'toggle'): void;
+  (e: 'contextmenu', event: MouseEvent): void;
+}>();
 
-const connectionsStore = useConnectionsStore()
-const schemaStore = useSchemaStore()
+const connectionsStore = useConnectionsStore();
+const schemaStore = useSchemaStore();
 
 const colorMap: Record<string, string> = {
   indigo: 'bg-conn-indigo',
@@ -36,63 +29,93 @@ const colorMap: Record<string, string> = {
   amber: 'bg-conn-amber',
   orange: 'bg-conn-orange',
   pink: 'bg-conn-pink',
-  gray: 'bg-conn-gray',
-}
+  gray: 'bg-conn-gray'
+};
 
-const connectionSchemas = computed(() => schemaStore.schemasByConnection[props.connection.id]?.schemas ?? [])
-const connectionDatabases = computed(() => schemaStore.schemasByConnection[props.connection.id]?.databases ?? [])
+const connectionSchemas = computed(
+  () => schemaStore.schemasByConnection[props.connection.id]?.schemas ?? []
+);
+const connectionDatabases = computed(
+  () => schemaStore.schemasByConnection[props.connection.id]?.databases ?? []
+);
 </script>
 
 <template>
   <div class="connection-node">
     <!-- Connection row -->
     <div
-      class="group relative flex items-center gap-1.5 w-full px-2 py-1.5 cursor-pointer transition-colors duration-100 hover:bg-hover overflow-hidden"
-      :class="connectionsStore.activeConnectionId === connection.id ? 'bg-active' : ''" 
+      class="group hover:bg-hover relative flex w-full cursor-pointer items-center gap-1.5 overflow-hidden px-2 py-1.5 transition-colors duration-100"
+      :class="connectionsStore.activeConnectionId === connection.id ? 'bg-active' : ''"
       @click="emit('toggle')"
       @contextmenu.prevent.stop="emit('contextmenu', $event)"
     >
       <!-- Connection Color Flag -->
-      <div 
-        class="absolute left-0 top-0 bottom-0 w-[3px] transition-all duration-200"
+      <div
+        class="absolute top-0 bottom-0 left-0 w-0.75 transition-all duration-200"
         :class="[
           colorMap[connection.color] ?? 'bg-conn-gray',
-          connectionsStore.activeConnectionId === connection.id ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'
+          connectionsStore.activeConnectionId === connection.id
+            ? 'opacity-100'
+            : 'opacity-60 group-hover:opacity-100'
         ]"
       />
 
-      <ChevronRight 
-        :size="13" 
-        class="shrink-0 text-text-tertiary transition-transform duration-150 ml-1"
-        :class="isExpanded ? 'rotate-90' : ''" 
+      <ChevronRight
+        :size="13"
+        class="text-text-tertiary ml-1 shrink-0 transition-transform duration-150"
+        :class="isExpanded ? 'rotate-90' : ''"
       />
 
-      <span v-if="connection.isConnected" class="w-1.5 h-1.5 rounded-full shrink-0 bg-success animate-pulse" />
+      <span
+        v-if="connection.isConnected"
+        class="bg-success h-1.5 w-1.5 shrink-0 animate-pulse rounded-full"
+      />
 
-      <DbIcon :type="connection.type" size="14" :class="connection.isConnected ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'" />
+      <DbIcon
+        :type="connection.type"
+        size="14"
+        :class="
+          connection.isConnected
+            ? ''
+            : 'opacity-70 grayscale group-hover:opacity-100 group-hover:grayscale-0'
+        "
+      />
 
-      <div class="flex-1 min-w-0">
+      <div class="min-w-0 flex-1">
         <div class="flex items-center gap-1.5 overflow-hidden">
-          <span class="text-[13px] font-medium truncate leading-tight"
-            :class="connectionsStore.activeConnectionId === connection.id ? 'text-primary' : 'text-text-primary'">
+          <span
+            class="truncate text-[13px] leading-tight font-medium"
+            :class="
+              connectionsStore.activeConnectionId === connection.id
+                ? 'text-primary'
+                : 'text-text-primary'
+            "
+          >
             {{ connection.name }}
           </span>
-          <span v-for="tag in (connection.tags?.split(',') || []).map(t => t.trim()).filter(Boolean)" :key="tag"
-            class="shrink-0 px-1 py-0.5 rounded text-[9px] font-bold uppercase leading-none bg-primary/10 text-primary border border-primary/20">
+          <span
+            v-for="tag in (connection.tags?.split(',') || []).map((t) => t.trim()).filter(Boolean)"
+            :key="tag"
+            class="bg-primary/10 text-primary border-primary/20 shrink-0 rounded border px-1 py-0.5 text-[9px] leading-none font-bold uppercase"
+          >
             {{ tag }}
           </span>
         </div>
-        <div class="text-[11px] text-text-tertiary truncate leading-tight">
+        <div class="text-text-tertiary truncate text-[11px] leading-tight">
           {{ connection.host }}:{{ connection.port }}
         </div>
       </div>
 
-      <Loader2 v-if="schemaStore.isConnectionLoading(connection.id)" :size="13"
-        class="shrink-0 text-text-tertiary animate-spin" />
+      <Loader2
+        v-if="schemaStore.isConnectionLoading(connection.id)"
+        :size="13"
+        class="text-text-tertiary shrink-0 animate-spin"
+      />
 
       <span
-        class="flex items-center justify-center w-5 h-5 rounded opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-text-secondary hover:bg-border shrink-0 transition-opacity"
-        @click.stop="emit('contextmenu', $event)">
+        class="text-text-tertiary hover:text-text-secondary hover:bg-border flex h-5 w-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100"
+        @click.stop="emit('contextmenu', $event)"
+      >
         <MoreVertical :size="12" />
       </span>
     </div>
@@ -113,25 +136,29 @@ const connectionDatabases = computed(() => schemaStore.schemasByConnection[props
 
       <!-- NORMAL MODE -->
       <template v-else>
-        <SchemaNode 
-          v-for="schemaName in connectionSchemas" 
+        <SchemaNode
+          v-for="schemaName in connectionSchemas"
           :key="schemaName"
           :connection-id="connection.id"
           :schema-name="schemaName"
         />
-        <div v-if="connectionSchemas.length === 0"
-          class="pl-10 pr-2 py-2 text-[11px] text-text-tertiary italic">
+        <div
+          v-if="connectionSchemas.length === 0"
+          class="text-text-tertiary py-2 pr-2 pl-10 text-[11px] italic"
+        >
           No schemas found
         </div>
       </template>
     </div>
 
     <!-- Loading skeleton -->
-    <div v-else-if="isExpanded && schemaStore.isConnectionLoading(connection.id)"
-      class="pl-9 pr-2 py-2">
-      <div class="h-3 bg-border rounded animate-pulse mb-1.5 w-24" />
-      <div class="h-3 bg-border rounded animate-pulse mb-1.5 w-32" />
-      <div class="h-3 bg-border rounded animate-pulse w-20" />
+    <div
+      v-else-if="isExpanded && schemaStore.isConnectionLoading(connection.id)"
+      class="py-2 pr-2 pl-9"
+    >
+      <div class="bg-border mb-1.5 h-3 w-24 animate-pulse rounded" />
+      <div class="bg-border mb-1.5 h-3 w-32 animate-pulse rounded" />
+      <div class="bg-border h-3 w-20 animate-pulse rounded" />
     </div>
   </div>
 </template>

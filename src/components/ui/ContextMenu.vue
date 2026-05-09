@@ -2,48 +2,54 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 
 const props = defineProps<{
-  show: boolean
-  x: number
-  y: number
-  widthClass?: string
-}>()
+  show: boolean;
+  x: number;
+  y: number;
+  widthClass?: string;
+}>();
 
 const emit = defineEmits<{
-  (e: 'close'): void
-}>()
+  (e: 'close'): void;
+}>();
 
-const menuRef = ref<HTMLElement | null>(null)
+const menuRef = ref<HTMLElement | null>(null);
 
 const handleClickOutside = (e: MouseEvent) => {
   if (props.show && menuRef.value && !menuRef.value.contains(e.target as Node)) {
-    emit('close')
+    emit('close');
   }
-}
+};
 
 const handleEscape = (e: KeyboardEvent) => {
   if (props.show && e.key === 'Escape') {
-    emit('close')
+    emit('close');
   }
-}
+};
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-  document.addEventListener('contextmenu', handleClickOutside)
-  document.addEventListener('keydown', handleEscape)
-})
+  document.addEventListener('click', handleClickOutside);
+  document.addEventListener('contextmenu', handleClickOutside);
+  document.addEventListener('keydown', handleEscape);
+});
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-  document.removeEventListener('contextmenu', handleClickOutside)
-  document.removeEventListener('keydown', handleEscape)
-})
+  document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('contextmenu', handleClickOutside);
+  document.removeEventListener('keydown', handleEscape);
+});
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="context-menu">
-      <div v-if="show" ref="menuRef" class="fixed z-9999 py-1.5 bg-surface border border-border rounded-lg shadow-xl context-menu"
-        :class="widthClass || 'w-52'" :style="{ top: y + 'px', left: x + 'px' }" @click.stop>
+      <div
+        v-if="show"
+        ref="menuRef"
+        class="bg-surface border-border context-menu fixed z-9999 rounded-lg border py-1.5 shadow-xl"
+        :class="widthClass || 'w-52'"
+        :style="{ top: y + 'px', left: x + 'px' }"
+        @click.stop
+      >
         <slot></slot>
       </div>
     </Transition>
@@ -53,7 +59,9 @@ onUnmounted(() => {
 <style scoped>
 .context-menu-enter-active,
 .context-menu-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
   transform-origin: top left;
 }
 

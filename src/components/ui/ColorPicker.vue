@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { ConnectionColor } from '@/types'
+import type { ConnectionColor } from '@/types';
 
 const props = defineProps<{
-  modelValue: ConnectionColor
-}>()
+  modelValue: ConnectionColor;
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: ConnectionColor]
-}>()
+  'update:modelValue': [value: ConnectionColor];
+}>();
 
 const colors: { key: ConnectionColor; value: string }[] = [
   { key: 'indigo', value: '#4F46E5' },
@@ -17,8 +17,8 @@ const colors: { key: ConnectionColor; value: string }[] = [
   { key: 'amber', value: '#F59E0B' },
   { key: 'orange', value: '#F97316' },
   { key: 'pink', value: '#EC4899' },
-  { key: 'gray', value: '#9CA3AF' },
-]
+  { key: 'gray', value: '#9CA3AF' }
+];
 </script>
 
 <template>
@@ -27,8 +27,10 @@ const colors: { key: ConnectionColor; value: string }[] = [
       v-for="color in colors"
       :key="color.key"
       type="button"
-      class="relative w-8 h-8 rounded-full border-2 cursor-pointer transition-all duration-150 hover:scale-110 focus:outline-none"
-      :class="modelValue === color.key ? 'border-current shadow-md scale-110' : 'border-transparent'"
+      class="relative h-8 w-8 cursor-pointer rounded-full border-2 transition-all duration-150 hover:scale-110 focus:outline-none"
+      :class="
+        modelValue === color.key ? 'scale-110 border-current shadow-md' : 'border-transparent'
+      "
       :style="{ backgroundColor: color.value, color: color.value }"
       :title="color.key"
       @click="emit('update:modelValue', color.key)"
@@ -36,7 +38,7 @@ const colors: { key: ConnectionColor; value: string }[] = [
       <!-- Checkmark -->
       <svg
         v-if="modelValue === color.key"
-        class="absolute inset-0 m-auto w-4 h-4 text-white"
+        class="absolute inset-0 m-auto h-4 w-4 text-white"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

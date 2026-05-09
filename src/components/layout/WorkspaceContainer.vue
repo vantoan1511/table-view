@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { useLayoutStore } from '@/stores/layout'
-import ResizeHandle from '@/components/ui/ResizeHandle.vue'
-import PanelHeader from '@/components/layout/PanelHeader.vue'
-import OutputPanel from '@/components/panels/OutputPanel.vue'
-import TimelinePanel from '@/components/panels/TimelinePanel.vue'
-import ValueViewer from '@/components/panels/ValueViewer.vue'
-import PropertiesPanel from '@/components/panels/PropertiesPanel.vue'
-import IndexesPanel from '@/components/panels/IndexesPanel.vue'
+import PanelHeader from '@/components/layout/PanelHeader.vue';
+import IndexesPanel from '@/components/panels/IndexesPanel.vue';
+import OutputPanel from '@/components/panels/OutputPanel.vue';
+import PropertiesPanel from '@/components/panels/PropertiesPanel.vue';
+import TimelinePanel from '@/components/panels/TimelinePanel.vue';
+import ValueViewer from '@/components/panels/ValueViewer.vue';
+import ResizeHandle from '@/components/ui/ResizeHandle.vue';
+import { useLayoutStore } from '@/stores/layout';
 
-const layoutStore = useLayoutStore()
+const layoutStore = useLayoutStore();
 </script>
 
 <template>
-  <div class="flex flex-col flex-1 min-w-0 min-h-0 bg-background relative">
+  <div class="bg-background relative flex min-h-0 min-w-0 flex-1 flex-col">
     <!-- Top Area (Main + Right) -->
-    <div class="flex flex-1 min-h-0 min-w-0">
+    <div class="flex min-h-0 min-w-0 flex-1">
       <!-- Main Editor / Grid Area -->
-      <div class="flex-1 min-w-0 min-h-0 flex flex-col relative">
+      <div class="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <slot name="main" />
       </div>
 
@@ -28,18 +28,18 @@ const layoutStore = useLayoutStore()
           reverse
           @update:model-value="layoutStore.updatePanelSize('inspector', $event)"
         />
-        <div 
-          class="flex flex-col bg-sidebar border-l border-border animate-slide-in-right shadow-lg"
+        <div
+          class="bg-sidebar border-border animate-slide-in-right flex flex-col border-l shadow-lg"
           :style="{ width: `${layoutStore.rightPanel.size}px` }"
         >
-          <PanelHeader 
+          <PanelHeader
             :panel="layoutStore.rightPanel"
             @minimize="layoutStore.togglePanel('inspector')"
           />
-          <div class="flex-1 overflow-hidden flex flex-col">
+          <div class="flex flex-1 flex-col overflow-hidden">
             <PropertiesPanel v-if="layoutStore.rightPanel.activeTabId === 'properties'" />
             <IndexesPanel v-else-if="layoutStore.rightPanel.activeTabId === 'indexes'" />
-            <div v-else class="flex-1 p-4 text-sm text-text-tertiary">
+            <div v-else class="text-text-tertiary flex-1 p-4 text-sm">
               Select a tab to view content.
             </div>
           </div>
@@ -55,19 +55,19 @@ const layoutStore = useLayoutStore()
         reverse
         @update:model-value="layoutStore.updatePanelSize('console', $event)"
       />
-      <div 
-        class="flex flex-col bg-sidebar border-t border-border animate-slide-in-up shadow-lg"
+      <div
+        class="bg-sidebar border-border animate-slide-in-up flex flex-col border-t shadow-lg"
         :style="{ height: `${layoutStore.bottomPanel.size}px` }"
       >
-        <PanelHeader 
+        <PanelHeader
           :panel="layoutStore.bottomPanel"
           @minimize="layoutStore.togglePanel('console')"
         />
-        <div class="flex-1 overflow-hidden flex flex-col bg-background">
+        <div class="bg-background flex flex-1 flex-col overflow-hidden">
           <OutputPanel v-if="layoutStore.bottomPanel.activeTabId === 'output'" />
           <TimelinePanel v-else-if="layoutStore.bottomPanel.activeTabId === 'timeline'" />
           <ValueViewer v-else-if="layoutStore.bottomPanel.activeTabId === 'value'" />
-          <div v-else class="flex-1 p-4 text-sm text-text-tertiary">
+          <div v-else class="text-text-tertiary flex-1 p-4 text-sm">
             Select a tab to view content.
           </div>
         </div>

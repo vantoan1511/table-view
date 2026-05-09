@@ -1,9 +1,9 @@
 <script setup lang="ts">
 interface Props {
-  width?: string
-  height?: string
-  rounded?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
-  animation?: 'pulse' | 'shimmer' | 'none'
+  width?: string;
+  height?: string;
+  rounded?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  animation?: 'pulse' | 'shimmer' | 'none';
 }
 
 withDefaults(defineProps<Props>(), {
@@ -11,12 +11,12 @@ withDefaults(defineProps<Props>(), {
   height: '1rem',
   rounded: 'md',
   animation: 'shimmer'
-})
+});
 </script>
 
 <template>
   <div
-    class="skeleton relative overflow-hidden bg-muted"
+    class="skeleton bg-muted relative overflow-hidden"
     :class="[
       `rounded-${rounded}`,
       animation === 'pulse' ? 'animate-pulse' : '',

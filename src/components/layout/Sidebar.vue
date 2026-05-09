@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import DatabaseTree from '@/components/sidebar/DatabaseTree.vue'
-import { useConnectionsStore } from '@/stores/connections'
-import { useSchemaStore } from '@/stores/schema'
-import { Plus, Search } from 'lucide-vue-next'
+import DatabaseTree from '@/components/sidebar/DatabaseTree.vue';
+import { useConnectionsStore } from '@/stores/connections';
+import { useSchemaStore } from '@/stores/schema';
+import { Plus, Search } from 'lucide-vue-next';
 
-const connectionsStore = useConnectionsStore()
-const schemaStore = useSchemaStore()
+const connectionsStore = useConnectionsStore();
+const schemaStore = useSchemaStore();
 </script>
 
 <template>
-  <aside class="flex flex-col w-(--sidebar-width) bg-sidebar border-r border-border shrink-0 overflow-hidden">
+  <aside
+    class="bg-sidebar border-border flex w-(--sidebar-width) shrink-0 flex-col overflow-hidden border-r"
+  >
     <!-- Header -->
-    <div class="px-2.5 py-2.5 border-b border-border shrink-0">
-      <button id="btn-new-connection"
-        class="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 bg-primary hover:bg-primary-hover text-text-inverse rounded-lg text-[12px] font-medium cursor-pointer transition-colors shadow-sm"
+    <div class="border-border shrink-0 border-b px-2.5 py-2.5">
+      <button
+        id="btn-new-connection"
+        class="bg-primary hover:bg-primary-hover text-text-inverse flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium shadow-sm transition-colors"
         @click="connectionsStore.toggleConnectionModal(true)"
       >
         <Plus :size="14" />
@@ -22,13 +25,15 @@ const schemaStore = useSchemaStore()
     </div>
 
     <!-- Search filter -->
-    <div class="px-2.5 py-2 border-b border-border shrink-0">
-      <div class="flex items-center gap-2 px-2.5 py-1.5 bg-surface border border-border rounded-lg focus-within:border-primary/50 transition-colors">
+    <div class="border-border shrink-0 border-b px-2.5 py-2">
+      <div
+        class="bg-surface border-border focus-within:border-primary/50 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors"
+      >
         <Search :size="12" class="text-text-tertiary shrink-0" />
         <input
           type="text"
           placeholder="Search connections..."
-          class="flex-1 bg-transparent border-none outline-none text-[12px] text-text-primary placeholder-text-tertiary"
+          class="text-text-primary placeholder-text-tertiary flex-1 border-none bg-transparent text-[12px] outline-none"
           :value="schemaStore.filterQuery"
           @input="schemaStore.setFilter(($event.target as HTMLInputElement).value)"
         />
@@ -36,6 +41,6 @@ const schemaStore = useSchemaStore()
     </div>
 
     <!-- Unified tree -->
-    <DatabaseTree class="flex-1 min-h-0" />
+    <DatabaseTree class="min-h-0 flex-1" />
   </aside>
 </template>

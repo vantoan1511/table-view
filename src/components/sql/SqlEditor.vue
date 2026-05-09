@@ -1,68 +1,65 @@
 <script setup lang="ts">
-import ResizeHandle from '@/components/ui/ResizeHandle.vue'
-import { useSqlEditor } from '@/composables/useSqlEditor'
-import { useDebounce } from '@/composables/useDebounce'
-import { useGridStore } from '@/stores/grid'
-import { useSchemaStore } from '@/stores/schema'
-import { useTabsStore } from '@/stores/tabs'
-import type { Tab } from '@/types'
-import { PostgreSQL, sql } from '@codemirror/lang-sql'
-import { syntaxHighlighting } from '@codemirror/language'
-import { Compartment, EditorState, Prec } from '@codemirror/state'
-import { keymap } from '@codemirror/view'
-import { EditorView, basicSetup } from 'codemirror'
-import { sqlHighlightStyle, editorTheme } from '@/lib/editorConfig'
-import {
-  Clock,
-  Download,
-  Loader2,
-  Play,
-  Save
-} from 'lucide-vue-next'
-import { onMounted, ref, watch } from 'vue'
-import ResultsGrid from './ResultsGrid.vue'
+import ResizeHandle from '@/components/ui/ResizeHandle.vue';
+import { useDebounce } from '@/composables/useDebounce';
+import { useSqlEditor } from '@/composables/useSqlEditor';
+import { editorTheme, sqlHighlightStyle } from '@/lib/editorConfig';
+import { useGridStore } from '@/stores/grid';
+import { useSchemaStore } from '@/stores/schema';
+import { useTabsStore } from '@/stores/tabs';
+import type { Tab } from '@/types';
+import { PostgreSQL, sql } from '@codemirror/lang-sql';
+import { syntaxHighlighting } from '@codemirror/language';
+import { Compartment, EditorState, Prec } from '@codemirror/state';
+import { keymap } from '@codemirror/view';
+import { EditorView, basicSetup } from 'codemirror';
+import { Clock, Download, Loader2, Play, Save } from 'lucide-vue-next';
+import { onMounted, ref, watch } from 'vue';
+import ResultsGrid from './ResultsGrid.vue';
 
 const props = defineProps<{
-  tab: Tab
-}>()
+  tab: Tab;
+}>();
 
-const gridStore = useGridStore()
-const schemaStore = useSchemaStore()
-const tabsStore = useTabsStore()
+const gridStore = useGridStore();
+const schemaStore = useSchemaStore();
+const tabsStore = useTabsStore();
 
-const { activeResultTab, executeRun, saveQuery, exportQuery } = useSqlEditor(props)
+const { activeResultTab, executeRun, saveQuery, exportQuery } = useSqlEditor(props);
 
-const editorContainer = ref<HTMLElement>()
-const editorWidth = ref(600)
+const editorContainer = ref<HTMLElement>();
+const editorWidth = ref(600);
 
-let editorView: EditorView | null = null
-const sqlCompartment = new Compartment()
+let editorView: EditorView | null = null;
+const sqlCompartment = new Compartment();
 
 const buildSqlExtension = () => {
-  const schemaMap: Record<string, string[]> = {}
-  const connId = props.tab.connectionId
-  const connSchema = connId ? schemaStore.schemasByConnection[connId] : undefined
-  const source = connSchema ?? schemaStore.schema
+  const schemaMap: Record<string, string[]> = {};
+  const connId = props.tab.connectionId;
+  const connSchema = connId ? schemaStore.schemasByConnection[connId] : undefined;
+  const source = connSchema ?? schemaStore.schema;
   for (const table of source.tables) {
-    schemaMap[table.name] = []
+    schemaMap[table.name] = [];
   }
   for (const view of source.views) {
-    schemaMap[view.name] = []
+    schemaMap[view.name] = [];
   }
-  return sql({ dialect: PostgreSQL, schema: schemaMap })
-}
+  return sql({ dialect: PostgreSQL, schema: schemaMap });
+};
 
-const handleRun = useDebounce(() => {
-  if (gridStore.isLoading) return
-  executeRun(editorView)
-}, { delay: 300 })
+const handleRun = useDebounce(
+  () => {
+    if (gridStore.isLoading) return;
+    executeRun(editorView);
+  },
+  { delay: 300 }
+);
 
 const initEditor = () => {
   if (editorView) {
-    editorView.destroy()
-    editorView = null
+    editorView.destroy();
+    editorView = null;
   }
-  if (!editorContainer.value) return
+  if (!editorContainer.value) return;
 
   const state = EditorState.create({
     doc: props.tab.query || '',
@@ -72,106 +69,137 @@ const initEditor = () => {
       sqlCompartment.of(buildSqlExtension()),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
-          tabsStore.updateTabQuery(props.tab.id, update.state.doc.toString())
+          tabsStore.updateTabQuery(props.tab.id, update.state.doc.toString());
         }
       }),
-      Prec.highest(keymap.of([
-        {
-          key: 'Mod-Enter',
-          run: () => {
-            handleRun()
-            return true
+      Prec.highest(
+        keymap.of([
+          {
+            key: 'Mod-Enter',
+            run: () => {
+              handleRun();
+              return true;
+            }
           },
-        },
-        {
-          key: 'Mod-s',
-          run: () => {
-            saveQuery()
-            return true
-          },
-        },
-      ])),
+          {
+            key: 'Mod-s',
+            run: () => {
+              saveQuery();
+              return true;
+            }
+          }
+        ])
+      ),
       editorTheme,
-      EditorView.lineWrapping,
-    ],
-  })
+      EditorView.lineWrapping
+    ]
+  });
 
   editorView = new EditorView({
     state,
-    parent: editorContainer.value,
-  })
-}
+    parent: editorContainer.value
+  });
+};
 
 onMounted(() => {
-  initEditor()
+  initEditor();
 
   watch(
-    () => props.tab.connectionId ? schemaStore.schemasByConnection[props.tab.connectionId] : schemaStore.schema,
+    () =>
+      props.tab.connectionId
+        ? schemaStore.schemasByConnection[props.tab.connectionId]
+        : schemaStore.schema,
     () => {
-      if (!editorView) return
+      if (!editorView) return;
       editorView.dispatch({
-        effects: sqlCompartment.reconfigure(buildSqlExtension()),
-      })
+        effects: sqlCompartment.reconfigure(buildSqlExtension())
+      });
     },
     { deep: true }
-  )
-})
+  );
+});
 </script>
 
 <template>
-  <div class="flex flex-col flex-1 min-h-0 bg-surface">
+  <div class="bg-surface flex min-h-0 flex-1 flex-col">
     <!-- Results / Messages tabs toggle -->
-    <div class="flex items-center border-b border-border bg-muted shrink-0">
-      <div class="px-4 py-1.5 text-[12px] font-semibold text-text-secondary uppercase tracking-wider">
+    <div class="border-border bg-muted flex shrink-0 items-center border-b">
+      <div
+        class="text-text-secondary px-4 py-1.5 text-[12px] font-semibold tracking-wider uppercase"
+      >
         Query Results
       </div>
-      <div class="flex items-center ml-auto border-l border-border">
-        <button class="px-3 py-1.5 text-[12px] font-medium transition-colors cursor-pointer"
-          :class="activeResultTab === 'results' ? 'text-primary border-b-2 border-primary' : 'text-text-secondary hover:text-text-primary'"
-          @click="activeResultTab = 'results'">
+      <div class="border-border ml-auto flex items-center border-l">
+        <button
+          class="cursor-pointer px-3 py-1.5 text-[12px] font-medium transition-colors"
+          :class="
+            activeResultTab === 'results'
+              ? 'text-primary border-primary border-b-2'
+              : 'text-text-secondary hover:text-text-primary'
+          "
+          @click="activeResultTab = 'results'"
+        >
           Results
         </button>
-        <button class="px-3 py-1.5 text-[12px] font-medium transition-colors cursor-pointer"
-          :class="activeResultTab === 'messages' ? 'text-primary border-b-2 border-primary' : 'text-text-secondary hover:text-text-primary'"
-          @click="activeResultTab = 'messages'">
+        <button
+          class="cursor-pointer px-3 py-1.5 text-[12px] font-medium transition-colors"
+          :class="
+            activeResultTab === 'messages'
+              ? 'text-primary border-primary border-b-2'
+              : 'text-text-secondary hover:text-text-primary'
+          "
+          @click="activeResultTab = 'messages'"
+        >
           Messages
         </button>
       </div>
     </div>
 
     <!-- Split Content -->
-    <div class="flex flex-1 min-h-0">
+    <div class="flex min-h-0 flex-1">
       <!-- Editor Pane -->
-      <div class="flex flex-col border-r border-border min-h-0" :style="{ width: editorWidth + 'px' }">
-        <div ref="editorContainer" class="flex-1 overflow-auto min-h-0"></div>
+      <div
+        class="border-border flex min-h-0 flex-col border-r"
+        :style="{ width: editorWidth + 'px' }"
+      >
+        <div ref="editorContainer" class="min-h-0 flex-1 overflow-auto"></div>
 
         <!-- Run Bar -->
-        <div class="flex items-center gap-3 px-3 py-1.5 border-t border-border bg-muted">
-          <button id="btn-run-query"
-            class="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed text-text-inverse rounded-lg text-[12px] font-medium cursor-pointer transition-colors shadow-sm"
-            :disabled="gridStore.isLoading" @click="handleRun">
+        <div class="border-border bg-muted flex items-center gap-3 border-t px-3 py-1.5">
+          <button
+            id="btn-run-query"
+            class="bg-primary hover:bg-primary-hover text-text-inverse flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+            :disabled="gridStore.isLoading"
+            @click="handleRun"
+          >
             <Loader2 v-if="gridStore.isLoading" :size="13" class="animate-spin" />
             <Play v-else :size="13" fill="currentColor" />
             {{ gridStore.isLoading ? 'Running...' : 'Run' }}
           </button>
 
           <button
-            class="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border hover:border-border-strong text-text-secondary rounded-lg text-[12px] cursor-pointer transition-colors"
-            @click="saveQuery" title="Save (Ctrl+S)">
+            class="bg-surface border-border hover:border-border-strong text-text-secondary flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors"
+            @click="saveQuery"
+            title="Save (Ctrl+S)"
+          >
             <Save :size="13" />
           </button>
 
           <button
-            class="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border hover:border-border-strong text-text-secondary rounded-lg text-[12px] cursor-pointer transition-colors"
-            @click="exportQuery" title="Export to .sql file">
+            class="bg-surface border-border hover:border-border-strong text-text-secondary flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors"
+            @click="exportQuery"
+            title="Export to .sql file"
+          >
             <Download :size="13" />
             <span>Export</span>
           </button>
 
-          <div class="flex items-center gap-1 border-l border-border pl-3 ml-1 h-5">
-            <span class="text-[11px] text-text-tertiary">Limit:</span>
-            <select v-model="gridStore.sqlLimit"
-              class="bg-transparent border-none outline-none text-[11px] text-text-primary cursor-pointer hover:text-primary">
+          <div class="border-border ml-1 flex h-5 items-center gap-1 border-l pl-3">
+            <span class="text-text-tertiary text-[11px]">Limit:</span>
+            <select
+              v-model="gridStore.sqlLimit"
+              class="text-text-primary hover:text-primary cursor-pointer border-none bg-transparent text-[11px] outline-none"
+            >
               <option :value="100">100</option>
               <option :value="200">200</option>
               <option :value="500">500</option>
@@ -180,7 +208,7 @@ onMounted(() => {
             </select>
           </div>
 
-          <div class="flex items-center gap-1 text-[11px] text-text-secondary ml-auto">
+          <div class="text-text-secondary ml-auto flex items-center gap-1 text-[11px]">
             <Clock :size="12" class="text-success" />
             <span>{{ gridStore.sqlExecutionTime }} ms</span>
           </div>
@@ -188,19 +216,24 @@ onMounted(() => {
       </div>
 
       <!-- Resize Handle -->
-      <ResizeHandle orientation="horizontal" v-model="editorWidth"/>
+      <ResizeHandle orientation="horizontal" v-model="editorWidth" />
 
       <!-- Results Pane -->
-      <div class="flex-1 overflow-auto min-h-0">
+      <div class="min-h-0 flex-1 overflow-auto">
         <div v-if="activeResultTab === 'results'" class="h-full">
           <ResultsGrid />
         </div>
-        <div v-else class="p-3 text-[12px] font-(--font-mono) text-text-secondary">
-          <div v-for="(msg, i) in gridStore.sqlMessages" :key="i" class="py-1" :class="{
-            'text-success': msg.type === 'info',
-            'text-danger': msg.type === 'error',
-            'text-warning': msg.type === 'warning',
-          }">
+        <div v-else class="text-text-secondary p-3 text-[12px] font-(--font-mono)">
+          <div
+            v-for="(msg, i) in gridStore.sqlMessages"
+            :key="i"
+            class="py-1"
+            :class="{
+              'text-success': msg.type === 'info',
+              'text-danger': msg.type === 'error',
+              'text-warning': msg.type === 'warning'
+            }"
+          >
             {{ msg.text }}
           </div>
           <div v-if="gridStore.sqlMessages.length === 0" class="text-text-tertiary italic">

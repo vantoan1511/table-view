@@ -1,24 +1,26 @@
 <script setup lang="ts">
-import { useGridStore } from '@/stores/grid'
-import { computed } from 'vue'
+import { useGridStore } from '@/stores/grid';
+import { computed } from 'vue';
 
-const gridStore = useGridStore()
-const messages = computed(() => gridStore.sqlMessages)
+const gridStore = useGridStore();
+const messages = computed(() => gridStore.sqlMessages);
 </script>
 
 <template>
-  <div class="flex-1 overflow-auto p-4 font-mono text-[12px] bg-surface">
+  <div class="bg-surface flex-1 overflow-auto p-4 font-mono text-[12px]">
     <div v-if="messages.length === 0" class="text-text-tertiary italic">
       No output generated yet.
     </div>
     <div v-for="(msg, i) in messages" :key="i" class="mb-2 last:mb-0">
-      <div class="flex items-center gap-2 mb-1 opacity-70 text-[10px]">
+      <div class="mb-1 flex items-center gap-2 text-[10px] opacity-70">
         <span class="text-primary">{{ new Date(msg.timestamp).toLocaleTimeString() }}</span>
       </div>
-      <div :class="{
-        'text-success': msg.type === 'info',
-        'text-danger': msg.type === 'error'
-      }">
+      <div
+        :class="{
+          'text-success': msg.type === 'info',
+          'text-danger': msg.type === 'error'
+        }"
+      >
         {{ msg.text }}
       </div>
     </div>
