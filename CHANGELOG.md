@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.1] - 2026-05-08
+## [0.2.2] - 2026-05-09
+
+### Changed
+- **Production: Hardening**: Re-enforced `tokenSecurity: "one-time"` and disabled developer inspector for official release.
+- **Assets: Icon Paths**: Standardized icon paths and inclusion in the production bundle.
+- **Neutralino: Globals Path**: Standardized the globals script path to use `%PUBLIC_URL%`.
+
+
 
 ### Fixed
 - **CI/CD: Release Workflow**: Fixed a PowerShell syntax error in the GitHub Actions workflow that caused Windows installer builds to fail.
