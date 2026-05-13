@@ -58,19 +58,19 @@ struct Payload {
 }
 
 pub async fn handle_message(
-    msg: WsMessage,
+    mut msg: WsMessage,
     writer: Arc<Mutex<WsWriter>>,
     token: String,
     pool: Arc<Mutex<Pool>>,
 ) {
     let event = match &msg.event {
-        Some(e) if e.starts_with("dbBridge.") => e.clone(),
+        Some(e) if e.starts_with("dbBridge.") => msg.event.take().unwrap(),
         _ => return,
     };
 
     let action = event.strip_prefix("dbBridge.").unwrap_or("");
 
-    let payload: Payload = match &msg.data {
+    let payload: Payload = match msg.data.take() {
         Some(data) => {
             match serde_json::from_value::<Payload>(data.clone()) {
                 Ok(p) => p,
@@ -166,21 +166,76 @@ pub async fn handle_message(
                 let mut p = pool.lock().await;
                 let target_db = (!payload.target_database.trim().is_empty())
                     .then_some(payload.target_database.trim());
-                match p.get_or_create(&payload.connection_id, target_db).await {
-                    Ok(d) => d,
-                    Err(e) => {
+                p.get(&payload.connection_id, target_db)
+            };
+
+            let driver_arc = if let Some(d) = driver_arc {
+                d
+            } else {
+                // Not in pool, need to create outside global lock
+                let target_db = (!payload.target_database.trim().is_empty())
+                    .then_some(payload.target_database.trim());
+                
+                log::info!("handler: driver not in pool, creating outside lock for connection {}", payload.connection_id);
+                
+                // Get config while locked, then release
+                let config = {
+                    let p = pool.lock().await;
+                    p.get_config(&payload.connection_id).cloned()
+                };
+
+                let base_config = match config {
+                    Some(c) => c,
+                    None => {
                         let result_event = format!("dbBridge.{}Result", action);
                         broadcast(&writer, &token, &result_event, json!({
                             "reqId": payload.req_id,
                             "success": false,
-                            "error": e
+                            "error": format!("connection config not found for {}", payload.connection_id)
                         })).await;
                         return;
                     }
+                };
+
+                let target_db_name = target_db
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| base_config.database.clone());
+
+                let mut new_config = base_config.clone();
+                new_config.database = target_db_name.clone();
+
+                let mut driver = match crate::drivers::create_driver(&new_config.db_type) {
+                    Some(d) => d,
+                    None => {
+                        let result_event = format!("dbBridge.{}Result", action);
+                        broadcast(&writer, &token, &result_event, json!({
+                            "reqId": payload.req_id,
+                            "success": false,
+                            "error": format!("unsupported driver type: {}", new_config.db_type)
+                        })).await;
+                        return;
+                    }
+                };
+
+                // CONNECT OUTSIDE LOCK
+                if let Err(e) = driver.connect(&new_config).await {
+                    let result_event = format!("dbBridge.{}Result", action);
+                    broadcast(&writer, &token, &result_event, json!({
+                        "reqId": payload.req_id,
+                        "success": false,
+                        "error": e
+                    })).await;
+                    return;
                 }
+
+                // Put back in pool
+                let mut p = pool.lock().await;
+                p.put(payload.connection_id.clone(), driver, new_config).await;
+                // Re-get from pool to ensure LRU is updated and we get the Arc
+                p.get(&payload.connection_id, Some(&target_db_name)).unwrap()
             };
 
-            let driver = driver_arc.lock().await;
+            let driver = driver_arc.read().await;
             match action {
                 "getSchema" | "getDbSchema" => {
                     let schema_name = (!payload.schema_name.trim().is_empty())

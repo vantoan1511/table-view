@@ -109,10 +109,10 @@ export function useSchemaActions(
     }
   };
 
-  const loadDbSchema = async (connectionId: string, dbName: string) => {
+  const loadDbSchema = async (connectionId: string, dbName: string, force = false) => {
     if (
       cache.loadingDbByConnection.value[connectionId]?.[dbName] ||
-      cache.perDbSchemas.value[connectionId]?.[dbName]
+      (!force && cache.perDbSchemas.value[connectionId]?.[dbName])
     )
       return;
 

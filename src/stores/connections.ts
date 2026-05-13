@@ -1,4 +1,4 @@
-import type { Connection } from '@/types';
+import { OracleConnectType, OracleRole, type Connection } from '@/types';
 import * as Neutralino from '@neutralinojs/lib';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -50,8 +50,8 @@ export const useConnectionsStore = defineStore('connections', () => {
         loaded.forEach((c) => {
           c.password = decryptPassword(c.password);
           c.isConnected = false;
-          c.oracleConnectType = c.oracleConnectType || 'serviceName';
-          c.oracleRole = c.oracleRole || 'normal';
+          c.oracleConnectType = c.oracleConnectType || OracleConnectType.SERVICE_NAME;
+          c.oracleRole = c.oracleRole || OracleRole.NORMAL;
         });
         connections.value = loaded;
       } catch (err) {

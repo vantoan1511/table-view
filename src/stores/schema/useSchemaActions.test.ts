@@ -59,13 +59,11 @@ describe('useSchemaActions', () => {
     it('calls dbBridge.getSchema and updates cache', async () => {
       const actions = useSchemaActions(cache, treeState, connectionsStore, loadedAllDatabases);
       const mockResponse = {
-        schema: {
-          tables: [{ name: 'users', schema: 'public' }],
-          views: [],
-          functions: [],
-          schemas: ['public', 'information_schema'],
-          databases: ['postgres']
-        }
+        tables: [{ name: 'users', schema: 'public' }],
+        views: [],
+        functions: [],
+        schemas: ['public', 'information_schema'],
+        databases: ['postgres']
       };
       vi.mocked(BridgeService.request).mockResolvedValue(mockResponse);
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ConnectionColor } from '@/types';
+import { ConnectionColor } from '@/types';
 
 const props = defineProps<{
   modelValue: ConnectionColor;
@@ -10,14 +10,14 @@ const emit = defineEmits<{
 }>();
 
 const colors: { key: ConnectionColor; value: string }[] = [
-  { key: 'indigo', value: '#4F46E5' },
-  { key: 'blue', value: '#3B82F6' },
-  { key: 'teal', value: '#14B8A6' },
-  { key: 'green', value: '#22C55E' },
-  { key: 'amber', value: '#F59E0B' },
-  { key: 'orange', value: '#F97316' },
-  { key: 'pink', value: '#EC4899' },
-  { key: 'gray', value: '#9CA3AF' }
+  { key: ConnectionColor.INDIGO, value: '#4F46E5' },
+  { key: ConnectionColor.BLUE, value: '#3B82F6' },
+  { key: ConnectionColor.TEAL, value: '#14B8A6' },
+  { key: ConnectionColor.GREEN, value: '#22C55E' },
+  { key: ConnectionColor.AMBER, value: '#F59E0B' },
+  { key: ConnectionColor.ORANGE, value: '#F97316' },
+  { key: ConnectionColor.PINK, value: '#EC4899' },
+  { key: ConnectionColor.GRAY, value: '#9CA3AF' }
 ];
 </script>
 

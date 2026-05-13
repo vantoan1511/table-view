@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useSchemaStore } from '@/stores/schema';
 import { ChevronRight, Database } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import ObjectGroupNode from './ObjectGroupNode.vue';
 
 const props = defineProps<{
@@ -12,6 +12,8 @@ const props = defineProps<{
 }>();
 
 const schemaStore = useSchemaStore();
+const onEntityContextMenu =
+  inject<(event: MouseEvent, type: string, payload: any) => void>('onEntityContextMenu');
 
 const expansionKey = computed(() =>
   props.dbName ? `__db__${props.dbName}.${props.schemaName}` : props.schemaName
@@ -31,6 +33,9 @@ const toggle = () => {
       class="group hover:bg-hover flex cursor-pointer items-center gap-1.5 py-1 pr-2 pl-7 transition-colors"
       :class="indent ? 'pl-11' : 'pl-7'"
       @click="toggle"
+      @contextmenu.prevent.stop="
+        onEntityContextMenu?.($event, 'schema', { connId: connectionId, schemaName, dbName })
+      "
     >
       <ChevronRight
         :size="12"

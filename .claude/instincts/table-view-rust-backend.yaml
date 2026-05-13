@@ -1,0 +1,17 @@
+---
+id: table-view-rust-backend
+trigger: "when working on the backend or database connectivity"
+confidence: 0.95
+domain: architecture
+source: local-repo-analysis
+---
+
+# Table View Backend Architecture
+
+## Action
+- Place all backend bridge logic in `extensions/db-bridge` using **Rust**.
+- Use `sqlx` or dedicated Rust drivers (e.g., `oracle-rs` with `deadpool-oracle`).
+- Run `cargo build` after modifications before testing.
+
+## Evidence
+- Extracted from `GEMINI.md` mandates.

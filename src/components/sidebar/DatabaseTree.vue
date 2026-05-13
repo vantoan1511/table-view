@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { useConnectionsStore } from '@/stores/connections';
+import { useGridStore } from '@/stores/grid';
 import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
 import { useToastStore } from '@/stores/toast';
 import type { Connection } from '@/types';
 import { Layers } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, provide, ref } from 'vue';
 import ConfirmDialog from '../ui/ConfirmDialog.vue';
 import ConnectionContextMenu from './ConnectionContextMenu.vue';
+import DatabaseContextMenu from './DatabaseContextMenu.vue';
+import SchemaContextMenu from './SchemaContextMenu.vue';
+import TableContextMenu from './TableContextMenu.vue';
 import ConnectionNode from './ConnectionNode.vue';
 
 const connectionsStore = useConnectionsStore();
+const gridStore = useGridStore();
 const schemaStore = useSchemaStore();
 const tabsStore = useTabsStore();
 const toastStore = useToastStore();
@@ -49,7 +54,19 @@ const toggleConnection = async (conn: Connection) => {
 };
 
 // ─── Context Menu ─────────────────────────────────────────────────────────────
-const contextMenu = ref({ show: false, x: 0, y: 0, connId: null as string | null });
+type EntityType = 'connection' | 'database' | 'schema' | 'table';
+
+const contextMenu = ref({
+  show: false,
+  x: 0,
+  y: 0,
+  type: null as EntityType | null,
+  connId: null as string | null,
+  dbName: null as string | null,
+  schemaName: null as string | null,
+  tableName: null as string | null
+});
+
 const showDeleteConfirm = ref(false);
 const idToDelete = ref<string | null>(null);
 
@@ -59,44 +76,94 @@ const connectionName = computed(
 
 const closeContextMenu = () => {
   contextMenu.value.show = false;
+  contextMenu.value.type = null;
   contextMenu.value.connId = null;
 };
 
-const onContextMenu = (event: MouseEvent, id: string) => {
+const onEntityContextMenu = (
+  event: MouseEvent,
+  type: EntityType,
+  payload: { connId: string; dbName?: string; schemaName?: string; tableName?: string }
+) => {
   let x = event.clientX;
   let y = event.clientY;
   if (x + 200 > window.innerWidth) x -= 200;
   if (y + 200 > window.innerHeight) y -= 200;
-  contextMenu.value = { show: true, x, y, connId: id };
+  contextMenu.value = {
+    show: true,
+    x,
+    y,
+    type,
+    connId: payload.connId,
+    dbName: payload.dbName ?? null,
+    schemaName: payload.schemaName ?? null,
+    tableName: payload.tableName ?? null
+  };
 };
 
-const handleContextAction = (action: string) => {
-  const id = contextMenu.value.connId;
-  closeContextMenu();
-  if (!id) return;
+provide('onEntityContextMenu', onEntityContextMenu);
 
-  if (action === 'sql') {
-    tabsStore.openSqlEditor(id);
-  } else if (action === 'edit') {
-    const conn = connectionsStore.connections.find((c) => c.id === id);
-    if (conn) connectionsStore.toggleConnectionModal(true, conn);
-  } else if (action === 'duplicate') {
-    const conn = connectionsStore.connections.find((c) => c.id === id);
-    if (conn) {
-      const newConn = {
-        ...conn,
-        id: crypto.randomUUID(),
-        name: `${conn.name} (Copy)`,
-        isConnected: false
-      };
-      connectionsStore.connections.push(newConn);
-      connectionsStore.saveConnections();
+const onContextMenu = (event: MouseEvent, id: string) => {
+  onEntityContextMenu(event, 'connection', { connId: id });
+};
+
+const handleContextAction = async (action: string) => {
+  const { type, connId, dbName, schemaName, tableName } = contextMenu.value;
+  closeContextMenu();
+  if (!connId || !type) return;
+
+  if (type === 'connection') {
+    if (action === 'sql') {
+      tabsStore.openSqlEditor(connId);
+    } else if (action === 'edit') {
+      const conn = connectionsStore.connections.find((c) => c.id === connId);
+      if (conn) connectionsStore.toggleConnectionModal(true, conn);
+    } else if (action === 'duplicate') {
+      const conn = connectionsStore.connections.find((c) => c.id === connId);
+      if (conn) {
+        const newConn = {
+          ...conn,
+          id: crypto.randomUUID(),
+          name: `${conn.name} (Copy)`,
+          isConnected: false
+        };
+        connectionsStore.connections.push(newConn);
+        connectionsStore.saveConnections();
+      }
+    } else if (action === 'refresh') {
+      schemaStore.loadSchema(undefined, connId);
+    } else if (action === 'delete') {
+      idToDelete.value = connId;
+      showDeleteConfirm.value = true;
     }
-  } else if (action === 'refresh') {
-    schemaStore.loadSchema(undefined, id);
-  } else if (action === 'delete') {
-    idToDelete.value = id;
-    showDeleteConfirm.value = true;
+  } else if (type === 'database') {
+    if (action === 'refresh' && dbName) {
+      schemaStore.refreshDbSchema(connId, dbName);
+    }
+  } else if (type === 'schema') {
+    if (action === 'refresh') {
+      if (dbName) {
+        await schemaStore.loadDbSchema(connId, dbName, true);
+      } else {
+        await schemaStore.loadSchema(undefined, connId, schemaName || undefined);
+      }
+    }
+  } else if (type === 'table') {
+    if (action === 'refresh' && tableName) {
+      if (
+        tabsStore.activeTab?.type === 'table' &&
+        tabsStore.activeTab.tableName === tableName &&
+        tabsStore.activeTab.connectionId === connId
+      ) {
+        await gridStore.loadTable(tableName);
+      } else {
+        if (dbName) {
+          await schemaStore.loadDbSchema(connId, dbName, true);
+        } else {
+          await schemaStore.loadSchema(undefined, connId);
+        }
+      }
+    }
   }
 };
 
@@ -146,8 +213,33 @@ const confirmDelete = () => {
       </div>
     </div>
 
-    <!-- Context Menu -->
+    <!-- Context Menus -->
     <ConnectionContextMenu
+      v-if="contextMenu.type === 'connection'"
+      :show="contextMenu.show"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      @close="closeContextMenu"
+      @action="handleContextAction"
+    />
+    <DatabaseContextMenu
+      v-if="contextMenu.type === 'database'"
+      :show="contextMenu.show"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      @close="closeContextMenu"
+      @action="handleContextAction"
+    />
+    <SchemaContextMenu
+      v-if="contextMenu.type === 'schema'"
+      :show="contextMenu.show"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      @close="closeContextMenu"
+      @action="handleContextAction"
+    />
+    <TableContextMenu
+      v-if="contextMenu.type === 'table'"
       :show="contextMenu.show"
       :x="contextMenu.x"
       :y="contextMenu.y"
