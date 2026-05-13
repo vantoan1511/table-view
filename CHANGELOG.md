@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-05-14
+
+### Added
+- **Logging: System Data Directory**: Relocated the application log file to a writable system directory (e.g., `%LOCALAPPDATA%` on Windows) for improved reliability and compliance with OS standards.
+- **Backend: Persistent Logs**: Updated the Rust `db-bridge` to automatically create and manage the log file in the system data path.
+
+### Changed
+- **Neutralino: Storage Configuration**: Updated `neutralino.config.json` to use system-level storage and data locations.
+
+
 ## [0.2.5] - 2026-05-13
 
 ### Added
