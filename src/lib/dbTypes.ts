@@ -1,4 +1,4 @@
-import type { DbType } from '@/types';
+import { DbType } from '@/types';
 
 // ─── Database Type Metadata ───────────────────────────────────────────────────
 // Single source of truth for DB type icons, labels, and default ports.
@@ -11,13 +11,13 @@ export interface DbTypeInfo {
 }
 
 export const DB_TYPES: DbTypeInfo[] = [
-  { key: 'postgresql', label: 'PostgreSQL', defaultPort: 5432 },
-  { key: 'mysql', label: 'MySQL', defaultPort: 3306 },
-  { key: 'sqlite', label: 'SQLite', defaultPort: 0 },
-  { key: 'oracle', label: 'Oracle', defaultPort: 1521 },
-  { key: 'sqlserver', label: 'SQL Server', defaultPort: 1433 },
-  { key: 'mariadb', label: 'MariaDB', defaultPort: 3306 },
-  { key: 'redis', label: 'Redis', defaultPort: 6379 }
+  { key: DbType.POSTGRESQL, label: 'PostgreSQL', defaultPort: 5432 },
+  { key: DbType.MYSQL, label: 'MySQL', defaultPort: 3306 },
+  { key: DbType.SQLITE, label: 'SQLite', defaultPort: 0 },
+  { key: DbType.ORACLE, label: 'Oracle', defaultPort: 1521 },
+  { key: DbType.SQLSERVER, label: 'SQL Server', defaultPort: 1433 },
+  { key: DbType.MARIADB, label: 'MariaDB', defaultPort: 3306 },
+  { key: DbType.REDIS, label: 'Redis', defaultPort: 6379 }
 ];
 
 /** Quick lookup: DbType -> display label */

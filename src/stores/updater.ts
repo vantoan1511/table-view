@@ -37,11 +37,11 @@ export const useUpdaterStore = defineStore('updater', () => {
       try {
         const platform = window.NL_OS.toLowerCase();
         if (platform === 'windows') {
-          await Neutralino.filesystem.remove('updater.bat').catch(() => { });
-          await Neutralino.filesystem.remove('resources.neu.new').catch(() => { });
+          await Neutralino.filesystem.remove('updater.bat').catch(() => {});
+          await Neutralino.filesystem.remove('resources.neu.new').catch(() => {});
           await Neutralino.filesystem
             .remove('extensions\\db-bridge\\db-bridge.exe.new')
-            .catch(() => { });
+            .catch(() => {});
         }
       } catch (err) {
         console.warn('Cleanup failed:', err);

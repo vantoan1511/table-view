@@ -1,6 +1,7 @@
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { useLayoutStore } from '@/stores/layout';
+import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
 import { onMounted, onUnmounted } from 'vue';
 
@@ -9,6 +10,7 @@ export function useKeyboardShortcuts() {
   const gridStore = useGridStore();
   const connectionsStore = useConnectionsStore();
   const layoutStore = useLayoutStore();
+  const schemaStore = useSchemaStore();
 
   const handleKeydown = (e: KeyboardEvent) => {
     const isMod = e.ctrlKey || e.metaKey;
@@ -46,8 +48,9 @@ export function useKeyboardShortcuts() {
     // Ctrl+R: Refresh data
     if (isMod && e.key.toLowerCase() === 'r') {
       e.preventDefault();
-      if (tabsStore.activeTab?.type === 'table' && tabsStore.activeTab.tableName) {
-        gridStore.loadTable(tabsStore.activeTab.tableName);
+      const tab = tabsStore.activeTab;
+      if (tab?.type === 'table' && tab.tableName) {
+        gridStore.loadTable(tab.tableName, tab.connectionId, tab.schema, tab.dbName);
       }
       return;
     }
@@ -70,6 +73,19 @@ export function useKeyboardShortcuts() {
     if (isMod && e.key.toLowerCase() === 'i') {
       e.preventDefault();
       layoutStore.togglePanel('inspector');
+      return;
+    }
+
+    // F5: Refresh
+    if (e.key === 'F5') {
+      e.preventDefault();
+      const tab = tabsStore.activeTab;
+      if (tab?.type === 'table' && tab.tableName) {
+        gridStore.loadTable(tab.tableName, tab.connectionId, tab.schema, tab.dbName);
+      } else if (connectionsStore.activeConnectionId) {
+        // Fallback to refreshing the tree for active connection
+        schemaStore.loadSchema(undefined, connectionsStore.activeConnectionId);
+      }
       return;
     }
 

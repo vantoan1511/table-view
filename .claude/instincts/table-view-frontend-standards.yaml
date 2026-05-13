@@ -1,0 +1,18 @@
+---
+id: table-view-frontend-standards
+trigger: "when writing frontend UI, components, or state management"
+confidence: 0.95
+domain: frontend
+source: local-repo-analysis
+---
+
+# Table View Frontend Standards
+
+## Action
+- Use Pinia for global state.
+- Use Lucide Vue Next for icons (imported explicitly in `<script setup>`).
+- Maintain the dark-mode aesthetic with Tailwind CSS 4.
+- Provide feedback via `toast` and `error` stores.
+
+## Evidence
+- Extracted from `GEMINI.md` mandates.

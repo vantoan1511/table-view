@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useSchemaStore } from '@/stores/schema';
 import { AlertCircle, ChevronRight, Database, Loader2, Lock } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import SchemaNode from './SchemaNode.vue';
 
 const props = defineProps<{
@@ -12,6 +12,8 @@ const props = defineProps<{
 }>();
 
 const schemaStore = useSchemaStore();
+const onEntityContextMenu =
+  inject<(event: MouseEvent, type: string, payload: any) => void>('onEntityContextMenu');
 
 const isExpanded = computed(() => schemaStore.isDbExpanded(props.connectionId, props.dbName));
 const isLoading = computed(() => schemaStore.isDbLoading(props.connectionId, props.dbName));
@@ -39,6 +41,9 @@ const schemas = computed(() => dbSchema.value?.schemas ?? []);
       v-if="isAccessible"
       class="group hover:bg-hover flex cursor-pointer items-center gap-1.5 py-1 pr-2 pl-7 transition-colors"
       @click="toggle"
+      @contextmenu.prevent.stop="
+        onEntityContextMenu?.($event, 'database', { connId: connectionId, dbName })
+      "
     >
       <ChevronRight
         :size="12"

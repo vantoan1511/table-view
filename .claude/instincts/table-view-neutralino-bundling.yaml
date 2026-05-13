@@ -1,0 +1,16 @@
+---
+id: table-view-neutralino-bundling
+trigger: "when adding new files or directories or updating neutralino config"
+confidence: 0.95
+domain: build
+source: local-repo-analysis
+---
+
+# Table View Neutralino Bundling
+
+## Action
+- Always update `neutralino.config.json` exclusion patterns to keep the production bundle lean.
+- Use Windows-compatible backslash paths (`\\`) in `neutralino.config.json` for extension commands.
+
+## Evidence
+- Extracted from `GEMINI.md` mandates.

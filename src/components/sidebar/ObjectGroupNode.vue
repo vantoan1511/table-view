@@ -2,7 +2,7 @@
 import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
 import { ChevronRight, Eye, FunctionSquare, Table2 } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 
 const props = defineProps<{
   connectionId: string;
@@ -13,6 +13,8 @@ const props = defineProps<{
 
 const schemaStore = useSchemaStore();
 const tabsStore = useTabsStore();
+const onEntityContextMenu =
+  inject<(event: MouseEvent, type: string, payload: any) => void>('onEntityContextMenu');
 
 const groupKey = computed(() => {
   const prefix = props.dbName ? `${props.connectionId}::${props.dbName}` : props.connectionId;
@@ -67,6 +69,9 @@ const openObject = (name: string) => {
     <div
       class="hover:bg-hover flex cursor-pointer items-center gap-1.5 py-1 pr-2 pl-14 transition-colors"
       @click="toggle"
+      @contextmenu.prevent.stop="
+        onEntityContextMenu?.($event, 'schema', { connId: connectionId, schemaName, dbName })
+      "
     >
       <ChevronRight
         :size="12"
@@ -96,6 +101,16 @@ const openObject = (name: string) => {
               : 'text-text-primary hover:bg-hover'
           "
           @click="openObject(obj.name)"
+          @contextmenu.prevent.stop="
+            groupType === 'tables'
+              ? onEntityContextMenu?.($event, 'table', {
+                  connId: connectionId,
+                  schemaName,
+                  dbName,
+                  tableName: obj.name
+                })
+              : null
+          "
         >
           <component :is="icon" :size="12" class="shrink-0 opacity-60" />
           <span class="truncate">{{ obj.name }}</span>

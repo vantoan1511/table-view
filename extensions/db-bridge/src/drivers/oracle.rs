@@ -546,6 +546,9 @@ impl DatabaseDriver for OracleDriver {
         for op in operations {
             let sql = match op.op_type.as_str() {
                 "ADD_COLUMN" => {
+                    if !crate::drivers::utils::is_safe_data_type(&op.data_type) {
+                        return Err(format!("Invalid or unsafe data type: {}", op.data_type));
+                    }
                     let mut q = format!(
                         "ALTER TABLE {} ADD {} {}",
                         safe_table,
@@ -553,7 +556,11 @@ impl DatabaseDriver for OracleDriver {
                         op.data_type
                     );
                     if let Some(ref d) = op.default {
-                        q.push_str(&format!(" DEFAULT {}", d));
+                        let d_str = d.to_string();
+                        if !crate::drivers::utils::is_safe_default(&d_str) {
+                             return Err(format!("Invalid or unsafe default value: {}", d_str));
+                        }
+                        q.push_str(&format!(" DEFAULT {}", d_str));
                     }
                     if op.nullable == Some(false) {
                         q.push_str(" NOT NULL");
