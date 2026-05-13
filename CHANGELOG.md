@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-05-13
+
+### Added
+- **UI: Hierarchical Context Menus**: Implemented dedicated context menus for Databases, Schemas, and Tables, providing specialized actions for each entity type.
+- **Samples: Customer Dataset**: Added `customers.sql` script for easy database initialization and testing.
+- **Patterns: Repository Skill**: Introduced project-scoped `SKILL.md` to formalize development patterns and instincts.
+
+### Changed
+- **Architecture: Sidebar Hierarchy**: Refactored `DatabaseTree.vue` to support deeper nesting and more intuitive navigation.
+- **Backend: Driver Optimization**: Enhanced Rust `db-bridge` with improved connection pooling and driver-specific performance tweaks for all supported engines.
+- **UI: Visual Polish**: Improved the `ColorPicker` component and refined keyboard shortcut handling for better accessibility.
+
 ## [0.2.4] - 2026-05-09
 
 ### Added
