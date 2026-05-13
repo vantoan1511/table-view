@@ -67,3 +67,5 @@ scratch/
 # Installer
 /scripts/Output/
 .neutralino/
+
+.claude/
