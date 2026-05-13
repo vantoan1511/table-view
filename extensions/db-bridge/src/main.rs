@@ -11,7 +11,14 @@ use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
-    let log_path = std::path::PathBuf::from(".log");
+    let log_path = if let Some(proj_dirs) = directories::ProjectDirs::from("com", "vantoan1511", "table-view") {
+        let data_dir = proj_dirs.data_local_dir();
+        let _ = std::fs::create_dir_all(data_dir);
+        data_dir.join("db-bridge.log")
+    } else {
+        std::path::PathBuf::from(".log")
+    };
+
     let log_file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)

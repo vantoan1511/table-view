@@ -8,6 +8,13 @@
   "copyright": "Copyright © Table View 2026. All rights reserved.",
   "defaultMode": "window",
   "documentRoot": "/build/",
+  "storageLocation": "system",
+  "dataLocation": "system",
+  "logging": {
+    "enabled": true,
+    "writeToLogFile": false
+  },
+  "port": 0,
   "url": "/",
   "enableServer": true,
   "enableNativeAPI": true,
