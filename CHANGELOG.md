@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-05-15
+
+### Added
+- **Grid: Enhanced Cell Selection**: Implemented a premium ring highlight and background tint for selected cells in `DataGrid.vue`.
+- **UI: Value Viewer**: Optimized the dedicated 'Value' tab for high-convenience viewing and editing of large cell content.
+- **UI: Dropdown Menu**: Introduced a reusable `DropdownMenu.vue` component for consistent UI interactions.
+
+### Changed
+- **Backend: Rich Schema Metadata**: Updated Rust drivers (PostgreSQL, MySQL, SQLite, Oracle) to return enhanced metadata for precise grid operations.
+- **Architecture: Data Management**: Refactored `grid.ts` and `useTableData.ts` to use a more robust state handling and value conversion logic.
+- **UI: Grid Toolbar & Pagination**: Refined toolbar and pagination components for better responsiveness and visibility control.
+
 ## [0.2.6] - 2026-05-14
 
 ### Added
