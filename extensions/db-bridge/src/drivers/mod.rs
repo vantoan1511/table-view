@@ -58,6 +58,8 @@ pub struct ColumnInfo {
     pub data_type: String,
     #[serde(rename = "isPrimaryKey")]
     pub is_primary_key: bool,
+    #[serde(rename = "isNullable")]
+    pub is_nullable: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]

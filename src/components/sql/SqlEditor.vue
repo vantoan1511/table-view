@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ResizeHandle from '@/components/ui/ResizeHandle.vue';
+import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
 import { useDebounce } from '@/composables/useDebounce';
 import { useSqlEditor } from '@/composables/useSqlEditor';
 import { editorTheme, sqlHighlightStyle } from '@/lib/editorConfig';
@@ -28,6 +29,10 @@ const { activeResultTab, executeRun, saveQuery, exportQuery } = useSqlEditor(pro
 
 const editorContainer = ref<HTMLElement>();
 const editorWidth = ref(600);
+const sqlLimitOptions = [100, 200, 500, 1000, 5000].map((value) => ({
+  label: String(value),
+  value
+}));
 
 let editorView: EditorView | null = null;
 const sqlCompartment = new Compartment();
@@ -53,6 +58,10 @@ const handleRun = useDebounce(
   },
   { delay: 300 }
 );
+
+const setSqlLimit = (limit: DropdownValue) => {
+  gridStore.sqlLimit = Number(limit);
+};
 
 const initEditor = () => {
   if (editorView) {
@@ -196,16 +205,15 @@ onMounted(() => {
 
           <div class="border-border ml-1 flex h-5 items-center gap-1 border-l pl-3">
             <span class="text-text-tertiary text-[11px]">Limit:</span>
-            <select
-              v-model="gridStore.sqlLimit"
-              class="text-text-primary hover:text-primary cursor-pointer border-none bg-transparent text-[11px] outline-none"
-            >
-              <option :value="100">100</option>
-              <option :value="200">200</option>
-              <option :value="500">500</option>
-              <option :value="1000">1000</option>
-              <option :value="5000">5000</option>
-            </select>
+            <DropdownMenu
+              :model-value="gridStore.sqlLimit"
+              :options="sqlLimitOptions"
+              placement="top"
+              aria-label="SQL result limit"
+              button-class="border-none bg-transparent px-1 py-0 text-[11px] text-text-primary hover:bg-transparent hover:text-primary"
+              menu-class="min-w-18"
+              @update:model-value="setSqlLimit"
+            />
           </div>
 
           <div class="text-text-secondary ml-auto flex items-center gap-1 text-[11px]">

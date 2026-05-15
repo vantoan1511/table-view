@@ -28,7 +28,7 @@ export function useTableData(connectionsStore: any) {
     const connection = resolveConnection(connectionId);
     const targetSchema = schemaName || activeTableSchema.value;
 
-    if (connection?.type === 'oracle' && targetSchema) {
+    if (['oracle', 'postgres', 'postgresql'].includes(connection?.type ?? '') && targetSchema) {
       return `${targetSchema}.${tableName}`;
     }
 
@@ -74,7 +74,8 @@ export function useTableData(connectionsStore: any) {
       columns.value = payload.fields.map((f: any) => ({
         name: f.name,
         dataType: String(f.dataTypeID),
-        isPrimaryKey: !!f.isPrimaryKey
+        isPrimaryKey: !!f.isPrimaryKey,
+        ...(f.isNullable !== undefined ? { isNullable: !!f.isNullable } : {})
       }));
       totalRows.value = payload.totalCount;
       executionTime.value = payload.executionTime ?? Math.round(performance.now() - startTime);

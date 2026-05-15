@@ -14,9 +14,9 @@ export const useLayoutStore = defineStore('layout', {
         size: 300,
         activeTabId: 'output',
         tabs: [
+          { id: 'value', title: 'Value', component: 'ValueViewer' },
           { id: 'output', title: 'Output', component: 'ConsoleOutput' },
-          { id: 'timeline', title: 'Timeline', component: 'Timeline' },
-          { id: 'value', title: 'Value', component: 'ValueViewer' }
+          { id: 'timeline', title: 'Timeline', component: 'Timeline' }
         ]
       },
       inspector: {
@@ -100,7 +100,7 @@ export const useLayoutStore = defineStore('layout', {
           };
           await Neutralino.storage.setData('layout', JSON.stringify(layout));
         } catch (err) {
-          console.error('Failed to save layout state:', err);
+          console.error(`Failed to save layout state: ${err}`);
         }
       }
     },

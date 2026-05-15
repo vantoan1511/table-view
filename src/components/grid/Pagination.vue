@@ -1,13 +1,8 @@
 <script setup lang="ts">
+import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
 import { useGridStore } from '@/stores/grid';
-import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight
-} from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 const gridStore = useGridStore();
 
@@ -39,13 +34,13 @@ const visiblePages = computed(() => {
   return pages;
 });
 
-// ─── Rows per page dropdown ──────────────────────────────────────────────────
-const showRowsMenu = ref(false);
-const rowsOptions = [25, 50, 100, 250, 500, 1000];
+const rowsOptions = [25, 50, 100, 250, 500, 1000].map((value) => ({
+  label: String(value),
+  value
+}));
 
-const setRowsPerPage = (count: number) => {
-  gridStore.setRowsPerPage(count);
-  showRowsMenu.value = false;
+const setRowsPerPage = (count: DropdownValue) => {
+  gridStore.setRowsPerPage(Number(count));
 };
 </script>
 
@@ -118,37 +113,16 @@ const setRowsPerPage = (count: number) => {
     </div>
 
     <!-- Right: Rows per page -->
-    <div class="relative flex items-center gap-1.5">
+    <div class="flex items-center gap-1.5">
       <span>Rows per page</span>
-      <button
-        class="border-border hover:bg-hover flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 transition-colors"
-        @click.stop="showRowsMenu = !showRowsMenu"
-      >
-        {{ gridStore.rowsPerPage }}
-        <ChevronDown
-          :size="12"
-          :class="{ 'rotate-180': showRowsMenu }"
-          class="transition-transform"
-        />
-      </button>
-
-      <!-- Dropdown -->
-      <div
-        v-if="showRowsMenu"
-        class="bg-surface border-border absolute right-0 bottom-full z-50 mb-1 min-w-20 rounded-lg border py-1 shadow-lg"
-        @click.stop
-      >
-        <button
-          v-for="opt in rowsOptions"
-          :key="opt"
-          class="hover:bg-hover flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-[12px]"
-          :class="gridStore.rowsPerPage === opt ? 'text-primary font-medium' : 'text-text-primary'"
-          @click="setRowsPerPage(opt)"
-        >
-          {{ opt }}
-          <span v-if="gridStore.rowsPerPage === opt" class="text-primary text-[10px]">✓</span>
-        </button>
-      </div>
+      <DropdownMenu
+        :model-value="gridStore.rowsPerPage"
+        :options="rowsOptions"
+        placement="top"
+        align="right"
+        aria-label="Rows per page"
+        @update:model-value="setRowsPerPage"
+      />
     </div>
   </div>
 </template>

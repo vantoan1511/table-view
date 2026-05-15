@@ -1,15 +1,15 @@
 use super::{
-    AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, ColumnInfo
+    AlterOperation, ColumnInfo, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
+    TableColumn, TableDataResult,
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
+use chrono;
 use serde_json::Value;
 use sqlx::postgres::{PgPool, PgPoolOptions, PgRow};
 use sqlx::{Column, Row, TypeInfo, ValueRef};
 use std::collections::HashMap;
 use uuid;
-use chrono;
 
 pub struct PostgresDriver {
     pool: Option<PgPool>,
@@ -26,6 +26,17 @@ impl PostgresDriver {
 
     fn quote(ident: &str) -> String {
         format!("\"{}\"", ident.replace('"', "\"\""))
+    }
+
+    fn split_table_name(table_name: &str) -> (&str, &str) {
+        table_name
+            .rsplit_once('.')
+            .unwrap_or(("public", table_name))
+    }
+
+    fn qualified_table_name(table_name: &str) -> String {
+        let (schema, table) = Self::split_table_name(table_name);
+        format!("{}.{}", Self::quote(schema), Self::quote(table))
     }
 
     async fn execute_query(
@@ -53,6 +64,7 @@ impl PostgresDriver {
                 name: col.name().to_string(),
                 data_type: col.type_info().name().to_string(),
                 is_primary_key: false,
+                is_nullable: true,
             });
         }
 
@@ -86,9 +98,24 @@ impl PostgresDriver {
         let name = type_info.name();
 
         match name {
-            "INT2" | "INT4" | "INT8" | "OID" => {
+            "INT2" => {
+                if let Ok(v) = row.try_get::<i16, _>(i) {
+                    return Value::Number(i64::from(v).into());
+                }
+            }
+            "INT4" => {
+                if let Ok(v) = row.try_get::<i32, _>(i) {
+                    return Value::Number(i64::from(v).into());
+                }
+            }
+            "INT8" => {
                 if let Ok(v) = row.try_get::<i64, _>(i) {
                     return Value::Number(v.into());
+                }
+            }
+            "OID" => {
+                if let Ok(v) = row.try_get::<i32, _>(i) {
+                    return Value::Number(i64::from(v).into());
                 }
             }
             "FLOAT4" | "FLOAT8" | "NUMERIC" => {
@@ -143,7 +170,7 @@ impl PostgresDriver {
         if let Ok(v) = row.try_get::<String, _>(i) {
             return Value::String(v);
         }
-        
+
         Value::Null
     }
 }
@@ -157,7 +184,7 @@ impl DatabaseDriver for PostgresDriver {
         } else {
             config.host.clone()
         };
-        
+
         let dsn = format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}&options=-c%20search_path=public&application_name=db_manager&connect_timeout={}&tcp_user_timeout=5000",
             urlencoding::encode(&config.username),
@@ -171,7 +198,9 @@ impl DatabaseDriver for PostgresDriver {
 
         let pool = PgPoolOptions::new()
             .max_connections(5)
-            .acquire_timeout(std::time::Duration::from_secs(config.connection_timeout as u64))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.connection_timeout as u64,
+            ))
             .connect(&dsn)
             .await
             .map_err(|e| e.to_string())?;
@@ -193,7 +222,7 @@ impl DatabaseDriver for PostgresDriver {
         _schema_name: Option<&str>,
     ) -> Result<SchemaResult, String> {
         let pool = self.pool()?;
-        
+
         // We always fetch all schemas, tables, views, and functions (excluding system ones)
         // because the user wants to see everything in the tree.
         let where_clause = "WHERE table_schema NOT IN ('information_schema', 'pg_catalog')";
@@ -239,8 +268,17 @@ impl DatabaseDriver for PostgresDriver {
         let tables: Vec<SchemaObject> = table_rows
             .iter()
             .map(|r| SchemaObject {
-                name: r.get("table_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                schema: Some(r.get("table_schema").and_then(|v| v.as_str()).unwrap_or("").to_string()),
+                name: r
+                    .get("table_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                schema: Some(
+                    r.get("table_schema")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                ),
                 obj_type: None,
             })
             .collect();
@@ -248,8 +286,17 @@ impl DatabaseDriver for PostgresDriver {
         let views: Vec<SchemaObject> = view_rows
             .iter()
             .map(|r| SchemaObject {
-                name: r.get("table_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                schema: Some(r.get("table_schema").and_then(|v| v.as_str()).unwrap_or("").to_string()),
+                name: r
+                    .get("table_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                schema: Some(
+                    r.get("table_schema")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                ),
                 obj_type: None,
             })
             .collect();
@@ -257,16 +304,34 @@ impl DatabaseDriver for PostgresDriver {
         let functions: Vec<SchemaObject> = func_rows
             .iter()
             .map(|r| SchemaObject {
-                name: r.get("routine_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                schema: Some(r.get("routine_schema").and_then(|v| v.as_str()).unwrap_or("").to_string()),
-                obj_type: Some(r.get("data_type").and_then(|v| v.as_str()).unwrap_or("").to_string()),
+                name: r
+                    .get("routine_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                schema: Some(
+                    r.get("routine_schema")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                ),
+                obj_type: Some(
+                    r.get("data_type")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                ),
             })
             .collect();
 
         let schemas: Vec<SchemaObject> = schema_rows
             .iter()
             .map(|r| SchemaObject {
-                name: r.get("schema_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                name: r
+                    .get("schema_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
                 schema: None,
                 obj_type: None,
             })
@@ -275,7 +340,11 @@ impl DatabaseDriver for PostgresDriver {
         let databases: Vec<SchemaObject> = db_rows
             .iter()
             .map(|r| SchemaObject {
-                name: r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                name: r
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
                 schema: None,
                 obj_type: None,
             })
@@ -299,53 +368,104 @@ impl DatabaseDriver for PostgresDriver {
         sort_direction: &str,
     ) -> Result<TableDataResult, String> {
         let pool = self.pool()?;
-        let safe_table = Self::quote(table_name);
+        let (schema_name, bare_table_name) = Self::split_table_name(table_name);
+        let safe_table = Self::qualified_table_name(table_name);
 
-        // Faster PK detection query using pg_index
-        let pk_sql = "SELECT a.attname::text as column_name \
-            FROM pg_index i \
-            JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) \
-            WHERE i.indrelid = $1::regclass AND i.indisprimary";
+        let column_sql = "SELECT \
+                c.column_name::text, \
+                c.udt_name::text as data_type, \
+                (c.is_nullable = 'YES') as is_nullable, \
+                EXISTS ( \
+                    SELECT 1 \
+                    FROM information_schema.table_constraints tc \
+                    JOIN information_schema.key_column_usage kcu \
+                        ON tc.constraint_name = kcu.constraint_name \
+                        AND tc.table_schema = kcu.table_schema \
+                        AND tc.table_name = kcu.table_name \
+                    WHERE tc.constraint_type = 'PRIMARY KEY' \
+                        AND tc.table_schema = c.table_schema \
+                        AND tc.table_name = c.table_name \
+                        AND kcu.column_name = c.column_name \
+                ) as is_primary_key \
+            FROM information_schema.columns c \
+            WHERE c.table_schema = $1 AND c.table_name = $2 \
+            ORDER BY c.ordinal_position";
 
         let order_clause = if !sort_column.is_empty() {
-            let dir = if sort_direction.eq_ignore_ascii_case("desc") { "DESC" } else { "ASC" };
+            let dir = if sort_direction.eq_ignore_ascii_case("desc") {
+                "DESC"
+            } else {
+                "ASC"
+            };
             format!(" ORDER BY {} {}", Self::quote(sort_column), dir)
         } else {
             String::new()
         };
 
         let data_sql = format!(
-            "SELECT * FROM public.{}{} LIMIT $1 OFFSET $2",
+            "SELECT * FROM {}{} LIMIT $1 OFFSET $2",
             safe_table, order_clause
         );
-        let count_sql = format!("SELECT COUNT(*) FROM public.{}", safe_table);
+        let count_sql = format!("SELECT COUNT(*) FROM {}", safe_table);
 
-        let pk_params = [Value::String(format!("public.{}", table_name))];
-        let data_params = [
-            Value::Number(limit.into()),
-            Value::Number(offset.into()),
+        let column_params = [
+            Value::String(schema_name.to_string()),
+            Value::String(bare_table_name.to_string()),
         ];
+        let data_params = [Value::Number(limit.into()), Value::Number(offset.into())];
         let count_params = [];
 
         // Run all three queries in parallel
-        let (pk_res, data_res, count_res) = tokio::join!(
-            Self::execute_query(pool, pk_sql, &pk_params),
+        let (column_res, data_res, count_res) = tokio::join!(
+            Self::execute_query(pool, column_sql, &column_params),
             Self::execute_query(pool, &data_sql, &data_params),
             Self::execute_query(pool, &count_sql, &count_params)
         );
 
-        let (pk_rows, _, _) = pk_res?;
+        let (column_rows, _, _) = column_res?;
         let (data, mut fields, elapsed) = data_res?;
         let (count_rows, _, _) = count_res?;
 
-        let pk_set: std::collections::HashSet<String> = pk_rows
+        let column_meta: Vec<ColumnInfo> = column_rows
             .iter()
-            .filter_map(|r| r.get("column_name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .map(|r| ColumnInfo {
+                name: r
+                    .get("column_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                data_type: r
+                    .get("data_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                is_primary_key: r
+                    .get("is_primary_key")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false),
+                is_nullable: r
+                    .get("is_nullable")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(true),
+            })
             .collect();
 
-        for f in &mut fields {
-            if pk_set.contains(&f.name) {
-                f.is_primary_key = true;
+        if !column_meta.is_empty() {
+            let metadata_by_name: std::collections::HashMap<String, ColumnInfo> = column_meta
+                .iter()
+                .map(|column| (column.name.clone(), column.clone()))
+                .collect();
+
+            if fields.is_empty() {
+                fields = column_meta;
+            } else {
+                for field in &mut fields {
+                    if let Some(metadata) = metadata_by_name.get(&field.name) {
+                        field.is_primary_key = metadata.is_primary_key;
+                        field.is_nullable = metadata.is_nullable;
+                        field.data_type = metadata.data_type.clone();
+                    }
+                }
             }
         }
 
@@ -392,9 +512,10 @@ impl DatabaseDriver for PostgresDriver {
         new_value: &Value,
     ) -> Result<(), String> {
         let pool = self.pool()?;
+        let safe_table = Self::qualified_table_name(table_name);
         let sql = format!(
-            "UPDATE public.{} SET {} = $1 WHERE {}::text = $2",
-            Self::quote(table_name),
+            "UPDATE {} SET {} = $1 WHERE {}::text = $2",
+            safe_table,
             Self::quote(target_column),
             Self::quote(pk_column)
         );
@@ -411,13 +532,10 @@ impl DatabaseDriver for PostgresDriver {
         data: &HashMap<String, Value>,
     ) -> Result<HashMap<String, Value>, String> {
         let pool = self.pool()?;
-        let safe_table = Self::quote(table_name);
+        let safe_table = Self::qualified_table_name(table_name);
 
         if data.is_empty() {
-            let sql = format!(
-                "INSERT INTO public.{} DEFAULT VALUES RETURNING *",
-                safe_table
-            );
+            let sql = format!("INSERT INTO {} DEFAULT VALUES RETURNING *", safe_table);
             let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
             return rows.into_iter().next().ok_or("No row returned".to_string());
         }
@@ -427,7 +545,7 @@ impl DatabaseDriver for PostgresDriver {
         let values: Vec<Value> = data.values().cloned().collect();
 
         let sql = format!(
-            "INSERT INTO public.{} ({}) VALUES ({}) RETURNING *",
+            "INSERT INTO {} ({}) VALUES ({}) RETURNING *",
             safe_table,
             cols.join(", "),
             placeholders.join(", ")
@@ -444,10 +562,11 @@ impl DatabaseDriver for PostgresDriver {
         pk_values: &[Value],
     ) -> Result<(), String> {
         let pool = self.pool()?;
+        let safe_table = Self::qualified_table_name(table_name);
         let placeholders: Vec<String> = (1..=pk_values.len()).map(|i| format!("${}", i)).collect();
         let sql = format!(
-            "DELETE FROM public.{} WHERE {}::text IN ({})",
-            Self::quote(table_name),
+            "DELETE FROM {} WHERE {}::text IN ({})",
+            safe_table,
             Self::quote(pk_column),
             placeholders.join(", ")
         );
@@ -461,21 +580,46 @@ impl DatabaseDriver for PostgresDriver {
 
     async fn get_table_columns(&self, table_name: &str) -> Result<Vec<TableColumn>, String> {
         let pool = self.pool()?;
-        let sql = "SELECT column_name::text, data_type::text, is_nullable::text, column_default::text \
+        let (schema_name, bare_table_name) = Self::split_table_name(table_name);
+        let sql =
+            "SELECT column_name::text, data_type::text, is_nullable::text, column_default::text \
              FROM information_schema.columns \
-             WHERE table_schema = 'public' AND table_name = $1 \
+             WHERE table_schema = $1 AND table_name = $2 \
              ORDER BY ordinal_position";
-        
-        let (rows, _, _) = Self::execute_query(pool, sql, &[Value::String(table_name.to_string())]).await?;
-        
+
+        let (rows, _, _) = Self::execute_query(
+            pool,
+            sql,
+            &[
+                Value::String(schema_name.to_string()),
+                Value::String(bare_table_name.to_string()),
+            ],
+        )
+        .await?;
+
         let mut columns = Vec::new();
         for r in rows {
             columns.push(TableColumn {
-                name: r.get("column_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                data_type: r.get("data_type").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                nullable: r.get("is_nullable").and_then(|v| v.as_str()).map(|s| s == "YES").unwrap_or(true),
-                is_primary_key: false, 
-                default: r.get("column_default").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                name: r
+                    .get("column_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                data_type: r
+                    .get("data_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                nullable: r
+                    .get("is_nullable")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s == "YES")
+                    .unwrap_or(true),
+                is_primary_key: false,
+                default: r
+                    .get("column_default")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
             });
         }
         Ok(columns)
@@ -487,7 +631,7 @@ impl DatabaseDriver for PostgresDriver {
         operations: &[AlterOperation],
     ) -> Result<(), String> {
         let pool = self.pool()?;
-        let safe_table = Self::quote(table_name);
+        let safe_table = Self::qualified_table_name(table_name);
 
         for op in operations {
             let sql = match op.op_type.as_str() {
@@ -496,7 +640,7 @@ impl DatabaseDriver for PostgresDriver {
                         return Err(format!("Invalid or unsafe data type: {}", op.data_type));
                     }
                     let mut q = format!(
-                        "ALTER TABLE public.{} ADD COLUMN {} {}",
+                        "ALTER TABLE {} ADD COLUMN {} {}",
                         safe_table,
                         Self::quote(&op.name),
                         op.data_type
@@ -507,19 +651,19 @@ impl DatabaseDriver for PostgresDriver {
                     if let Some(ref d) = op.default {
                         let d_str = d.to_string();
                         if !crate::drivers::utils::is_safe_default(&d_str) {
-                             return Err(format!("Invalid or unsafe default value: {}", d_str));
+                            return Err(format!("Invalid or unsafe default value: {}", d_str));
                         }
                         q.push_str(&format!(" DEFAULT {}", d_str));
                     }
                     q
                 }
                 "DROP_COLUMN" => format!(
-                    "ALTER TABLE public.{} DROP COLUMN {}",
+                    "ALTER TABLE {} DROP COLUMN {}",
                     safe_table,
                     Self::quote(&op.name)
                 ),
                 "RENAME_COLUMN" => format!(
-                    "ALTER TABLE public.{} RENAME COLUMN {} TO {}",
+                    "ALTER TABLE {} RENAME COLUMN {} TO {}",
                     safe_table,
                     Self::quote(&op.old_name),
                     Self::quote(&op.new_name)
@@ -537,17 +681,17 @@ impl DatabaseDriver for PostgresDriver {
 
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;
-        let safe_table = Self::quote(table_name);
-        let sql = format!("SELECT * FROM public.{}", safe_table);
-        
+        let safe_table = Self::qualified_table_name(table_name);
+        let sql = format!("SELECT * FROM {}", safe_table);
+
         let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
-        
+
         if rows.is_empty() {
             return Ok(());
         }
 
         let mut wtr = csv::Writer::from_path(export_path).map_err(|e| e.to_string())?;
-        
+
         // Header
         let headers: Vec<String> = rows[0].keys().cloned().collect();
         wtr.write_record(&headers).map_err(|e| e.to_string())?;

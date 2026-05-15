@@ -6,6 +6,7 @@ import { useConnectionsStore } from './connections';
 import { useTableData } from './grid/useTableData';
 import { useSqlQuery } from './grid/useSqlQuery';
 import { BridgeService } from '@/services/bridge';
+import { formatGridCellValue, parseGridInputValue } from './grid/valueConversion';
 
 export const useGridStore = defineStore('grid', () => {
   const connectionsStore = useConnectionsStore();
@@ -49,7 +50,13 @@ export const useGridStore = defineStore('grid', () => {
     const row = tableData.rows.value[rowIndex];
     if (!row || !window.NL_PORT) return false;
 
-    if (row[column.name] === newValue) return true;
+    const parsedValue = parseGridInputValue(newValue, column);
+    if (!parsedValue.ok) {
+      console.warn('Cannot update cell:', parsedValue.message);
+      return false;
+    }
+
+    if (row[column.name] === parsedValue.value) return true;
 
     const pkColumn = tableData.columns.value.find((c) => c.isPrimaryKey);
     if (!pkColumn) {
@@ -69,10 +76,10 @@ export const useGridStore = defineStore('grid', () => {
         pkColumn: pkColumn.name,
         pkValue,
         targetColumn: column.name,
-        newValue
+        newValue: parsedValue.value
       });
 
-      row[column.name] = newValue;
+      row[column.name] = parsedValue.value as GridRow[string];
       return true;
     } catch (error: any) {
       console.error('Failed to update cell:', error.message);
@@ -150,7 +157,7 @@ export const useGridStore = defineStore('grid', () => {
       rowIndex,
       column,
       originalValue: value,
-      currentValue: value
+      currentValue: formatGridCellValue(value)
     };
   };
 
@@ -203,11 +210,12 @@ export const useGridStore = defineStore('grid', () => {
   const saveNewRow = async () => {
     if (newRowIdx.value === null) return;
     try {
-      const cleanData: Record<string, string> = {};
+      const cleanData: Record<string, any> = {};
       for (const col of tableData.columns.value) {
         const val = newRowData.value[col.name];
+        const isEmpty = !val || val === '';
 
-        if (!val || val === '') {
+        if (isEmpty) {
           const type = col.dataType ? col.dataType.toLowerCase() : '';
           const isUuid = type.includes('uuid') || type === '2950';
           const isStringPk =
@@ -217,9 +225,17 @@ export const useGridStore = defineStore('grid', () => {
               type.includes('text'));
           if (isUuid || isStringPk) {
             cleanData[col.name] = crypto.randomUUID();
+          } else if (col.isPrimaryKey) {
+            continue;
+          } else {
+            const parsed = parseGridInputValue(val, col);
+            if (!parsed.ok) throw new Error(parsed.message);
+            cleanData[col.name] = parsed.value;
           }
         } else {
-          cleanData[col.name] = val;
+          const parsed = parseGridInputValue(val, col);
+          if (!parsed.ok) throw new Error(parsed.message);
+          cleanData[col.name] = parsed.value;
         }
       }
 
@@ -233,7 +249,7 @@ export const useGridStore = defineStore('grid', () => {
     }
   };
 
-  const insertRowToDB = async (data: Record<string, string> = {}): Promise<GridRow> => {
+  const insertRowToDB = async (data: Record<string, any> = {}): Promise<GridRow> => {
     if (!window.NL_PORT) return {};
     const payload = await BridgeService.request('dbBridge.insertRow', 'dbBridge.insertRowResult', {
       connectionId: connectionsStore.activeConnectionId,
@@ -243,7 +259,7 @@ export const useGridStore = defineStore('grid', () => {
     return payload.row;
   };
 
-  const insertRow = async (data: Record<string, string> = {}): Promise<void> => {
+  const insertRow = async (data: Record<string, any> = {}): Promise<void> => {
     await insertRowToDB(data);
   };
 

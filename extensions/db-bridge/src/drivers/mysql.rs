@@ -53,6 +53,7 @@ impl MysqlDriver {
                 name: col.name().to_string(),
                 data_type: col.type_info().name().to_string(),
                 is_primary_key: false,
+                is_nullable: true,
             });
         }
 

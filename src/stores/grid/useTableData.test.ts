@@ -38,10 +38,16 @@ describe('useTableData', () => {
   });
 
   describe('resolveBackendTableName', () => {
-    it('returns table name as is for non-oracle connections', () => {
+    it('returns table name as is for non-schema-qualified connections', () => {
       const tableData = useTableData(connectionsStore);
       const result = tableData.resolveBackendTableName('users', 'conn-1');
       expect(result).toBe('users');
+    });
+
+    it('returns schema.table for postgres connections when schema is provided', () => {
+      const tableData = useTableData(connectionsStore);
+      const result = tableData.resolveBackendTableName('users', 'conn-1', 'sales');
+      expect(result).toBe('sales.users');
     });
 
     it('returns schema.table for oracle connections when schema is provided', () => {

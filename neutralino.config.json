@@ -6,8 +6,8 @@
   "description": "Lightweight, high-performance desktop database management tool for PostgreSQL, MySQL, SQLite, and Oracle.",
   "version": "0.2.6",
   "copyright": "Copyright © Table View 2026. All rights reserved.",
-  "defaultMode": "window",
   "documentRoot": "/build/",
+  "defaultMode": "window",
   "storageLocation": "system",
   "dataLocation": "system",
   "logging": {

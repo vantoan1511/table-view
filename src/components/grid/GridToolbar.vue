@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AlterTableDialog from '@/components/ui/AlterTableDialog.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
-import ContextMenu from '@/components/ui/ContextMenu.vue';
+import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
@@ -9,10 +9,8 @@ import * as Neutralino from '@neutralinojs/lib';
 import { computed, ref, watch } from 'vue';
 
 import {
-  ChevronDown,
   Columns3,
   Download,
-  Filter,
   LayoutGrid,
   MoreHorizontal,
   Plus,
@@ -28,15 +26,10 @@ const connectionsStore = useConnectionsStore();
 const selectedCount = computed(() => gridStore.selectedRowIndices.size);
 const showDeleteConfirm = ref(false);
 
-// ─── Dropdowns state ────────────────────────────────────────────────────────
-const showColumnsMenu = ref(false);
-const columnsMenuPos = ref({ x: 0, y: 0 });
-const showRowsMenu = ref(false);
-const rowsMenuPos = ref({ x: 0, y: 0 });
-const showMoreMenu = ref(false);
-const moreMenuPos = ref({ x: 0, y: 0 });
-const showSearchPopup = ref(false);
-const searchPopupPos = ref({ x: 0, y: 0 });
+const rowsOptions = [25, 50, 100, 250, 500, 1000].map((count) => ({
+  label: `${count}`,
+  value: count
+}));
 
 // Initialize column visibility tracking in the store
 watch(
@@ -51,37 +44,8 @@ watch(
   { immediate: true }
 );
 
-const toggleColumnsMenu = (e: MouseEvent) => {
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  columnsMenuPos.value = { x: rect.left, y: rect.bottom + 5 };
-  showColumnsMenu.value = !showColumnsMenu.value;
-  showMoreMenu.value = false;
-};
-
-const toggleRowsMenu = (e: MouseEvent) => {
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  rowsMenuPos.value = { x: rect.left, y: rect.bottom + 5 };
-  showRowsMenu.value = !showRowsMenu.value;
-  showMoreMenu.value = false;
-};
-
-const toggleMoreMenu = (e: MouseEvent) => {
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  moreMenuPos.value = { x: rect.right - 180, y: rect.bottom + 5 };
-  showMoreMenu.value = !showMoreMenu.value;
-  showSearchPopup.value = false;
-};
-
-const toggleSearchPopup = (e: MouseEvent) => {
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  searchPopupPos.value = { x: Math.max(10, rect.left - 150), y: rect.bottom + 5 };
-  showSearchPopup.value = !showSearchPopup.value;
-  showMoreMenu.value = false;
-};
-
-const setRowsPerPage = (count: number) => {
-  gridStore.setRowsPerPage(count);
-  showRowsMenu.value = false;
+const setRowsPerPage = (count: DropdownValue) => {
+  gridStore.setRowsPerPage(Number(count));
 };
 
 // ─── Add Row Inline ──────────────────────────────────────────────────────
@@ -292,89 +256,68 @@ const vFocus = {
 
     <!-- Right: Actions -->
     <div class="flex min-w-0 items-center gap-2">
-      <!-- Search: Level 1 & 2 (Inline) -->
-      <div class="group relative hidden max-w-[200px] min-w-[120px] flex-1 @[500px]:block">
-        <Filter
-          :size="13"
-          class="text-text-tertiary group-focus-within:text-primary absolute top-1/2 left-2.5 -translate-y-1/2 transition-colors"
-        />
-        <input
-          v-model="gridStore.filterText"
-          type="text"
-          placeholder="Search..."
-          class="border-border bg-muted focus:bg-surface focus:border-primary focus:ring-primary w-full rounded-lg border py-1.5 pr-3 pl-8 text-[12px] transition-all outline-none focus:ring-1"
-          @keydown.enter="handleRefresh"
-        />
-      </div>
-
-      <!-- Search: Level 3 (Popup Icon) -->
-      <div class="flex items-center @[500px]:hidden">
-        <button
-          class="border-border text-text-secondary hover:bg-hover group relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-colors"
-          :class="{ 'bg-primary/10 border-primary text-primary': showSearchPopup }"
-          @click.stop="toggleSearchPopup"
-        >
-          <Filter :size="14" />
-          <!-- Tooltip -->
-          <div
-            v-if="!showSearchPopup"
-            class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-          >
-            Search
-            <div
-              class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-            ></div>
-          </div>
-        </button>
-
-        <ContextMenu
-          :show="showSearchPopup"
-          :x="searchPopupPos.x"
-          :y="searchPopupPos.y"
-          width-class="w-64"
-          @close="showSearchPopup = false"
-        >
-          <div class="px-3 py-2">
-            <div class="relative">
-              <Filter
-                :size="13"
-                class="text-text-tertiary absolute top-1/2 left-2.5 -translate-y-1/2"
-              />
-              <input
-                v-model="gridStore.filterText"
-                v-focus
-                type="text"
-                placeholder="Search rows..."
-                class="border-border focus:border-primary focus:ring-primary w-full rounded-lg border py-1.5 pr-3 pl-8 text-[12px] outline-none focus:ring-1"
-                @keydown.enter="
-                  handleRefresh();
-                  showSearchPopup = false;
-                "
-              />
-            </div>
-          </div>
-        </ContextMenu>
-      </div>
-
       <!-- Level 1 & 2 Actions Group -->
       <div class="hidden items-center gap-1.5 @[500px]:flex">
         <!-- Columns -->
-        <button
-          class="border-border text-text-secondary hover:bg-hover group relative flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors"
-          @click.stop="toggleColumnsMenu"
+        <DropdownMenu
+          :model-value="''"
+          :options="[]"
+          aria-label="Configure columns"
+          button-class="border-border text-text-secondary hover:bg-hover group rounded-lg px-2.5 py-1.5"
+          menu-class="min-w-52"
         >
-          <Columns3 :size="13" />
-          <span class="hidden @[850px]:inline">Columns</span>
-          <!-- Tooltip -->
-          <div
-            class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-          >
-            Configure Columns
+          <template #trigger>
+            <Columns3 :size="13" />
+            <span class="hidden @[850px]:inline">Columns</span>
+            <!-- Tooltip -->
             <div
-              class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-            ></div>
+              class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
+            >
+              Configure Columns
+              <div
+                class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
+              ></div>
+            </div>
+          </template>
+          <div
+            class="text-text-tertiary px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
+          >
+            Columns
           </div>
-        </button>
+          <div class="max-h-64 overflow-y-auto">
+            <button
+              v-for="col in gridStore.columns"
+              :key="col.name"
+              class="hover:bg-hover flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-[12px]"
+              @click="gridStore.toggleColumnVisibility(col.name)"
+            >
+              <span
+                class="border-border flex h-3 w-3 shrink-0 items-center justify-center rounded border"
+                :class="
+                  gridStore.columnVisibility[col.name] !== false
+                    ? 'bg-primary border-primary'
+                    : 'bg-surface'
+                "
+              >
+                <svg
+                  v-if="gridStore.columnVisibility[col.name] !== false"
+                  class="h-2 w-2 text-white"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                >
+                  <polyline
+                    points="1,6 4,9 11,2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </span>
+              <span class="truncate">{{ col.name }}</span>
+              <span class="text-text-tertiary ml-auto text-[10px]">{{ col.dataType }}</span>
+            </button>
+          </div>
+        </DropdownMenu>
 
         <!-- Export -->
         <button
@@ -395,15 +338,19 @@ const vFocus = {
         </button>
 
         <!-- Row Count -->
-        <button
-          class="border-border text-text-secondary hover:bg-hover flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors"
-          @click.stop="toggleRowsMenu"
+        <DropdownMenu
+          :model-value="gridStore.rowsPerPage"
+          :options="rowsOptions"
+          aria-label="Rows per page"
+          button-class="border-border text-text-secondary hover:bg-hover rounded-lg px-2.5 py-1.5"
+          @update:model-value="setRowsPerPage"
         >
-          <span class="whitespace-nowrap"
-            >{{ gridStore.rowsPerPage }} <span class="hidden @[850px]:inline">rows</span></span
-          >
-          <ChevronDown :size="12" />
-        </button>
+          <template #trigger>
+            <span class="whitespace-nowrap">
+              {{ gridStore.rowsPerPage }} <span class="hidden @[850px]:inline">rows</span>
+            </span>
+          </template>
+        </DropdownMenu>
 
         <!-- Divider -->
         <div class="bg-border mx-0.5 hidden h-5 w-px @[600px]:block" />
@@ -445,89 +392,133 @@ const vFocus = {
 
       <!-- Level 3: Speed Dial / More Button -->
       <div class="flex items-center @[500px]:hidden">
-        <button
-          class="border-border text-text-secondary hover:bg-hover group relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-colors"
-          @click.stop="toggleMoreMenu"
+        <DropdownMenu
+          :model-value="''"
+          :options="[]"
+          aria-label="More actions"
+          align="right"
+          :show-chevron="false"
+          button-class="border-border text-text-secondary hover:bg-hover group h-8 w-8 justify-center rounded-lg p-0"
+          menu-class="min-w-64"
         >
-          <MoreHorizontal :size="16" />
-          <!-- Tooltip -->
-          <div
-            v-if="!showMoreMenu"
-            class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-          >
-            More Actions
+          <template #trigger>
+            <MoreHorizontal :size="16" />
+            <!-- Tooltip -->
             <div
-              class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-            ></div>
-          </div>
-        </button>
+              class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
+            >
+              More Actions
+              <div
+                class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
+              ></div>
+            </div>
+          </template>
+          <template #default="{ close }">
+            <button
+              class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
+              @click="
+                handleInsert();
+                close();
+              "
+            >
+              <Plus :size="14" class="text-success" /> <span>Add Row</span>
+            </button>
+            <button
+              class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
+              @click="
+                handleRefresh();
+                close();
+              "
+            >
+              <RefreshCw :size="14" /> <span>Refresh</span>
+            </button>
+            <button
+              class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
+              @click="
+                gridStore.showAlterTableDialog = true;
+                close();
+              "
+            >
+              <Wrench :size="14" /> <span>Alter Table</span>
+            </button>
+            <button
+              class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
+              @click="
+                handleExport();
+                close();
+              "
+            >
+              <Download :size="14" /> <span>Export CSV</span>
+            </button>
+            <div v-if="selectedCount > 0" class="bg-border my-1 h-px"></div>
+            <button
+              v-if="selectedCount > 0"
+              class="hover:bg-hover text-danger flex w-full items-center gap-2 px-3 py-2 text-[12px]"
+              @click="
+                promptDelete();
+                close();
+              "
+            >
+              <Trash2 :size="14" /> <span>Delete Selected ({{ selectedCount }})</span>
+            </button>
 
-        <ContextMenu
-          :show="showMoreMenu"
-          :x="moreMenuPos.x"
-          :y="moreMenuPos.y"
-          @close="showMoreMenu = false"
-        >
-          <button
-            class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
-            @click="
-              handleInsert();
-              showMoreMenu = false;
-            "
-          >
-            <Plus :size="14" class="text-success" /> <span>Add Row</span>
-          </button>
-          <button
-            class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
-            @click="
-              handleRefresh();
-              showMoreMenu = false;
-            "
-          >
-            <RefreshCw :size="14" /> <span>Refresh</span>
-          </button>
-          <button
-            class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
-            @click="
-              gridStore.showAlterTableDialog = true;
-              showMoreMenu = false;
-            "
-          >
-            <Wrench :size="14" /> <span>Alter Table</span>
-          </button>
-          <button
-            class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
-            @click="toggleColumnsMenu"
-          >
-            <Columns3 :size="14" /> <span>Columns...</span>
-          </button>
-          <button
-            class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
-            @click="toggleRowsMenu"
-          >
-            <LayoutGrid :size="14" /> <span>Rows Per Page...</span>
-          </button>
-          <button
-            class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
-            @click="
-              handleExport;
-              showMoreMenu = false;
-            "
-          >
-            <Download :size="14" /> <span>Export CSV</span>
-          </button>
-          <div v-if="selectedCount > 0" class="bg-border my-1 h-px"></div>
-          <button
-            v-if="selectedCount > 0"
-            class="hover:bg-hover text-danger flex w-full items-center gap-2 px-3 py-2 text-[12px]"
-            @click="
-              promptDelete;
-              showMoreMenu = false;
-            "
-          >
-            <Trash2 :size="14" /> <span>Delete Selected ({{ selectedCount }})</span>
-          </button>
-        </ContextMenu>
+            <div class="bg-border my-1 h-px"></div>
+            <div
+              class="text-text-tertiary flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
+            >
+              <LayoutGrid :size="13" /> Rows per page
+            </div>
+            <button
+              v-for="option in rowsOptions"
+              :key="option.value"
+              class="hover:bg-hover flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-[12px]"
+              @click="setRowsPerPage(option.value)"
+            >
+              <span>{{ option.label }}</span>
+              <span v-if="gridStore.rowsPerPage === option.value" class="text-primary">✓</span>
+            </button>
+
+            <div class="bg-border my-1 h-px"></div>
+            <div
+              class="text-text-tertiary flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
+            >
+              <Columns3 :size="13" /> Columns
+            </div>
+            <div class="max-h-52 overflow-y-auto">
+              <button
+                v-for="col in gridStore.columns"
+                :key="col.name"
+                class="hover:bg-hover flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-[12px]"
+                @click="gridStore.toggleColumnVisibility(col.name)"
+              >
+                <span
+                  class="border-border flex h-3 w-3 shrink-0 items-center justify-center rounded border"
+                  :class="
+                    gridStore.columnVisibility[col.name] !== false
+                      ? 'bg-primary border-primary'
+                      : 'bg-surface'
+                  "
+                >
+                  <svg
+                    v-if="gridStore.columnVisibility[col.name] !== false"
+                    class="h-2 w-2 text-white"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                  >
+                    <polyline
+                      points="1,6 4,9 11,2"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </span>
+                <span class="truncate">{{ col.name }}</span>
+                <span class="text-text-tertiary ml-auto text-[10px]">{{ col.dataType }}</span>
+              </button>
+            </div>
+          </template>
+        </DropdownMenu>
       </div>
     </div>
   </div>
@@ -550,70 +541,4 @@ const vFocus = {
     @close="gridStore.showAlterTableDialog = false"
     @apply="confirmAlterTable"
   />
-
-  <!-- Columns Visibility ContextMenu -->
-  <ContextMenu
-    :show="showColumnsMenu"
-    :x="columnsMenuPos.x"
-    :y="columnsMenuPos.y"
-    @close="showColumnsMenu = false"
-  >
-    <div class="text-text-tertiary px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase">
-      Columns
-    </div>
-    <div class="max-h-64 overflow-y-auto">
-      <button
-        v-for="col in gridStore.columns"
-        :key="col.name"
-        class="hover:bg-hover flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-[12px]"
-        @click="gridStore.toggleColumnVisibility(col.name)"
-      >
-        <span
-          class="border-border flex h-3 w-3 shrink-0 items-center justify-center rounded border"
-          :class="
-            gridStore.columnVisibility[col.name] !== false
-              ? 'bg-primary border-primary'
-              : 'bg-surface'
-          "
-        >
-          <svg
-            v-if="gridStore.columnVisibility[col.name] !== false"
-            class="h-2 w-2 text-white"
-            viewBox="0 0 12 12"
-            fill="none"
-          >
-            <polyline
-              points="1,6 4,9 11,2"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            />
-          </svg>
-        </span>
-        <span class="truncate">{{ col.name }}</span>
-        <span class="text-text-tertiary ml-auto text-[10px]">{{ col.dataType }}</span>
-      </button>
-    </div>
-  </ContextMenu>
-
-  <!-- Rows Per Page ContextMenu -->
-  <ContextMenu
-    :show="showRowsMenu"
-    :x="rowsMenuPos.x"
-    :y="rowsMenuPos.y"
-    @close="showRowsMenu = false"
-  >
-    <div class="text-text-tertiary px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase">
-      Rows per page
-    </div>
-    <button
-      v-for="count in [25, 50, 100, 250, 500, 1000]"
-      :key="count"
-      class="hover:bg-hover flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-[12px]"
-      @click="setRowsPerPage(count)"
-    >
-      <span>{{ count }}</span>
-      <span v-if="gridStore.rowsPerPage === count" class="text-primary">✓</span>
-    </button>
-  </ContextMenu>
 </template>

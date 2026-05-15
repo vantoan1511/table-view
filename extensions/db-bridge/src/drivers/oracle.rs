@@ -88,6 +88,7 @@ impl OracleDriver {
                 name: col.name.clone(),
                 data_type: format!("{:?}", col.oracle_type),
                 is_primary_key: false,
+                is_nullable: true,
             })
             .collect();
 

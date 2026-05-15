@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useGridStore } from '@/stores/grid';
+import { formatGridCellValue } from '@/stores/grid/valueConversion';
 import { Check, Clipboard, Edit3, FileText, X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
@@ -12,7 +13,7 @@ watch(
   (cell) => {
     if (cell) {
       const val = gridStore.rows[cell.rowIndex]?.[cell.column.name];
-      localValue.value = val === null ? '' : String(val);
+      localValue.value = formatGridCellValue(val);
     } else {
       localValue.value = '';
     }
@@ -30,7 +31,7 @@ watch(
       gridStore.editingCell.rowIndex === gridStore.selectedCell.rowIndex &&
       gridStore.editingCell.column.name === gridStore.selectedCell.column.name
     ) {
-      localValue.value = val === null ? '' : String(val);
+      localValue.value = formatGridCellValue(val);
     }
   }
 );

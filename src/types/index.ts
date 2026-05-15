@@ -111,7 +111,7 @@ export interface GridColumn {
   isNullable?: boolean;
 }
 
-export type CellValue = string | number | boolean | null;
+export type CellValue = string | number | boolean | null | Record<string, unknown> | unknown[];
 
 export interface GridRow {
   [key: string]: CellValue;
