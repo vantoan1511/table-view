@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronDown } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 export type DropdownValue = string | number;
 
@@ -37,15 +37,57 @@ const emit = defineEmits<{
 
 const isOpen = ref(false);
 const rootRef = ref<HTMLElement | null>(null);
+const menuRef = ref<HTMLElement | null>(null);
+const menuStyle = ref<Record<string, string>>({});
 
 const selectedOption = computed(() =>
   props.options.find((option) => option.value === props.modelValue)
 );
 
-const menuPositionClass = computed(() => [
-  props.placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1',
-  props.align === 'right' ? 'right-0' : 'left-0'
-]);
+const updatePosition = () => {
+  if (!rootRef.value || !isOpen.value) return;
+
+  const rect = rootRef.value.getBoundingClientRect();
+  const windowWidth = window.innerWidth;
+  const windowHeight = window.innerHeight;
+
+  const style: Record<string, string> = {
+    minWidth: `${rect.width}px`,
+    position: 'fixed',
+    zIndex: '9999'
+  };
+
+  // Vertical positioning
+  if (props.placement === 'top') {
+    style.bottom = `${windowHeight - rect.top + 4}px`;
+  } else {
+    style.top = `${rect.bottom + 4}px`;
+  }
+
+  // Horizontal positioning
+  if (props.align === 'right') {
+    style.right = `${windowWidth - rect.right}px`;
+  } else {
+    style.left = `${rect.left}px`;
+  }
+
+  menuStyle.value = style;
+
+  // Handle screen boundary for bottom placement
+  if (props.placement === 'bottom') {
+    nextTick(() => {
+      if (menuRef.value) {
+        const menuRect = menuRef.value.getBoundingClientRect();
+        if (menuRect.bottom > windowHeight - 10) {
+          // Flip to top if not enough space at bottom
+          style.top = 'auto';
+          style.bottom = `${windowHeight - rect.top + 4}px`;
+          menuStyle.value = { ...style };
+        }
+      }
+    });
+  }
+};
 
 const toggle = () => {
   isOpen.value = !isOpen.value;
@@ -63,6 +105,10 @@ const selectOption = (value: DropdownValue) => {
 
 const handleClickOutside = (event: MouseEvent) => {
   if (isOpen.value && rootRef.value && !rootRef.value.contains(event.target as Node)) {
+    // Also check if click is inside the teleported menu
+    if (menuRef.value && menuRef.value.contains(event.target as Node)) {
+      return;
+    }
     close();
   }
 };
@@ -73,14 +119,24 @@ const handleEscape = (event: KeyboardEvent) => {
   }
 };
 
+watch(isOpen, (val) => {
+  if (val) {
+    nextTick(updatePosition);
+  }
+});
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('keydown', handleEscape);
+  window.addEventListener('resize', updatePosition);
+  window.addEventListener('scroll', updatePosition, true);
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
   document.removeEventListener('keydown', handleEscape);
+  window.removeEventListener('resize', updatePosition);
+  window.removeEventListener('scroll', updatePosition, true);
 });
 </script>
 
@@ -106,28 +162,32 @@ onUnmounted(() => {
       />
     </button>
 
-    <div
-      v-if="isOpen"
-      class="bg-surface border-border absolute z-50 min-w-20 rounded-lg border py-1 shadow-lg"
-      :class="[menuPositionClass, menuClass]"
-      role="listbox"
-      @click.stop
-    >
-      <slot :close="close" :select="selectOption">
-        <button
-          v-for="option in options"
-          :key="option.value"
-          type="button"
-          class="hover:bg-hover flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-[12px]"
-          :class="modelValue === option.value ? 'text-primary font-medium' : 'text-text-primary'"
-          role="option"
-          :aria-selected="modelValue === option.value"
-          @click="selectOption(option.value)"
-        >
-          <span>{{ option.label }}</span>
-          <span v-if="modelValue === option.value" class="text-primary text-[10px]">✓</span>
-        </button>
-      </slot>
-    </div>
+    <Teleport to="body">
+      <div
+        v-if="isOpen"
+        ref="menuRef"
+        class="bg-surface border-border fixed z-[9999] min-w-20 rounded-lg border py-1 shadow-lg"
+        :style="menuStyle"
+        :class="menuClass"
+        role="listbox"
+        @click.stop
+      >
+        <slot :close="close" :select="selectOption">
+          <button
+            v-for="option in options"
+            :key="option.value"
+            type="button"
+            class="hover:bg-hover flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-[12px]"
+            :class="modelValue === option.value ? 'text-primary font-medium' : 'text-text-primary'"
+            role="option"
+            :aria-selected="modelValue === option.value"
+            @click="selectOption(option.value)"
+          >
+            <span>{{ option.label }}</span>
+            <span v-if="modelValue === option.value" class="text-primary text-[10px]">✓</span>
+          </button>
+        </slot>
+      </div>
+    </Teleport>
   </div>
 </template>

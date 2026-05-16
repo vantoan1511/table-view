@@ -1,7 +1,12 @@
 <script setup lang="ts">
+import Checkbox from './Checkbox.vue';
+import DropdownMenu from './DropdownMenu.vue';
+
+import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
-import { Check, Edit2, Key, Plus, Trash2, X } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { DbType } from '@/types';
+import { AlertCircle, Check, Edit2, Plus, Trash2, X } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{
   connectionId: string;
@@ -14,6 +19,52 @@ const emit = defineEmits<{
 }>();
 
 const gridStore = useGridStore();
+const connectionsStore = useConnectionsStore();
+
+const dbType = computed(() => connectionsStore.activeConnection?.type ?? DbType.POSTGRESQL);
+
+const getSupportedDataTypes = (type: DbType) => {
+  switch (type) {
+    case DbType.POSTGRESQL:
+      return [
+        'integer',
+        'bigint',
+        'text',
+        'varchar(255)',
+        'boolean',
+        'timestamp',
+        'date',
+        'numeric',
+        'jsonb',
+        'uuid'
+      ];
+    case DbType.MYSQL:
+    case DbType.MARIADB:
+      return [
+        'int',
+        'bigint',
+        'varchar(255)',
+        'text',
+        'boolean',
+        'datetime',
+        'date',
+        'decimal',
+        'json'
+      ];
+    case DbType.SQLITE:
+      return ['integer', 'text', 'real', 'blob', 'numeric'];
+    case DbType.ORACLE:
+      return ['NUMBER', 'VARCHAR2(255)', 'DATE', 'TIMESTAMP', 'CLOB', 'BLOB'];
+    case DbType.SQLSERVER:
+      return ['int', 'bigint', 'nvarchar(255)', 'text', 'bit', 'datetime2', 'date', 'decimal'];
+    default:
+      return ['text', 'varchar(255)', 'integer', 'boolean'];
+  }
+};
+
+const typeOptions = computed(() =>
+  getSupportedDataTypes(dbType.value).map((t) => ({ label: t, value: t }))
+);
 
 interface ColumnDef {
   id: string;
@@ -118,12 +169,22 @@ const handleCreate = async () => {
       <!-- Body -->
       <div class="flex-1 overflow-y-auto p-5">
         <div class="mb-6">
-          <label class="text-text-secondary mb-1.5 block text-[13px] font-medium">Table Name</label>
+          <div class="mb-1.5 flex items-center justify-between">
+            <label class="text-text-secondary block text-[13px] font-medium">Table Name</label>
+            <span
+              v-if="!tableName.trim()"
+              class="text-danger animate-fade-in-scale flex items-center gap-1 text-[11px] font-medium"
+            >
+              <AlertCircle :size="12" />
+              Required
+            </span>
+          </div>
           <input
-            v-model="tableName"
+            v-model.trim="tableName"
             type="text"
             placeholder="Enter table name..."
             class="bg-muted border-border text-text-primary focus:border-primary w-full rounded-lg border px-4 py-2 text-[14px] transition-colors outline-none"
+            :class="{ 'border-danger! !focus:border-danger': !tableName.trim() }"
           />
         </div>
 
@@ -150,44 +211,35 @@ const handleCreate = async () => {
                 <td class="px-4 py-2">
                   <input
                     v-if="col._editing"
-                    v-model="col.name"
+                    v-model.trim="col.name"
                     type="text"
                     class="bg-surface border-primary/50 focus:border-primary w-full rounded border px-2 py-1 outline-none"
+                    :class="{ 'border-danger! !focus:border-danger': !col.name.trim() }"
                   />
                   <span v-else class="text-text-primary">{{ col.name }}</span>
                 </td>
 
                 <td class="px-4 py-2">
-                  <input
-                    v-if="col._editing"
-                    v-model="col.dataType"
-                    type="text"
-                    class="bg-surface border-primary/50 focus:border-primary w-full rounded border px-2 py-1 outline-none"
-                  />
+                  <div v-if="col._editing" class="w-full">
+                    <DropdownMenu
+                      v-model="col.dataType"
+                      :options="typeOptions"
+                      class="w-full"
+                      button-class="w-full justify-between !bg-surface"
+                    />
+                  </div>
                   <span v-else class="text-text-secondary">{{ col.dataType }}</span>
                 </td>
 
                 <td class="px-4 py-2 text-center">
-                  <button
-                    @click="togglePrimaryKey(col)"
-                    class="transition-colors"
-                    :class="
-                      col.isPrimaryKey
-                        ? 'text-primary'
-                        : 'text-text-tertiary hover:text-text-secondary'
-                    "
-                  >
-                    <Key :size="14" />
-                  </button>
+                  <Checkbox
+                    :model-value="col.isPrimaryKey"
+                    @update:model-value="togglePrimaryKey(col)"
+                  />
                 </td>
 
                 <td class="px-4 py-2 text-center">
-                  <input
-                    v-model="col.nullable"
-                    type="checkbox"
-                    :disabled="col.isPrimaryKey"
-                    class="accent-primary h-3.5 w-3.5 rounded border-gray-300"
-                  />
+                  <Checkbox v-model="col.nullable" :disabled="col.isPrimaryKey" />
                 </td>
 
                 <td class="px-4 py-2">
@@ -256,7 +308,9 @@ const handleCreate = async () => {
         <button
           @click="handleCreate"
           class="bg-primary hover:bg-primary-hover rounded-lg px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-colors"
-          :disabled="!tableName.trim() || columns.length === 0"
+          :disabled="
+            !tableName.trim() || columns.length === 0 || columns.some((c) => !c.name.trim())
+          "
         >
           Create Table
         </button>
