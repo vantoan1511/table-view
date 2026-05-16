@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-05-16
+
 ### Added
-- **Backend: Multi-Statement Support**: Updated the PostgreSQL driver to use the simple query protocol (`sqlx::raw_sql`), enabling execution of semicolon-separated SQL scripts in the editor.
+- **UI: Create Table Dialog**: Implemented a comprehensive dialog for defining new table structures with custom `Checkbox` and `DropdownMenu` components.
+- **UI: Table Management**: Added "Alter Table" and "Drop Table" actions to the table context menu.
+- **Backend: Table Operations**: Extended all database drivers (PostgreSQL, MySQL, SQLite, Oracle) to support `create_table` and `drop_table` functionality.
+- **Backend: Multi-Statement Support**: Updated the PostgreSQL driver to use the simple query protocol, enabling execution of semicolon-separated SQL scripts.
+- **Backend: System Schema Filtering**: Improved database tree hygiene by automatically filtering out system-level schemas and databases across all drivers.
+
+### Changed
+- **Architecture: Type Safety**: Refactored the grid store to use a formal `TableColumn` interface, enforcing strict typing for table management.
+- **UI: Database Tree**: Refined the sidebar hierarchy and context menu interactions for better usability.
 
 ## [0.2.7] - 2026-05-15
 
