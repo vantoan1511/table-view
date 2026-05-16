@@ -1,44 +1,43 @@
 # Table View
 
-**Table View** is a lightweight, high-performance desktop database management tool built with [NeutralinoJS](https://neutralino.js.org/) and [Vue 3](https://vuejs.org/). It provides a unified interface to browse, edit, and manage multiple database types (PostgreSQL, MySQL, SQLite, Oracle) with a focus on speed and a premium user experience.
+[![Version](https://img.shields.io/badge/version-0.2.7-blue.svg)](https://github.com/vantoan1511/table-view/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![NeutralinoJS](https://img.shields.io/badge/Runtime-NeutralinoJS-orange.svg)](https://neutralino.js.org/)
+[![Vue](https://img.shields.io/badge/Frontend-Vue%203-green.svg)](https://vuejs.org/)
+[![Rust](https://img.shields.io/badge/Backend-Rust-black.svg)](https://www.rust-lang.org/)
 
-![Table View Preview](screenshots/preview.png)
+**Table View** is a lightweight, high-performance desktop database management tool built for the modern developer. By combining the flexibility of **Vue 3** with the raw power of a **Rust-based backend extension**, it provides a lightning-fast experience for managing PostgreSQL, MySQL, SQLite, and Oracle databases.
+
+![Table View Preview](preview/preview.png)
 
 ## ✨ Features
 
-- **Multi-DB Support**: Connect to PostgreSQL, MySQL, SQLite, and Oracle databases simultaneously.
-- **Real-time Telemetry**: High-precision backend-level query timing (ms) displayed in the Status Bar.
-- **Rich Data Grid**: 
-  - **Inline Editing**: Double-click any cell to edit data instantly.
-  - **Bulk Operations**: Select multiple rows for batch deletion.
-  - **Auto-Generating UUIDs**: Intelligent handling of PKs and UUID columns during row insertion.
-  - **Understandable Types**: Automatically translates internal DB type OIDs into human-readable text.
-- **Schema Management**:
-  - **Visual Schema Tree**: Browse tables, views, functions, and schemas.
-  - **Alter Table UI**: Add, rename, or drop columns via a dedicated structure management dialog.
-- **Workspace Panels**:
-  - **Console**: Execution logs and query output.
-  - **Timeline**: Query history and execution metrics.
-  - **Value Viewer**: Dedicated, monospaced viewer for large cell content with transactional save/discard support.
-  - **Inspector**: Real-time table properties and index definitions.
-- **Layout Persistence**: Automatically remembers and restores your panel visibilities and sizes across sessions.
-- **SQL Editor**: Write and execute raw SQL queries with syntax highlighting and autocompletion (powered by CodeMirror 6).
-- **Modern UX**:
-  - **Tab Strip**: Responsive horizontal scrolling and drag-and-drop tab reordering for efficient workspace management.
-  - **Centralized Logging**: Both frontend (UI) and backend (Rust) logs are consolidated into a single root `.log` file for unified diagnostics.
-  - **Global Error Handling**: Uncaught exceptions are displayed in a polished, detailed dialog rather than silently failing.
-  - **Toast Notifications**: Beautiful, non-intrusive feedback for system actions.
-  - **Dark Mode Aesthetic**: A sleek, dark-themed interface designed for professional developers.
-  - **Custom Context Menus**: Native-feeling menus for quick actions on tables and connections.
+- **Multi-Engine Support**: Native drivers for PostgreSQL, MySQL, SQLite, and Oracle (pure Rust thin-driver).
+- **High-Precision Telemetry**: Backend-level query timing (ms) displayed in the Status Bar for accurate performance profiling.
+- **Premium Data Grid**:
+  - **Inline Editing**: Double-click any cell to edit data instantly with transactional save/discard.
+  - **Enhanced Selection**: Premium ring highlights and background tints for clear cell focus.
+  - **Bulk Operations**: Seamlessly select and delete multiple rows.
+  - **Constraint Validation**: Early-stage attribute constraint validation to prevent invalid data entry.
+- **Advanced Workspace**:
+  - **Value Viewer**: A dedicated, monospaced viewer optimized for large cell content (JSON, long text, etc.).
+  - **Inspector**: Real-time table properties, constraints, and index definitions.
+  - **Timeline & Console**: Track your query history and system logs in one place.
+- **SQL Editor**: Professional-grade editor powered by **CodeMirror 6** with syntax highlighting, autocompletion, and tab persistence.
+- **Refined UX**:
+  - **Dark Mode**: A sleek, high-contrast aesthetic designed for long coding sessions.
+  - **Layout Persistence**: Automatically restores your workspace configuration (panel sizes, visibility) across sessions.
+  - **Toast Notifications**: Beautiful, non-intrusive feedback via a centralized toast system.
+  - **Unified Logging**: Consolidates frontend and backend diagnostics into a single root `.log` file.
 
 ## 🛠️ Tech Stack
 
-- **Core Runtime**: [NeutralinoJS](https://neutralino.js.org/) (Cross-platform desktop framework)
-- **Frontend**: [Vue 3](https://vuejs.org/) with [Pinia](https://pinia.vuejs.org/) (State management)
+- **Core Runtime**: [NeutralinoJS](https://neutralino.js.org/)
+- **Frontend**: [Vue 3](https://vuejs.org/) with [Pinia](https://pinia.vuejs.org/)
 - **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
 - **Icons**: [Lucide Vue Next](https://lucide.dev/)
 - **Editor**: [CodeMirror 6](https://codemirror.net/)
-- **Backend Bridge**: High-performance Rust-based Neutralino extension powered by `sqlx` plus dedicated Oracle thin-driver components (`oracle-rs` and `deadpool-oracle`).
+- **Backend Bridge**: High-performance **Rust** extension powered by `sqlx` and `deadpool-oracle`.
 
 ## 🚀 Getting Started
 
@@ -46,23 +45,33 @@
 
 - [Node.js](https://nodejs.org/) (v20 or later)
 - [Neutralinojs CLI](https://neutralino.js.org/docs/cli/neu-cli) (`npm install -g @neutralinojs/neu`)
+- [Rust](https://www.rust-lang.org/tools/install) (to build the backend extension)
 
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/vantoan1511/table-view.git
    cd table-view
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
+   ```
+
+3. Build the backend extension:
+   ```bash
+   cd extensions/db-bridge
+   cargo build --release
    ```
 
 ### Running in Development
 
 Start the development server with hot-reload and Neutralino runtime:
+
 ```bash
 neu run
 ```
@@ -70,19 +79,21 @@ neu run
 ### Building for Production
 
 To package the application for Windows, Linux, and macOS:
+
 ```bash
 neu build
 ```
+
 The binaries will be available in the `dist/` directory.
 
 ## 📂 Project Structure
 
 - `src/`: Vue 3 application source code.
-  - `components/`: UI components (Grid, Sidebar, SQL Editor, etc.).
-  - `stores/`: Pinia state management modules.
-  - `assets/`: Global styles and static assets.
+  - `components/`: Granular UI components (Grid, Sidebar, SQL Editor, etc.).
+  - `stores/`: Domain-specific Pinia state modules.
+  - `composables/`: Reusable logic for data fetching, shortcuts, and UI states.
 - `extensions/`: Neutralino extensions.
-  - `db-bridge/`: The core database connector written in Rust.
+  - `db-bridge/`: The core database connector written in **Rust**.
 - `neutralino.config.json`: Neutralino application configuration.
 
 ## 📄 License
