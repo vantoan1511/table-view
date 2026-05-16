@@ -2,7 +2,10 @@ import { BridgeService } from '@/services/bridge';
 import type { Connection, GridColumn, GridRow } from '@/types';
 import { ref } from 'vue';
 
+import { useToastStore } from '../toast';
+
 export function useTableData(connectionsStore: any) {
+  const toastStore = useToastStore();
   const columns = ref<GridColumn[]>([]);
   const rows = ref<GridRow[]>([]);
   const totalRows = ref(0);
@@ -81,6 +84,11 @@ export function useTableData(connectionsStore: any) {
       executionTime.value = payload.executionTime ?? Math.round(performance.now() - startTime);
     } catch (error: any) {
       console.error('Failed to fetch table data:', error.message);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Failed to Load Table',
+        message: error.message || 'An unknown error occurred while loading table data.'
+      });
     } finally {
       isLoading.value = false;
     }

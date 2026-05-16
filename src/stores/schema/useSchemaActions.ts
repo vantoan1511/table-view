@@ -1,12 +1,15 @@
 import { BridgeService } from '@/services/bridge';
 import type { SchemaInfo } from '@/types';
 
+import { useToastStore } from '../toast';
+
 export function useSchemaActions(
   cache: any,
   treeState: any,
   connectionsStore: any,
   loadedAllDatabases: any
 ) {
+  const toastStore = useToastStore();
   const sameSchema = (a: string, b: string) =>
     a.localeCompare(b, undefined, { sensitivity: 'accent' }) === 0;
 
@@ -104,6 +107,11 @@ export function useSchemaActions(
       }
     } catch (error: any) {
       console.error('Failed to load schema:', error.message);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Schema Load Failed',
+        message: error.message || 'Could not retrieve the database schema.'
+      });
     } finally {
       cache.loadingByConnection.value[targetConnectionId] = false;
     }

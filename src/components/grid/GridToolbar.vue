@@ -70,6 +70,11 @@ const confirmDelete = async () => {
     await gridStore.deleteRows([...gridStore.selectedRowIndices]);
   } catch (err: any) {
     console.error('Delete failed:', err);
+    toastStore.addToast({
+      severity: 'error',
+      title: 'Delete Failed',
+      message: err.message || 'Failed to delete the selected row(s).'
+    });
   }
 };
 
@@ -145,8 +150,16 @@ const handleExport = async () => {
         }
       );
     }
-  } catch (err) {
-    console.error('Export cancelled or failed', err);
+  } catch (err: any) {
+    // Neutralino throws { code: 'NE_OS_DLGCDL' } when user cancels the dialog — not an error
+    if (err && err.code !== 'NE_OS_DLGCDL') {
+      console.error('Export failed', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Export Failed',
+        message: err.message || 'An error occurred while exporting data.'
+      });
+    }
   }
 };
 

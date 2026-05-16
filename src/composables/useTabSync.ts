@@ -4,6 +4,7 @@ import { useTabsStore } from '@/stores/tabs';
 import { useConnectionsStore } from '@/stores/connections';
 import { useSchemaStore } from '@/stores/schema';
 import { useGridStore } from '@/stores/grid';
+import { useToastStore } from '@/stores/toast';
 import { DbType, TabType } from '@/types';
 
 export function useTabSync() {
@@ -11,6 +12,7 @@ export function useTabSync() {
   const connectionsStore = useConnectionsStore();
   const schemaStore = useSchemaStore();
   const gridStore = useGridStore();
+  const toastStore = useToastStore();
 
   watch(
     () => [tabsStore.activeTab, connectionsStore.connections.length] as const,
@@ -25,8 +27,13 @@ export function useTabSync() {
         if (!conn?.isConnected || tab.connectionId !== connectionsStore.activeConnectionId) {
           try {
             await connectionsStore.setActiveConnection(tab.connectionId);
-          } catch (err) {
+          } catch (err: any) {
             console.error('Failed to sync connection for tab:', err);
+            toastStore.addToast({
+              severity: 'error',
+              title: 'Connection Failed',
+              message: err.message || 'Could not connect to the database for the active tab.'
+            });
             return;
           }
         }

@@ -6,10 +6,12 @@ import { NativeService } from '@/services/native';
 import { useConnectionsStore } from './connections';
 import { useSchemaStore } from './schema';
 import { useTabPersistence } from './tabs/useTabPersistence';
+import { useToastStore } from './toast';
 
 export const useTabsStore = defineStore('tabs', () => {
   const connectionsStore = useConnectionsStore();
   const schemaStore = useSchemaStore();
+  const toastStore = useToastStore();
 
   const tabs = ref<Tab[]>([]);
   const activeTabId = ref<string>('');
@@ -194,8 +196,13 @@ export const useTabsStore = defineStore('tabs', () => {
       tab.isDirty = false;
       const filename = res.split(/[\\/]/).pop() || tab.title;
       tab.title = filename.replace(/\.sql$/i, '');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to export SQL file:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Export Failed',
+        message: err.message || 'Could not save the SQL file.'
+      });
     }
   };
 

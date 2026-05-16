@@ -31,15 +31,9 @@ const toggleConnection = async (conn: Connection) => {
     if (!conn.isConnected) {
       try {
         await connectionsStore.setActiveConnection(conn.id);
-      } catch (err: any) {
+      } catch {
+        // setActiveConnection already shows a toast — just collapse the node
         expandedConnections.value[conn.id] = false;
-        toastStore.addToast({
-          title: 'Connection Failed',
-          message: err.message,
-          severity: 'error',
-          variation: 'filled',
-          position: 'bottom-center'
-        });
       }
     } else {
       if (connectionsStore.activeConnectionId !== conn.id) {

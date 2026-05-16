@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useGridStore } from '@/stores/grid';
+import { useToastStore } from '@/stores/toast';
 import { Check, Edit2, Plus, Trash2, X } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 
@@ -13,6 +14,7 @@ const emit = defineEmits<{
 }>();
 
 const gridStore = useGridStore();
+const toastStore = useToastStore();
 
 interface ColumnDef {
   id: string;
@@ -45,8 +47,13 @@ onMounted(async () => {
       _deleted: false,
       _editing: false
     }));
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to fetch columns:', err);
+    toastStore.addToast({
+      severity: 'error',
+      title: 'Failed to Load Columns',
+      message: err.message || 'Could not retrieve the table structure.'
+    });
   } finally {
     loading.value = false;
   }
