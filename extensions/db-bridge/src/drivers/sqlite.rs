@@ -91,6 +91,38 @@ impl SqliteDriver {
 
         Value::Null
     }
+
+    fn build_create_table_sql(table_name: &str, columns: &[TableColumn]) -> Result<String, String> {
+        let safe_table = Self::quote(table_name);
+
+        let mut column_defs = Vec::new();
+        for col in columns {
+            if !crate::drivers::utils::is_safe_data_type(&col.data_type) {
+                return Err(format!("Invalid or unsafe data type: {}", col.data_type));
+            }
+            let mut def = format!("{} {}", Self::quote(&col.name), col.data_type);
+            if !col.nullable {
+                def.push_str(" NOT NULL");
+            }
+            if let Some(ref d) = col.default {
+                if !crate::drivers::utils::is_safe_default(d) {
+                    return Err(format!("Invalid or unsafe default value: {}", d));
+                }
+                def.push_str(&format!(" DEFAULT {}", d));
+            }
+            if col.is_primary_key {
+                def.push_str(" PRIMARY KEY");
+            }
+            column_defs.push(def);
+        }
+
+        Ok(format!("CREATE TABLE {} ({})", safe_table, column_defs.join(", ")))
+    }
+
+    fn build_drop_table_sql(table_name: &str) -> String {
+        let safe_table = Self::quote(table_name);
+        format!("DROP TABLE {}", safe_table)
+    }
 }
 
 #[async_trait]
@@ -403,30 +435,7 @@ impl DatabaseDriver for SqliteDriver {
 
     async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String> {
         let pool = self.pool()?;
-        let safe_table = Self::quote(table_name);
-
-        let mut column_defs = Vec::new();
-        for col in columns {
-            if !crate::drivers::utils::is_safe_data_type(&col.data_type) {
-                return Err(format!("Invalid or unsafe data type: {}", col.data_type));
-            }
-            let mut def = format!("{} {}", Self::quote(&col.name), col.data_type);
-            if !col.nullable {
-                def.push_str(" NOT NULL");
-            }
-            if let Some(ref d) = col.default {
-                if !crate::drivers::utils::is_safe_default(d) {
-                    return Err(format!("Invalid or unsafe default value: {}", d));
-                }
-                def.push_str(&format!(" DEFAULT {}", d));
-            }
-            if col.is_primary_key {
-                def.push_str(" PRIMARY KEY");
-            }
-            column_defs.push(def);
-        }
-
-        let sql = format!("CREATE TABLE {} ({})", safe_table, column_defs.join(", "));
+        let sql = Self::build_create_table_sql(table_name, columns)?;
         sqlx::query(&sql)
             .execute(pool)
             .await
@@ -436,13 +445,14 @@ impl DatabaseDriver for SqliteDriver {
 
     async fn drop_table(&self, table_name: &str) -> Result<(), String> {
         let pool = self.pool()?;
-        let sql = format!("DROP TABLE {}", Self::quote(table_name));
+        let sql = Self::build_drop_table_sql(table_name);
         sqlx::query(&sql)
             .execute(pool)
             .await
             .map_err(|e| e.to_string())?;
         Ok(())
     }
+
 
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;
@@ -479,5 +489,43 @@ impl DatabaseDriver for SqliteDriver {
 
         wtr.flush().map_err(|e| e.to_string())?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::drivers::TableColumn;
+
+    #[test]
+    fn test_build_create_table_sql() {
+        let columns = vec![
+            TableColumn {
+                name: "id".to_string(),
+                data_type: "INTEGER".to_string(),
+                nullable: false,
+                is_primary_key: true,
+                default: None,
+            },
+            TableColumn {
+                name: "name".to_string(),
+                data_type: "TEXT".to_string(),
+                nullable: true,
+                is_primary_key: false,
+                default: Some("'Guest'".to_string()),
+            },
+        ];
+
+        let sql = SqliteDriver::build_create_table_sql("users", &columns).unwrap();
+        assert_eq!(
+            sql,
+            "CREATE TABLE \"users\" (\"id\" INTEGER NOT NULL PRIMARY KEY, \"name\" TEXT DEFAULT 'Guest')"
+        );
+    }
+
+    #[test]
+    fn test_build_drop_table_sql() {
+        let sql = SqliteDriver::build_drop_table_sql("users");
+        assert_eq!(sql, "DROP TABLE \"users\"");
     }
 }

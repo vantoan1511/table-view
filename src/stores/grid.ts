@@ -12,6 +12,14 @@ import { useSelection } from './grid/useSelection';
 import { useSqlQuery } from './grid/useSqlQuery';
 import { useTableData } from './grid/useTableData';
 
+export interface TableColumn {
+  name: string;
+  dataType: string;
+  nullable: boolean;
+  isPrimaryKey: boolean;
+  default?: string;
+}
+
 export const useGridStore = defineStore('grid', () => {
   const connectionsStore = useConnectionsStore();
   const schemaStore = useSchemaStore();
@@ -98,7 +106,7 @@ export const useGridStore = defineStore('grid', () => {
     selection.clearSelection();
   };
 
-  const getTableColumns = async (tableName: string): Promise<any[]> => {
+  const getTableColumns = async (tableName: string): Promise<TableColumn[]> => {
     if (!window.NL_PORT) return [];
     const payload = await BridgeService.request(
       'dbBridge.getTableColumns',
@@ -132,8 +140,8 @@ export const useGridStore = defineStore('grid', () => {
     try {
       isLoading.value = true;
       await BridgeService.request('dbBridge.dropTable', 'dbBridge.dropTableResult', {
-        connectionId: targetConnectionId,
-        tableName: tableData.resolveBackendTableName(tableName, targetConnectionId, schemaName),
+        connectionId: targetConnectionId!,
+        tableName: tableData.resolveBackendTableName(tableName, targetConnectionId!, schemaName || undefined),
         targetDatabase: dbName
       });
 
@@ -150,7 +158,11 @@ export const useGridStore = defineStore('grid', () => {
         .forEach((t) => tabsStore.closeTab(t.id));
 
       // Refresh schema
-      await schemaStore.refreshDbSchema(targetConnectionId, dbName);
+      if (dbName) {
+        await schemaStore.refreshDbSchema(targetConnectionId!, dbName);
+      } else if (targetConnectionId) {
+        await schemaStore.loadSchema(undefined, targetConnectionId);
+      }
 
       toastStore.addToast({
         severity: 'success',
@@ -172,7 +184,7 @@ export const useGridStore = defineStore('grid', () => {
 
   const createTable = async (
     tableName: string,
-    columns: any[],
+    columns: TableColumn[],
     connectionId: string,
     schemaName: string,
     dbName?: string
@@ -189,7 +201,11 @@ export const useGridStore = defineStore('grid', () => {
       });
 
       // Refresh schema
-      await schemaStore.refreshDbSchema(connectionId, dbName);
+      if (dbName) {
+        await schemaStore.refreshDbSchema(connectionId, dbName);
+      } else {
+        await schemaStore.loadSchema(undefined, connectionId);
+      }
 
       toastStore.addToast({
         severity: 'success',
