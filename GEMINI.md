@@ -1,8 +1,9 @@
 # Gemini CLI Mandates - Table View Project
 
 ## Core Engineering Standards
+
 - **Backend Architecture**: All backend bridge logic must reside in the `extensions/db-bridge` directory and be written in **Rust**.
-- **Database Driver Guidelines**: 
+- **Database Driver Guidelines**:
   - Use `sqlx` or dedicated Rust drivers (like `rusqlite`, `tokio-postgres`, `mysql_async`) to maintain high performance and safety.
   - For PostgreSQL, ensure proper connection pooling and error handling.
   - For Oracle, use `oracle-rs` with `deadpool-oracle` for pure Rust thin-driver connectivity without Oracle Instant Client or OCI/ODPI-C dependencies.
@@ -16,10 +17,17 @@
   - Ensure version strings follow Semantic Versioning (SemVer).
 
 ## Workflow Mandates
+
 - **Validation**: After modifying the Rust extension, always perform a `cargo build` to ensure the binary compiles correctly before testing with NeutralinoJS.
 - **Logging**: Maintain a centralized log file in a writable system directory (e.g., `%LOCALAPPDATA%` on Windows), capturing both backend (Rust) and frontend (UI) diagnostic information for unified troubleshooting.
 - **Pathing**: Use Windows-compatible backslash paths (`\\`) in `neutralino.config.json` for extension commands.
 
 ## UI/UX Standards
+
 - **Icons**: Use Lucide Vue Next. Always import icons explicitly in the `<script setup>` block.
 - **Feedback**: Use the existing `toast` and `error` stores to provide immediate user feedback for all background operations.
+
+## Frontend Coding Conventions
+
+- **Use arrow function** syntax for all functions.
+- **Imports order**: components, composables, Pinia stores, Pinia actions, types, external libraries, other imports, each group separated by a blank line.

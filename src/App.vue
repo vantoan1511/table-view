@@ -8,15 +8,13 @@ import WorkspaceContainer from '@/components/layout/WorkspaceContainer.vue';
 import ResizeHandle from '@/components/ui/ResizeHandle.vue';
 
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
+import { useTabSync } from '@/composables/useTabSync';
 import { useConnectionsStore } from '@/stores/connections';
-import { useGridStore } from '@/stores/grid';
 import { useLayoutStore } from '@/stores/layout';
-import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
 import { useUpdaterStore } from '@/stores/updater';
 import * as Neutralino from '@neutralinojs/lib';
-import { defineAsyncComponent, onMounted, watch } from 'vue';
-import { DbType, TabType } from './types';
+import { defineAsyncComponent, onMounted } from 'vue';
 
 // Lazy load secondary components
 const NewConnectionModal = defineAsyncComponent(
@@ -33,57 +31,12 @@ const TabSelectorDialog = defineAsyncComponent(
 );
 
 const tabsStore = useTabsStore();
-const gridStore = useGridStore();
 const connectionsStore = useConnectionsStore();
 const layoutStore = useLayoutStore();
-const schemaStore = useSchemaStore();
 const updaterStore = useUpdaterStore();
 
 useKeyboardShortcuts();
-
-// When active tab changes, sync connection and load table data
-watch(
-  () => [tabsStore.activeTab, connectionsStore.connections.length] as const,
-  async ([tab, connCount]) => {
-    if (!tab || connCount === 0) return;
-
-    // Sync UI to tab's connection context
-    if (tab.connectionId) {
-      const conn = connectionsStore.connections.find((c) => c.id === tab.connectionId);
-
-      // Ensure we are connected to this database in the bridge
-      if (!conn?.isConnected || tab.connectionId !== connectionsStore.activeConnectionId) {
-        try {
-          await connectionsStore.setActiveConnection(tab.connectionId);
-        } catch (err) {
-          console.error('Failed to sync connection for tab:', err);
-          return;
-        }
-      }
-
-      // Sync schema selection for this specific connection
-      if (tab.schema) {
-        const currentSelected = schemaStore.selectedSchemaByConnection[tab.connectionId];
-        if (tab.schema !== currentSelected) {
-          schemaStore.setSelectedSchema(tab.schema, tab.connectionId);
-          if (conn?.type === DbType.ORACLE) {
-            await schemaStore.loadSchema(
-              schemaStore.loadedAllDatabases,
-              tab.connectionId,
-              tab.schema
-            );
-          }
-        }
-      }
-    }
-
-    if (tab.type === TabType.TABLE && tab.tableName) {
-      gridStore.isLoading = true;
-      gridStore.loadTable(tab.tableName, tab.connectionId, tab.schema, tab.dbName);
-    }
-  },
-  { immediate: true }
-);
+useTabSync();
 
 onMounted(async () => {
   // Load initial data

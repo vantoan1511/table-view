@@ -3,32 +3,8 @@ import * as Neutralino from '@neutralinojs/lib';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-// ─── Simple Password Obfuscation ─────────────────────────────────────────────
-// Uses a fixed key to XOR-encode passwords before storage.
-// Not military-grade crypto, but prevents plaintext passwords on disk.
-const ENCRYPT_KEY = 'TableView2026!SecretKey';
-
-const xorCipher = (input: string, key: string): string => {
-  let result = '';
-  for (let i = 0; i < input.length; i++) {
-    result += String.fromCharCode(input.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-  }
-  return result;
-};
-
-const encryptPassword = (password: string): string => {
-  if (!password) return '';
-  return btoa(xorCipher(password, ENCRYPT_KEY));
-};
-
-const decryptPassword = (encrypted: string): string => {
-  if (!encrypted) return '';
-  try {
-    return xorCipher(atob(encrypted), ENCRYPT_KEY);
-  } catch {
-    return encrypted; // If it fails, assume it's already plaintext (migration)
-  }
-};
+import { useToastStore } from './toast';
+import { decryptPassword, encryptPassword } from '@/utils/crypto';
 
 export const useConnectionsStore = defineStore('connections', () => {
   const connections = ref<Connection[]>([]);
@@ -73,6 +49,7 @@ export const useConnectionsStore = defineStore('connections', () => {
   };
 
   const setActiveConnection = async (id: string): Promise<any> => {
+    const toastStore = useToastStore();
     // 1. Update active ID immediately so UI reflects intended state
     const previousActiveConnectionId = activeConnectionId.value;
     activeConnectionId.value = id;
@@ -99,6 +76,11 @@ export const useConnectionsStore = defineStore('connections', () => {
         conn.isConnected = false;
         // Rollback if this specific connection attempt failed
         activeConnectionId.value = previousActiveConnectionId;
+        toastStore.addToast({
+          severity: 'error',
+          title: 'Connection Failed',
+          message: error.message
+        });
         console.error('Failed to connect:', error.message);
         throw error;
       }

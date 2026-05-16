@@ -5,11 +5,12 @@ import { computed, ref, watch } from 'vue';
 import { NativeService } from '@/services/native';
 import { useConnectionsStore } from './connections';
 import { useSchemaStore } from './schema';
+import { useTabPersistence } from './tabs/useTabPersistence';
 
 export const useTabsStore = defineStore('tabs', () => {
   const connectionsStore = useConnectionsStore();
   const schemaStore = useSchemaStore();
-  // Only table tabs in the main tab strip
+
   const tabs = ref<Tab[]>([]);
   const activeTabId = ref<string>('');
   const draggingTabId = ref<string | null>(null);
@@ -17,39 +18,9 @@ export const useTabsStore = defineStore('tabs', () => {
   const showTabSelector = ref(false);
   const selectorConnectionId = ref<string | null>(null);
 
-  // Persistence logic — only SQL editor tabs are persisted, never table tabs
-  const saveTabsToStorage = async () => {
-    try {
-      const sqlTabs = tabs.value.filter((t) => t.type === 'sql');
-      await NativeService.storage.set('app_tabs', sqlTabs);
+  const persistence = useTabPersistence(tabs, activeTabId);
 
-      // Only persist activeTabId when it belongs to a sql tab
-      const activeIsSql = sqlTabs.some((t) => t.id === activeTabId.value);
-      await NativeService.storage.set('app_activeTabId', activeIsSql ? activeTabId.value : '');
-
-      console.log(`[TabsStore] Saved ${sqlTabs.length} SQL tabs to storage`);
-    } catch (err) {
-      console.error('Failed to save tabs to storage:', err);
-    }
-  };
-
-  const loadTabsFromStorage = async () => {
-    try {
-      const sqlOnly = await NativeService.storage.get<Tab[]>('app_tabs');
-      if (sqlOnly) {
-        tabs.value = sqlOnly;
-        console.log(`[TabsStore] Loaded ${sqlOnly.length} SQL tabs from storage`);
-      }
-      const activeId = await NativeService.storage.get<string>('app_activeTabId');
-      if (activeId && tabs.value.some((t) => t.id === activeId)) {
-        activeTabId.value = activeId;
-      }
-    } catch (err) {
-      console.log('[TabsStore] No persisted tabs found');
-    }
-  };
-
-  watch(activeTabId, () => saveTabsToStorage());
+  watch(activeTabId, () => persistence.saveTabsToStorage());
 
   const activeTab = computed(() => tabs.value.find((t) => t.id === activeTabId.value) ?? null);
   const mainTabs = computed(() => tabs.value.filter((t) => !t.minimized && !t.closed));
@@ -63,7 +34,6 @@ export const useTabsStore = defineStore('tabs', () => {
     const tab = tabs.value.find((t) => t.id === id);
     if (tab && !tab.minimized) {
       tab.minimized = true;
-      // If the minimized tab was the active one, fallback to the last main tab
       if (activeTabId.value === id) {
         const next = mainTabs.value[mainTabs.value.length - 1];
         activeTabId.value = next?.id ?? '';
@@ -154,7 +124,6 @@ export const useTabsStore = defineStore('tabs', () => {
   ) => {
     const connId = connectionId || connectionsStore.activeConnectionId || undefined;
 
-    // If not forcing new, try to find an existing editor for this connection and database
     if (!forceNew && connId) {
       const existingTabs = tabs.value.filter(
         (t) => t.type === 'sql' && t.connectionId === connId && t.dbName === dbName
@@ -197,7 +166,6 @@ export const useTabsStore = defineStore('tabs', () => {
     const tab = tabs.value.find((t) => t.id === id);
     if (tab && tab.type === 'sql') {
       if (tab.query !== query) {
-        console.log(`[TabsStore] Updating query for tab ${id}, length: ${query.length}`);
         tab.query = query;
         tab.isDirty = true;
       }
@@ -224,7 +192,6 @@ export const useTabsStore = defineStore('tabs', () => {
       await NativeService.fs.writeFile(res, tab.query || '');
       tab.filePath = res;
       tab.isDirty = false;
-      // Optional: rename tab to file name
       const filename = res.split(/[\\/]/).pop() || tab.title;
       tab.title = filename.replace(/\.sql$/i, '');
     } catch (err) {
@@ -256,9 +223,7 @@ export const useTabsStore = defineStore('tabs', () => {
   };
 
   const getById = (tabId?: string) => {
-    if (!tabId) {
-      return null;
-    }
+    if (!tabId) return null;
     return tabs.value.find((t) => t.id === tabId);
   };
 
@@ -278,7 +243,7 @@ export const useTabsStore = defineStore('tabs', () => {
     saveSqlTab,
     exportSqlTab,
     renameTab,
-    loadTabsFromStorage,
+    loadTabsFromStorage: persistence.loadTabsFromStorage,
     closeTab,
     deleteTab,
     minimizeTab,

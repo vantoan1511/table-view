@@ -1,177 +1,75 @@
 <script setup lang="ts">
 import ContextMenu from '@/components/ui/ContextMenu.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
-import { NativeService } from '@/services/native';
-import { useGridStore } from '@/stores/grid';
-import { formatGridCellValue } from '@/stores/grid/valueConversion';
-import { useLayoutStore } from '@/stores/layout';
-import type { GridColumn } from '@/types';
-import { ArrowDown, ArrowUp, Check, Plus, RefreshCw, Trash2, Wrench, X } from 'lucide-vue-next';
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import GridCell from './GridCell.vue';
+import GridHeaderCell from './GridHeaderCell.vue';
 import GridToolbar from './GridToolbar.vue';
 import Pagination from './Pagination.vue';
 
+import { useClickOutside } from '@/composables/useClickOutside';
+import { useContextMenu } from '@/composables/useContextMenu';
+import { useGridResizing } from '@/composables/useGridResizing';
+import { NativeService } from '@/services/native';
+import { useGridStore } from '@/stores/grid';
+import { useLayoutStore } from '@/stores/layout';
+import { Check, Plus, RefreshCw, Trash2, Wrench, X } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+
+import type { GridColumn } from '@/types';
+
 const gridStore = useGridStore();
+const layoutStore = useLayoutStore();
+
 const visibleColumns = computed(() =>
   gridStore.columns.filter((column) => gridStore.columnVisibility[column.name] !== false)
 );
-const MIN_COLUMN_WIDTH = 80;
-const DEFAULT_COLUMN_WIDTH = 160;
-const MAX_COLUMN_WIDTH = 320;
+
+// ─── Column Resizing ───────────────────────────────────────────────────────
+const { onResizeStart, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH } = useGridResizing(
+  {
+    onResize: (colName, width) => gridStore.setColumnWidth(colName, width)
+  }
+);
 
 // ─── Cell Interaction ──────────────────────────────────────────────────────
-const inputRef = ref<HTMLInputElement | null>(null);
-
-const setInputRef = (el: any) => {
-  if (el) inputRef.value = el;
-};
-
 const onCellClick = (rowIdx: number, col: GridColumn) => {
   gridStore.setSelectedCell(rowIdx, col);
 
   // Auto-switch to Value tab if bottom panel is visible
-  const layoutStore = useLayoutStore();
   const panel = layoutStore.bottomPanel;
   if (layoutStore.isBottomVisible && panel && panel.activeTabId !== 'value') {
     panel.activeTabId = 'value';
   }
 };
 
-// ─── Global Click Handling ──────────────────────────────────────────────────
-const handleClickOutside = (e: MouseEvent) => {
-  const target = e.target as HTMLElement;
-
-  // Check if we clicked on something that should NOT clear the selection
-  const isCell = target.closest('td');
-  const isPanel = target.closest('.value-viewer-panel');
-  const isToolbar = target.closest('.grid-toolbar');
-  const isContextMenu = target.closest('.context-menu');
-  const isModal =
-    target.closest('.modal-container') ||
-    target.closest('.modal-backdrop') ||
-    target.closest('#new-connection-modal');
-
-  if (!isCell && !isPanel && !isToolbar && !isContextMenu && !isModal) {
-    gridStore.clearSelectedCell();
-    gridStore.cancelEditCell();
-  }
-};
-
-onMounted(() => {
-  window.addEventListener('mousedown', handleClickOutside);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('mousedown', handleClickOutside);
-});
-
 const startEdit = (rowIdx: number, col: GridColumn) => {
   if (col.isPrimaryKey) return;
   gridStore.startEditCell(rowIdx, col);
-  nextTick(() => {
-    if (inputRef.value) {
-      inputRef.value.focus();
-      inputRef.value.select();
-    }
-  });
 };
 
-// ─── Column Resizing ───────────────────────────────────────────────────────
-const resizing = ref<{ colName: string; startX: number; startWidth: number } | null>(null);
-
-const onResizeStart = (colName: string, event: MouseEvent) => {
-  event.preventDefault();
-  event.stopPropagation();
-  const th = (event.target as HTMLElement).closest('th');
-  if (!th) return;
-  const startWidth = th.offsetWidth;
-  resizing.value = { colName, startX: event.clientX, startWidth };
-
-  const onMouseMove = (e: MouseEvent) => {
-    if (!resizing.value) return;
-    const delta = e.clientX - resizing.value.startX;
-    const newWidth = Math.min(
-      MAX_COLUMN_WIDTH,
-      Math.max(MIN_COLUMN_WIDTH, resizing.value.startWidth + delta)
-    );
-    gridStore.setColumnWidth(resizing.value.colName, newWidth);
-  };
-
-  const onMouseUp = () => {
-    resizing.value = null;
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
-  };
-
-  document.addEventListener('mousemove', onMouseMove);
-  document.addEventListener('mouseup', onMouseUp);
-};
-
-const getColStyle = (colName: string) => {
-  const w = gridStore.columnWidths[colName];
-  const width = Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, w ?? DEFAULT_COLUMN_WIDTH));
-
-  return {
-    width: `${width}px`,
-    minWidth: `${MIN_COLUMN_WIDTH}px`,
-    maxWidth: `${MAX_COLUMN_WIDTH}px`
-  };
-};
-
-// ─── Status badge helper ───────────────────────────────────────────────────
-const getCellClass = (colName: string, value: unknown): string => {
-  if (colName === 'status') {
-    if (value === 'active') return 'status-active';
-    if (value === 'inactive') return 'status-inactive';
-  }
-  return '';
-};
-
-// ─── Data Type helper ──────────────────────────────────────────────────────
-const formatDataType = (dt: string): string => {
-  const pgOids: Record<string, string> = {
-    '16': 'boolean',
-    '17': 'bytea',
-    '20': 'bigint',
-    '21': 'smallint',
-    '23': 'integer',
-    '25': 'text',
-    '114': 'json',
-    '700': 'real',
-    '701': 'double precision',
-    '1042': 'character',
-    '1043': 'varchar',
-    '1082': 'date',
-    '1083': 'time',
-    '1114': 'timestamp',
-    '1184': 'timestamptz',
-    '1700': 'numeric',
-    '2950': 'uuid',
-    '3802': 'jsonb'
-  };
-  return pgOids[dt] || dt;
-};
+// ─── Global Click Handling ──────────────────────────────────────────────────
+const gridRef = ref<HTMLElement | null>(null);
+useClickOutside(gridRef, () => {
+  gridStore.clearSelectedCell();
+  gridStore.cancelEditCell();
+}, [
+  '.value-viewer-panel',
+  '.grid-toolbar',
+  '.context-menu',
+  '.modal-container',
+  '.modal-backdrop',
+  '#new-connection-modal'
+]);
 
 // ─── Context Menu ──────────────────────────────────────────────────────────
-const contextMenu = ref({ show: false, x: 0, y: 0, rowIdx: -1 });
+const { contextMenu, openContextMenu, closeContextMenu } = useContextMenu<number>();
 
-const onContextMenu = (event: MouseEvent, rowIdx: number) => {
-  event.preventDefault();
-  let x = event.clientX;
-  let y = event.clientY;
-  const menuWidth = 192;
-  const menuHeight = 160;
-  if (x + menuWidth > window.innerWidth) x -= menuWidth;
-  if (y + menuHeight > window.innerHeight) y -= menuHeight;
-  contextMenu.value = { show: true, x, y, rowIdx };
+const onGridContextMenu = (event: MouseEvent, rowIdx: number) => {
+  openContextMenu(event, rowIdx);
   if (rowIdx >= 0 && !gridStore.selectedRowIndices.has(rowIdx)) {
     gridStore.clearSelection();
     gridStore.toggleRowSelection(rowIdx, event);
   }
-};
-
-const closeContextMenu = () => {
-  if (contextMenu.value.show) contextMenu.value.show = false;
 };
 
 const handleContextAction = (action: string) => {
@@ -193,12 +91,12 @@ const handleContextAction = (action: string) => {
 </script>
 
 <template>
-  <div class="bg-surface flex h-full min-h-0 w-full flex-col">
+  <div class="bg-surface flex h-full min-h-0 w-full flex-col" ref="gridRef">
     <GridToolbar />
 
     <div
       class="relative min-h-0 flex-1 overflow-auto"
-      @contextmenu.prevent="onContextMenu($event, -1)"
+      @contextmenu.prevent="onGridContextMenu($event, -1)"
       @click.self="gridStore.clearSelectedCell"
     >
       <table class="table-fixed border-collapse text-[12px] font-(--font-mono)">
@@ -210,43 +108,19 @@ const handleContextAction = (action: string) => {
             >
               #
             </th>
-            <th
+            <GridHeaderCell
               v-for="col in visibleColumns"
               :key="col.name"
-              class="text-text-primary border-grid-border bg-grid-header group relative cursor-pointer overflow-hidden border-r px-3 py-1.5 text-left font-medium whitespace-nowrap select-none"
-              :style="getColStyle(col.name)"
-              @click="gridStore.toggleSort(col.name)"
-            >
-              <div class="flex items-center gap-1.5 overflow-hidden">
-                <span class="truncate text-[12px]">{{ col.name }}</span>
-                <span
-                  v-if="col.isPrimaryKey"
-                  class="shrink-0 text-[10px] font-bold text-amber-500"
-                  title="Primary Key"
-                  >PK</span
-                >
-                <ArrowUp
-                  v-if="gridStore.sortColumn === col.name && gridStore.sortDirection === 'asc'"
-                  :size="12"
-                  class="text-primary shrink-0"
-                />
-                <ArrowDown
-                  v-else-if="
-                    gridStore.sortColumn === col.name && gridStore.sortDirection === 'desc'
-                  "
-                  :size="12"
-                  class="text-primary shrink-0"
-                />
-              </div>
-              <div class="text-text-tertiary mt-0.5 truncate text-[10px] font-normal">
-                {{ formatDataType(col.dataType) }}
-              </div>
-              <div
-                class="hover:bg-primary/30 absolute top-0 right-0 z-40 h-full w-1 cursor-col-resize transition-colors"
-                @mousedown="onResizeStart(col.name, $event)"
-                @click.stop
-              ></div>
-            </th>
+              :column="col"
+              :is-sorted="gridStore.sortColumn === col.name"
+              :sort-direction="gridStore.sortDirection"
+              :column-width="gridStore.columnWidths[col.name]"
+              :min-width="MIN_COLUMN_WIDTH"
+              :max-width="MAX_COLUMN_WIDTH"
+              :default-width="DEFAULT_COLUMN_WIDTH"
+              @sort="gridStore.toggleSort(col.name)"
+              @resize="onResizeStart(col.name, $event)"
+            />
           </tr>
         </thead>
 
@@ -284,7 +158,7 @@ const handleContextAction = (action: string) => {
                 'bg-grid-row-alt': rowIdx % 2 === 1 && !gridStore.selectedRowIndices.has(rowIdx),
                 'bg-primary/10!': gridStore.selectedRowIndices.has(rowIdx)
               }"
-              @contextmenu.prevent.stop="onContextMenu($event, rowIdx)"
+              @contextmenu.prevent.stop="onGridContextMenu($event, rowIdx)"
             >
               <td
                 class="text-text-tertiary border-grid-border sticky left-0 z-10 cursor-pointer border-r bg-inherit px-3 py-1.5 text-right text-[11px] tabular-nums backdrop-blur-sm select-none"
@@ -297,109 +171,71 @@ const handleContextAction = (action: string) => {
                 {{ (gridStore.currentPage - 1) * gridStore.rowsPerPage + rowIdx + 1 }}
               </td>
 
-              <td
-                v-for="(col, colIdx) in visibleColumns"
+              <GridCell
+                v-for="col in visibleColumns"
                 :key="col.name"
-                class="text-text-primary border-grid-border relative overflow-hidden border-r px-3 py-1.5 transition-all duration-75"
-                :class="{
-                  'overflow-visible!':
-                    gridStore.newRowIdx === rowIdx && colIdx === visibleColumns.length - 1,
-                  'ring-primary/50 bg-primary/5 z-10 ring-2 ring-inset':
-                    gridStore.selectedCell?.rowIndex === rowIdx &&
-                    gridStore.selectedCell?.column.name === col.name
-                }"
-                :style="getColStyle(col.name)"
+                :row-index="rowIdx"
+                :column="col"
+                :value="
+                  gridStore.newRowIdx === rowIdx ? gridStore.newRowData[col.name] : row[col.name]
+                "
+                :is-selected="
+                  gridStore.selectedCell?.rowIndex === rowIdx &&
+                  gridStore.selectedCell?.column.name === col.name
+                "
+                :is-editing="
+                  gridStore.editingCell?.rowIndex === rowIdx &&
+                  gridStore.editingCell?.column.name === col.name
+                "
+                :is-new-row="gridStore.newRowIdx === rowIdx"
+                :column-width="gridStore.columnWidths[col.name]"
+                :min-width="MIN_COLUMN_WIDTH"
+                :max-width="MAX_COLUMN_WIDTH"
+                :default-width="DEFAULT_COLUMN_WIDTH"
                 @click="onCellClick(rowIdx, col)"
-                @dblclick="gridStore.newRowIdx !== rowIdx && startEdit(rowIdx, col)"
+                @dblclick="startEdit(rowIdx, col)"
+                @update:value="
+                  gridStore.newRowIdx === rowIdx
+                    ? (gridStore.newRowData[col.name] = $event)
+                    : gridStore.editingCell
+                      ? (gridStore.editingCell.currentValue = $event)
+                      : null
+                "
+                @save="
+                  gridStore.newRowIdx === rowIdx ? gridStore.saveNewRow() : gridStore.saveEditCell()
+                "
+                @cancel="
+                  gridStore.newRowIdx === rowIdx
+                    ? gridStore.cancelNewRow()
+                    : gridStore.cancelEditCell()
+                "
+              />
+
+              <!-- Save/Cancel Floating Buttons for New Row -->
+              <div
+                v-if="gridStore.newRowIdx === rowIdx"
+                class="absolute right-2 z-40 mt-1 flex justify-end"
+                :style="{ top: '100%' }"
               >
-                <template v-if="gridStore.newRowIdx === rowIdx">
-                  <input
-                    v-model="gridStore.newRowData[col.name]"
-                    :placeholder="col.isPrimaryKey ? '(auto)' : col.isNullable ? 'NULL' : '*Req'"
-                    class="border-border focus:border-primary focus:ring-primary bg-surface w-full rounded border px-1.5 py-0.5 text-[12px] font-(--font-mono) transition-all outline-none focus:ring-1"
-                    @keydown.enter="gridStore.saveNewRow"
-                    @keydown.esc="gridStore.cancelNewRow"
-                  />
-                  <div
-                    v-if="colIdx === visibleColumns.length - 1"
-                    class="absolute top-full right-2 z-40 mt-1 flex justify-end"
+                <div
+                  class="border-border bg-surface flex items-center gap-1 rounded-md border px-1.5 py-1 shadow-lg"
+                >
+                  <button
+                    @click.stop="gridStore.saveNewRow"
+                    class="text-success hover:bg-success/10 rounded p-1"
+                    title="Save row"
                   >
-                    <div
-                      class="border-border bg-surface flex items-center gap-1 rounded-md border px-1.5 py-1 shadow-lg"
-                    >
-                      <button
-                        @click.stop="gridStore.saveNewRow"
-                        class="text-success hover:bg-success/10 rounded p-1 transition-colors"
-                        title="Save row"
-                      >
-                        <Check :size="14" />
-                      </button>
-                      <button
-                        @click.stop="gridStore.cancelNewRow"
-                        class="text-danger hover:bg-danger/10 rounded p-1 transition-colors"
-                        title="Cancel"
-                      >
-                        <X :size="14" />
-                      </button>
-                    </div>
-                  </div>
-                </template>
-
-                <template v-else>
-                  <div
-                    v-if="
-                      gridStore.editingCell?.rowIndex === rowIdx &&
-                      gridStore.editingCell?.column.name === col.name
-                    "
-                    class="bg-surface border-primary absolute inset-0 z-10 flex items-center border-2 shadow-2xl"
+                    <Check :size="14" />
+                  </button>
+                  <button
+                    @click.stop="gridStore.cancelNewRow"
+                    class="text-danger hover:bg-danger/10 rounded p-1"
+                    title="Cancel"
                   >
-                    <input
-                      :ref="setInputRef"
-                      v-model="gridStore.editingCell.currentValue"
-                      class="h-full flex-1 bg-transparent px-2 text-[12px] font-(--font-mono) outline-none"
-                      @keydown.enter="gridStore.saveEditCell"
-                      @keydown.esc="gridStore.cancelEditCell"
-                    />
-                    <div
-                      class="bg-surface border-border flex h-full items-center gap-0.5 border-l px-1"
-                    >
-                      <button
-                        @click.stop="gridStore.saveEditCell"
-                        class="text-success hover:bg-success/10 rounded p-1"
-                        title="Save"
-                      >
-                        <Check :size="12" />
-                      </button>
-                      <button
-                        @click.stop="gridStore.cancelEditCell"
-                        class="text-danger hover:bg-danger/10 rounded p-1"
-                        title="Discard"
-                      >
-                        <X :size="12" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <span
-                    v-else-if="getCellClass(col.name, row[col.name])"
-                    class="inline-flex cursor-default items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-                    :class="{
-                      'bg-success-light text-success': row[col.name] === 'active',
-                      'bg-danger-light text-danger': row[col.name] === 'inactive'
-                    }"
-                  >
-                    {{ row[col.name] }}
-                  </span>
-
-                  <span
-                    v-else
-                    class="block cursor-text truncate tabular-nums select-none"
-                    :class="{ 'text-text-tertiary italic': row[col.name] === null }"
-                  >
-                    {{ row[col.name] === null ? 'NULL' : formatGridCellValue(row[col.name]) }}
-                  </span>
-                </template>
-              </td>
+                    <X :size="14" />
+                  </button>
+                </div>
+              </div>
             </tr>
           </template>
         </template>
