@@ -34,6 +34,14 @@ export function useSchemaCache() {
     return errorDbByConnection.value[connectionId]?.[dbName] ?? null;
   };
 
+  const removeConnection = (connectionId: string) => {
+    delete schemasByConnection.value[connectionId];
+    delete loadingByConnection.value[connectionId];
+    delete perDbSchemas.value[connectionId];
+    delete loadingDbByConnection.value[connectionId];
+    delete errorDbByConnection.value[connectionId];
+  };
+
   return {
     schemasByConnection,
     loadingByConnection,
@@ -43,6 +51,7 @@ export function useSchemaCache() {
     emptySchema,
     hasSchemaLoaded,
     getDbSchema,
-    getDbError
+    getDbError,
+    removeConnection
   };
 }

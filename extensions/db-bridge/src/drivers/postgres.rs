@@ -783,6 +783,26 @@ impl DatabaseDriver for PostgresDriver {
         Ok(())
     }
 
+    async fn drop_schema(&self, schema_name: &str) -> Result<(), String> {
+        let pool = self.pool()?;
+        let sql = format!("DROP SCHEMA {} CASCADE", Self::quote(schema_name));
+        sqlx::query(&sql)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    async fn drop_database(&self, db_name: &str) -> Result<(), String> {
+        let pool = self.pool()?;
+        let sql = format!("DROP DATABASE {}", Self::quote(db_name));
+        sqlx::query(&sql)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
 
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;

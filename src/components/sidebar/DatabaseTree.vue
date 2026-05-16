@@ -7,14 +7,12 @@ import { useToastStore } from '@/stores/toast';
 import type { Connection } from '@/types';
 import { Layers } from 'lucide-vue-next';
 import { computed, provide, ref } from 'vue';
-import ConfirmDialog from '../ui/ConfirmDialog.vue';
 import ConnectionContextMenu from './ConnectionContextMenu.vue';
 import DatabaseContextMenu from './DatabaseContextMenu.vue';
 import SchemaContextMenu from './SchemaContextMenu.vue';
 import TableContextMenu from './TableContextMenu.vue';
 import ConnectionNode from './ConnectionNode.vue';
-import CreateTableDialog from '../ui/CreateTableDialog.vue';
-import CreateSchemaDialog from '../ui/CreateSchemaDialog.vue';
+import SidebarDialogs from './SidebarDialogs.vue';
 
 const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
@@ -65,6 +63,9 @@ const contextMenu = ref({
 
 const showDeleteConfirm = ref(false);
 const showTableDeleteConfirm = ref(false);
+const showSchemaDeleteConfirm = ref(false);
+const showDatabaseDeleteConfirm = ref(false);
+
 const idToDelete = ref<string | null>(null);
 const tableToDelete = ref<{
   name: string;
@@ -73,9 +74,16 @@ const tableToDelete = ref<{
   schemaName?: string;
 } | null>(null);
 
-const connectionName = computed(
-  () => connectionsStore.connections.find((c) => c.id === idToDelete.value)?.name || ''
-);
+const schemaToDelete = ref<{
+  name: string;
+  connId: string;
+  dbName?: string;
+} | null>(null);
+
+const databaseToDelete = ref<{
+  name: string;
+  connId: string;
+} | null>(null);
 
 const closeContextMenu = () => {
   contextMenu.value.show = false;
@@ -130,11 +138,10 @@ const handleContextAction = async (action: string) => {
           name: `${conn.name} (Copy)`,
           isConnected: false
         };
-        connectionsStore.connections.push(newConn);
-        connectionsStore.saveConnections();
+        connectionsStore.addConnection(newConn);
       }
     } else if (action === 'refresh') {
-      schemaStore.loadSchema(undefined, connId);
+      schemaStore.loadSchema(false, connId);
     } else if (action === 'delete') {
       idToDelete.value = connId;
       showDeleteConfirm.value = true;
@@ -148,13 +155,19 @@ const handleContextAction = async (action: string) => {
         db: dbName || undefined
       };
       gridStore.showCreateSchemaDialog = true;
+    } else if (action === 'deleteDatabase' && dbName) {
+      databaseToDelete.value = {
+        name: dbName,
+        connId
+      };
+      showDatabaseDeleteConfirm.value = true;
     }
   } else if (type === 'schema') {
     if (action === 'refresh') {
       if (dbName) {
         await schemaStore.loadDbSchema(connId, dbName, true);
       } else {
-        await schemaStore.loadSchema(undefined, connId, schemaName || undefined);
+        await schemaStore.loadSchema(false, connId, schemaName || undefined);
       }
     } else if (action === 'createTable') {
       gridStore.createTableTarget = {
@@ -169,6 +182,13 @@ const handleContextAction = async (action: string) => {
         db: dbName || undefined
       };
       gridStore.showCreateSchemaDialog = true;
+    } else if (action === 'deleteSchema' && schemaName) {
+      schemaToDelete.value = {
+        name: schemaName,
+        connId,
+        dbName: dbName || undefined
+      };
+      showSchemaDeleteConfirm.value = true;
     }
   } else if (type === 'table') {
     if (action === 'refresh' && tableName) {
@@ -182,7 +202,7 @@ const handleContextAction = async (action: string) => {
         if (dbName) {
           await schemaStore.loadDbSchema(connId, dbName, true);
         } else {
-          await schemaStore.loadSchema(undefined, connId);
+          await schemaStore.loadSchema(false, connId);
         }
       }
     } else if (action === 'alterTable' && tableName) {
@@ -200,39 +220,6 @@ const handleContextAction = async (action: string) => {
   }
 };
 
-const confirmDelete = () => {
-  if (!idToDelete.value) return;
-  const id = idToDelete.value;
-  const idx = connectionsStore.connections.findIndex((c) => c.id === id);
-  if (idx !== -1) {
-    connectionsStore.connections.splice(idx, 1);
-    if (connectionsStore.activeConnectionId === id) {
-      connectionsStore.activeConnectionId = null;
-    }
-    connectionsStore.saveConnections();
-    delete schemaStore.schemasByConnection[id];
-    toastStore.addToast({
-      message: 'Connection deleted.',
-      severity: 'success',
-      variation: 'subtle'
-    });
-  }
-  showDeleteConfirm.value = false;
-  idToDelete.value = null;
-};
-
-const confirmTableDelete = async () => {
-  if (!tableToDelete.value) return;
-  const { name, connId, dbName, schemaName } = tableToDelete.value;
-  try {
-    await gridStore.dropTable(name, connId, schemaName, dbName);
-  } catch {
-    // Error handled in store
-  } finally {
-    showTableDeleteConfirm.value = false;
-    tableToDelete.value = null;
-  }
-};
 </script>
 
 <template>
@@ -293,40 +280,16 @@ const confirmTableDelete = async () => {
       @action="handleContextAction"
     />
 
-    <!-- Delete Confirmation -->
-    <ConfirmDialog
-      v-if="showDeleteConfirm"
-      title="Delete Connection"
-      :message="`Are you sure you want to delete '${connectionName}'? This action cannot be undone.`"
-      confirm-label="Delete"
-      variant="danger"
-      @confirm="confirmDelete"
-      @cancel="showDeleteConfirm = false"
-    />
-
-    <ConfirmDialog
-      v-if="showTableDeleteConfirm"
-      title="Delete Table"
-      :message="`Are you sure you want to drop table '${tableToDelete?.name}'? This action cannot be undone.`"
-      confirm-label="Drop Table"
-      variant="danger"
-      @confirm="confirmTableDelete"
-      @cancel="showTableDeleteConfirm = false"
-    />
-
-    <CreateTableDialog
-      v-if="gridStore.showCreateTableDialog && gridStore.createTableTarget"
-      :connection-id="gridStore.createTableTarget.connectionId"
-      :schema="gridStore.createTableTarget.schema"
-      :db="gridStore.createTableTarget.db"
-      @close="gridStore.showCreateTableDialog = false"
-    />
-
-    <CreateSchemaDialog
-      v-if="gridStore.showCreateSchemaDialog && gridStore.createSchemaTarget"
-      :connection-id="gridStore.createSchemaTarget.connectionId"
-      :db="gridStore.createSchemaTarget.db"
-      @close="gridStore.showCreateSchemaDialog = false"
+    <!-- Dialogs -->
+    <SidebarDialogs
+      v-model:id-to-delete="idToDelete"
+      v-model:table-to-delete="tableToDelete"
+      v-model:schema-to-delete="schemaToDelete"
+      v-model:database-to-delete="databaseToDelete"
+      @close-delete-confirm="showDeleteConfirm = false"
+      @close-table-delete-confirm="showTableDeleteConfirm = false"
+      @close-schema-delete-confirm="showSchemaDeleteConfirm = false"
+      @close-database-delete-confirm="showDatabaseDeleteConfirm = false"
     />
   </div>
 </template>
