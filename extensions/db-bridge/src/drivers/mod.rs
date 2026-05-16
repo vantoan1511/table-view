@@ -102,7 +102,7 @@ pub struct SchemaResult {
     pub databases: Option<Vec<SchemaObject>>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableColumn {
     pub name: String,
     #[serde(rename = "dataType")]
@@ -174,6 +174,8 @@ pub trait DatabaseDriver: Send + Sync {
         table_name: &str,
         operations: &[AlterOperation],
     ) -> Result<(), String>;
+    async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String>;
+    async fn drop_table(&self, table_name: &str) -> Result<(), String>;
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String>;
 }
 

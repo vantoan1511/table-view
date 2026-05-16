@@ -225,7 +225,7 @@ impl DatabaseDriver for PostgresDriver {
 
         // We always fetch all schemas, tables, views, and functions (excluding system ones)
         // because the user wants to see everything in the tree.
-        let where_clause = "WHERE table_schema NOT IN ('information_schema', 'pg_catalog')";
+        let where_clause = "WHERE table_schema NOT IN ('information_schema') AND table_schema NOT LIKE 'pg_%'";
         let params = vec![];
 
         // Run all schema queries in parallel
@@ -242,7 +242,7 @@ impl DatabaseDriver for PostgresDriver {
             "SELECT routine_name::text, routine_schema::text, data_type::text FROM information_schema.routines {} ORDER BY routine_name",
             routine_where
         );
-        let schema_sql = "SELECT schema_name::text FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema', 'pg_catalog') ORDER BY schema_name";
+        let schema_sql = "SELECT schema_name::text FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema') AND schema_name NOT LIKE 'pg_%' ORDER BY schema_name";
 
         // Optional database list
         let db_sql = if all_databases {
@@ -718,6 +718,50 @@ impl DatabaseDriver for PostgresDriver {
                 .await
                 .map_err(|e| e.to_string())?;
         }
+        Ok(())
+    }
+
+    async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String> {
+        let pool = self.pool()?;
+        let safe_table = Self::qualified_table_name(table_name);
+
+        let mut column_defs = Vec::new();
+        for col in columns {
+            if !crate::drivers::utils::is_safe_data_type(&col.data_type) {
+                return Err(format!("Invalid or unsafe data type: {}", col.data_type));
+            }
+            let mut def = format!("{} {}", Self::quote(&col.name), col.data_type);
+            if !col.nullable {
+                def.push_str(" NOT NULL");
+            }
+            if let Some(ref d) = col.default {
+                if !crate::drivers::utils::is_safe_default(d) {
+                    return Err(format!("Invalid or unsafe default value: {}", d));
+                }
+                def.push_str(&format!(" DEFAULT {}", d));
+            }
+            if col.is_primary_key {
+                def.push_str(" PRIMARY KEY");
+            }
+            column_defs.push(def);
+        }
+
+        let sql = format!("CREATE TABLE {} ({})", safe_table, column_defs.join(", "));
+        sqlx::query(&sql)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    async fn drop_table(&self, table_name: &str) -> Result<(), String> {
+        let pool = self.pool()?;
+        let safe_table = Self::qualified_table_name(table_name);
+        let sql = format!("DROP TABLE {}", safe_table);
+        sqlx::query(&sql)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
         Ok(())
     }
 

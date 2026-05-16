@@ -140,7 +140,7 @@ const handleExport = async () => {
 
       Neutralino.events.on('dbBridge.exportCSVResult', onResult);
       Neutralino.extensions.dispatch(
-        'com.github.vantoan1511.table-view.db-bridge',
+        'com.github.vantoan1511.tableview.db-bridge',
         'dbBridge.exportCSV',
         {
           reqId,

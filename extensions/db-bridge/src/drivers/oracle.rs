@@ -535,6 +535,37 @@ impl DatabaseDriver for OracleDriver {
             .collect())
     }
 
+    async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String> {
+        let pool = self.pool()?;
+        let (owner, table) = self.split_table_name(table_name);
+        let safe_table = Self::qualify_table(owner, table);
+
+        let mut column_defs = Vec::new();
+        for col in columns {
+            if !crate::drivers::utils::is_safe_data_type(&col.data_type) {
+                return Err(format!("Invalid or unsafe data type: {}", col.data_type));
+            }
+            let mut def = format!("{} {}", Self::quote(&col.name), col.data_type);
+            if !col.nullable {
+                def.push_str(" NOT NULL");
+            }
+            if let Some(ref d) = col.default {
+                if !crate::drivers::utils::is_safe_default(d) {
+                    return Err(format!("Invalid or unsafe default value: {}", d));
+                }
+                def.push_str(&format!(" DEFAULT {}", d));
+            }
+            if col.is_primary_key {
+                def.push_str(" PRIMARY KEY");
+            }
+            column_defs.push(def);
+        }
+
+        let sql = format!("CREATE TABLE {} ({})", safe_table, column_defs.join(", "));
+        Self::execute_dml(pool, &sql, &[]).await?;
+        Ok(())
+    }
+
     async fn alter_table(
         &self,
         table_name: &str,
@@ -584,6 +615,14 @@ impl DatabaseDriver for OracleDriver {
 
             Self::execute_dml(pool, &sql, &[]).await?;
         }
+        Ok(())
+    }
+
+    async fn drop_table(&self, table_name: &str) -> Result<(), String> {
+        let pool = self.pool()?;
+        let (owner, table) = self.split_table_name(table_name);
+        let sql = format!("DROP TABLE {}", Self::qualify_table(owner, table));
+        Self::execute_dml(pool, &sql, &[]).await?;
         Ok(())
     }
 

@@ -24,19 +24,11 @@ const emit = defineEmits<{
       <span>Refresh</span>
     </button>
     <button
-      class="text-text-primary hover:bg-hover flex w-full cursor-not-allowed items-center gap-2 px-3 py-1.5 text-[12px] opacity-50"
-      disabled
+      class="text-text-primary hover:bg-hover flex w-full items-center gap-2 px-3 py-1.5 text-[12px]"
+      @click="emit('action', 'createTable')"
     >
       <LayoutGrid :size="13" class="text-text-secondary" />
-      <span>Create Table (Upcoming)</span>
-    </button>
-    <div class="bg-border my-1 h-px w-full" />
-    <button
-      class="text-danger hover:bg-danger-light flex w-full cursor-not-allowed items-center gap-2 px-3 py-1.5 text-[12px] opacity-50"
-      disabled
-    >
-      <Trash2 :size="13" />
-      <span>Delete (Upcoming)</span>
+      <span>Create Table</span>
     </button>
   </ContextMenu>
 </template>

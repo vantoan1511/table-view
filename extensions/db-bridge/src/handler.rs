@@ -48,6 +48,8 @@ struct Payload {
     #[serde(rename = "allDatabases", default)]
     all_databases: bool,
     #[serde(default)]
+    columns: Vec<drivers::TableColumn>,
+    #[serde(default)]
     schema_name: String,
     #[serde(default)]
     target_database: String,
@@ -310,6 +312,14 @@ pub async fn handle_message(
                 "alterTable" => {
                     let result = driver.alter_table(&payload.table_name, &payload.operations).await;
                     handle_result_void(&writer, &token, "dbBridge.alterTableResult", &payload.req_id, result).await;
+                }
+                "dropTable" => {
+                    let result = driver.drop_table(&payload.table_name).await;
+                    handle_result_void(&writer, &token, "dbBridge.dropTableResult", &payload.req_id, result).await;
+                }
+                "createTable" => {
+                    let result = driver.create_table(&payload.table_name, &payload.columns).await;
+                    handle_result_void(&writer, &token, "dbBridge.createTableResult", &payload.req_id, result).await;
                 }
                 "exportCSV" => {
                     let result = driver.export_to_csv(&payload.table_name, &payload.export_path).await;

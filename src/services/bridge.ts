@@ -6,7 +6,7 @@ import * as Neutralino from '@neutralinojs/lib';
  * and improving error handling consistency.
  */
 export class BridgeService {
-  private static EXTENSION_ID = 'com.github.vantoan1511.table-view.db-bridge';
+  private static EXTENSION_ID = 'com.github.vantoan1511.tableview.db-bridge';
 
   /**
    * Dispatches a command to the Rust extension and waits for a specific result event.
