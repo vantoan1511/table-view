@@ -626,6 +626,17 @@ impl DatabaseDriver for OracleDriver {
         Ok(())
     }
 
+    async fn create_schema(&self, schema_name: &str) -> Result<(), String> {
+        let pool = self.pool()?;
+        let sql = format!(
+            "CREATE USER {} IDENTIFIED BY {}",
+            Self::quote(schema_name),
+            Self::quote(schema_name)
+        );
+        Self::execute_dml(pool, &sql, &[]).await?;
+        Ok(())
+    }
+
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;
         let (owner, table) = self.split_table_name(table_name);

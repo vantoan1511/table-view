@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import ObjectGroupNode from './ObjectGroupNode.vue';
+
 import { useSchemaStore } from '@/stores/schema';
 import { ChevronRight, Database } from 'lucide-vue-next';
 import { computed, inject } from 'vue';
-import ObjectGroupNode from './ObjectGroupNode.vue';
 
 const props = defineProps<{
   connectionId: string;

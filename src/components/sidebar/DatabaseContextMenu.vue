@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Database, RefreshCw, Trash2 } from 'lucide-vue-next';
 import ContextMenu from '../ui/ContextMenu.vue';
+
+import { Database, RefreshCw, Trash2 } from 'lucide-vue-next';
 
 defineProps<{
   show: boolean;
@@ -24,11 +25,11 @@ const emit = defineEmits<{
       <span>Refresh</span>
     </button>
     <button
-      class="text-text-primary hover:bg-hover flex w-full cursor-not-allowed items-center gap-2 px-3 py-1.5 text-[12px] opacity-50"
-      disabled
+      class="text-text-primary hover:bg-hover flex w-full items-center gap-2 px-3 py-1.5 text-[12px]"
+      @click="emit('action', 'createSchema')"
     >
       <Database :size="13" class="text-text-secondary" />
-      <span>Create Schema (Upcoming)</span>
+      <span>Create Schema</span>
     </button>
     <div class="bg-border my-1 h-px w-full" />
     <button

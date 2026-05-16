@@ -14,6 +14,7 @@ import SchemaContextMenu from './SchemaContextMenu.vue';
 import TableContextMenu from './TableContextMenu.vue';
 import ConnectionNode from './ConnectionNode.vue';
 import CreateTableDialog from '../ui/CreateTableDialog.vue';
+import CreateSchemaDialog from '../ui/CreateSchemaDialog.vue';
 
 const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
@@ -141,6 +142,12 @@ const handleContextAction = async (action: string) => {
   } else if (type === 'database') {
     if (action === 'refresh' && dbName) {
       schemaStore.refreshDbSchema(connId, dbName);
+    } else if (action === 'createSchema') {
+      gridStore.createSchemaTarget = {
+        connectionId: connId,
+        db: dbName || undefined
+      };
+      gridStore.showCreateSchemaDialog = true;
     }
   } else if (type === 'schema') {
     if (action === 'refresh') {
@@ -156,6 +163,12 @@ const handleContextAction = async (action: string) => {
         db: dbName || undefined
       };
       gridStore.showCreateTableDialog = true;
+    } else if (action === 'createSchema') {
+      gridStore.createSchemaTarget = {
+        connectionId: connId,
+        db: dbName || undefined
+      };
+      gridStore.showCreateSchemaDialog = true;
     }
   } else if (type === 'table') {
     if (action === 'refresh' && tableName) {
@@ -307,6 +320,13 @@ const confirmTableDelete = async () => {
       :schema="gridStore.createTableTarget.schema"
       :db="gridStore.createTableTarget.db"
       @close="gridStore.showCreateTableDialog = false"
+    />
+
+    <CreateSchemaDialog
+      v-if="gridStore.showCreateSchemaDialog && gridStore.createSchemaTarget"
+      :connection-id="gridStore.createSchemaTarget.connectionId"
+      :db="gridStore.createSchemaTarget.db"
+      @close="gridStore.showCreateSchemaDialog = false"
     />
   </div>
 </template>

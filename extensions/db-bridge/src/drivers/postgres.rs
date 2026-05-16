@@ -773,6 +773,16 @@ impl DatabaseDriver for PostgresDriver {
         Ok(())
     }
 
+    async fn create_schema(&self, schema_name: &str) -> Result<(), String> {
+        let pool = self.pool()?;
+        let sql = format!("CREATE SCHEMA {}", Self::quote(schema_name));
+        sqlx::query(&sql)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
 
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;

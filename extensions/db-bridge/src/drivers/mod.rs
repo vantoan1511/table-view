@@ -176,6 +176,7 @@ pub trait DatabaseDriver: Send + Sync {
     ) -> Result<(), String>;
     async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String>;
     async fn drop_table(&self, table_name: &str) -> Result<(), String>;
+    async fn create_schema(&self, schema_name: &str) -> Result<(), String>;
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String>;
 }
 

@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import DbIcon from '@/components/icons/DbIcon.vue';
 import Button from '@/components/ui/Button.vue';
-import { useConnectionsStore } from '@/stores/connections';
-import { useSchemaStore } from '@/stores/schema';
-import type { Connection } from '@/types';
-import { ChevronRight, Loader2, MoreVertical } from 'lucide-vue-next';
-import { computed } from 'vue';
 import DatabaseNode from './DatabaseNode.vue';
 import SchemaNode from './SchemaNode.vue';
+
+import { useConnectionsStore } from '@/stores/connections';
+import { useSchemaStore } from '@/stores/schema';
+import { ChevronRight, Loader2, MoreVertical } from 'lucide-vue-next';
+import { computed } from 'vue';
+
+import type { Connection } from '@/types';
 
 const props = defineProps<{
   connection: Connection;

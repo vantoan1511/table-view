@@ -453,6 +453,10 @@ impl DatabaseDriver for SqliteDriver {
         Ok(())
     }
 
+    async fn create_schema(&self, _schema_name: &str) -> Result<(), String> {
+        Err("Schemas are not supported in SQLite".to_string())
+    }
+
 
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;

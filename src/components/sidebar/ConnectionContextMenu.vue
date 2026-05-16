@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Code2, Copy, Pencil, RefreshCw, Trash2 } from 'lucide-vue-next';
 import ContextMenu from '../ui/ContextMenu.vue';
+
+import { Code2, Copy, Pencil, RefreshCw, Trash2 } from 'lucide-vue-next';
 
 defineProps<{
   show: boolean;

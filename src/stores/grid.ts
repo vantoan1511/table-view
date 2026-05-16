@@ -35,7 +35,9 @@ export const useGridStore = defineStore('grid', () => {
   const columnWidths = ref<Record<string, number>>({});
   const showAlterTableDialog = ref(false);
   const showCreateTableDialog = ref(false);
+  const showCreateSchemaDialog = ref(false);
   const createTableTarget = ref<{ connectionId: string; schema: string; db?: string } | null>(null);
+  const createSchemaTarget = ref<{ connectionId: string; db?: string } | null>(null);
   const columnVisibility = ref<Record<string, boolean>>({});
 
   // Sub-composables for specific features
@@ -225,6 +227,46 @@ export const useGridStore = defineStore('grid', () => {
     }
   };
 
+  const createSchema = async (
+    connectionId: string,
+    schemaName: string,
+    dbName?: string
+  ): Promise<void> => {
+    if (!window.NL_PORT) return;
+
+    try {
+      isLoading.value = true;
+      await BridgeService.request('dbBridge.createSchema', 'dbBridge.createSchemaResult', {
+        connectionId,
+        schemaName,
+        targetDatabase: dbName
+      });
+
+      // Refresh schema
+      if (dbName) {
+        await schemaStore.refreshDbSchema(connectionId, dbName);
+      } else {
+        await schemaStore.loadSchema(undefined, connectionId);
+      }
+
+      toastStore.addToast({
+        severity: 'success',
+        title: 'Schema Created',
+        message: `Schema ${schemaName} was successfully created.`
+      });
+    } catch (err: any) {
+      console.error('Failed to create schema:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Creation Failed',
+        message: err.message || 'An unknown error occurred while creating the schema.'
+      });
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   return {
     // Re-export from tableData
     columns: tableData.columns,
@@ -261,7 +303,9 @@ export const useGridStore = defineStore('grid', () => {
     setColumnWidth,
     showAlterTableDialog,
     showCreateTableDialog,
+    showCreateSchemaDialog,
     createTableTarget,
+    createSchemaTarget,
     columnVisibility,
     toggleColumnVisibility,
 
@@ -297,6 +341,7 @@ export const useGridStore = defineStore('grid', () => {
     getTableColumns,
     alterTable,
     dropTable,
-    createTable
+    createTable,
+    createSchema
   };
 });

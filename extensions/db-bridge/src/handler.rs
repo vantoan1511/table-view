@@ -321,6 +321,10 @@ pub async fn handle_message(
                     let result = driver.create_table(&payload.table_name, &payload.columns).await;
                     handle_result_void(&writer, &token, "dbBridge.createTableResult", &payload.req_id, result).await;
                 }
+                "createSchema" => {
+                    let result = driver.create_schema(&payload.schema_name).await;
+                    handle_result_void(&writer, &token, "dbBridge.createSchemaResult", &payload.req_id, result).await;
+                }
                 "exportCSV" => {
                     let result = driver.export_to_csv(&payload.table_name, &payload.export_path).await;
                     handle_result_void(&writer, &token, "dbBridge.exportCSVResult", &payload.req_id, result).await;
