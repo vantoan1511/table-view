@@ -35,7 +35,8 @@ pub fn is_safe_data_type(s: &str) -> bool {
         "DATE", "TIME", "TIMESTAMP", "DATETIME",
         "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC",
         "UUID", "JSON", "JSONB", "BYTEA", "BLOB", "CLOB",
-        "RAW", "NUMBER", "VARCHAR2", "NVARCHAR2", "NVARCHAR"
+        "RAW", "NUMBER", "VARCHAR2", "NVARCHAR2", "NVARCHAR",
+        "SERIAL", "BIGSERIAL", "SMALLSERIAL"
     ];
 
     parts.iter().all(|p| {

@@ -3,7 +3,7 @@ import Checkbox from './Checkbox.vue';
 import DropdownMenu from './DropdownMenu.vue';
 
 import { useConnectionsStore } from '@/stores/connections';
-import { useGridStore } from '@/stores/grid';
+import { useGridStore, type TableColumn } from '@/stores/grid';
 import { DbType } from '@/types';
 import { AlertCircle, Check, Edit2, Plus, Trash2, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -132,13 +132,15 @@ const handleCreate = async () => {
   try {
     await gridStore.createTable(
       tableName.value,
-      columns.value.map((c) => ({
-        name: c.name,
-        dataType: c.dataType,
-        nullable: c.nullable,
-        isPrimaryKey: c.isPrimaryKey,
-        default: c.default
-      })),
+      columns.value.map(
+        (c): TableColumn => ({
+          name: c.name,
+          dataType: c.dataType,
+          nullable: c.nullable,
+          isPrimaryKey: c.isPrimaryKey,
+          default: c.default || undefined
+        })
+      ),
       props.connectionId,
       props.schema,
       props.db
