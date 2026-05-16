@@ -563,7 +563,7 @@ impl DatabaseDriver for PostgresDriver {
     ) -> Result<(), String> {
         let pool = self.pool()?;
         let safe_table = Self::qualified_table_name(table_name);
-        let placeholders: Vec<String> = (1..=pk_values.len()).map(|i| format!("${}", i)).collect();
+        let placeholders: Vec<String> = (1..=pk_values.len()).map(|i| format!("${}::text", i)).collect();
         let sql = format!(
             "DELETE FROM {} WHERE {}::text IN ({})",
             safe_table,
