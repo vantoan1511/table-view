@@ -2,6 +2,7 @@
 import { useUpdaterStore } from '@/stores/updater';
 import { Download, Info, Loader2, RefreshCw, X } from 'lucide-vue-next';
 import { onMounted } from 'vue';
+import Button from './Button.vue';
 
 const updaterStore = useUpdaterStore();
 
@@ -44,13 +45,9 @@ const close = () => {
                 {{ updaterStore.isUpdating ? 'Updating Application' : 'Update Available' }}
               </h3>
             </div>
-            <button
-              v-if="!updaterStore.isUpdating"
-              @click="close"
-              class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded-md p-1.5 transition-colors"
-            >
+            <Button v-if="!updaterStore.isUpdating" variant="ghost" size="icon" @click="close">
               <X :size="18" />
-            </button>
+            </Button>
           </div>
 
           <!-- Body -->
@@ -63,12 +60,9 @@ const close = () => {
                 <p class="text-text-primary font-medium">Update Check Failed</p>
                 <p class="text-text-tertiary text-sm">{{ updaterStore.error }}</p>
               </div>
-              <button
-                @click="updaterStore.checkForUpdates(true)"
-                class="bg-primary hover:bg-primary-hover mt-2 rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-all"
-              >
+              <Button variant="primary" @click="updaterStore.checkForUpdates(true)">
                 Try Again
-              </button>
+              </Button>
             </div>
 
             <div v-else-if="updaterStore.isUpdating" class="space-y-6">
@@ -113,26 +107,24 @@ const close = () => {
               </div>
 
               <div class="flex flex-col gap-3 pt-2">
-                <button
+                <Button
+                  variant="primary"
+                  size="lg"
+                  class="w-full"
                   @click="updaterStore.installUpdates"
-                  class="bg-primary hover:bg-primary-hover flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all active:scale-[0.98]"
                 >
                   <Download :size="16" />
                   Install and Restart
-                </button>
+                </Button>
                 <div class="flex gap-3">
-                  <button
-                    @click="close"
-                    class="bg-surface-lighter hover:bg-hover border-border text-text-secondary flex-1 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition-all"
-                  >
-                    Later
-                  </button>
-                  <button
+                  <Button variant="secondary" class="flex-1" @click="close"> Later </Button>
+                  <Button
+                    variant="secondary"
+                    class="text-text-tertiary! flex-1"
                     @click="updaterStore.ignoreUpdate(updaterStore.updateAvailable.version)"
-                    class="bg-surface-lighter hover:bg-hover border-border text-text-tertiary flex-1 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition-all"
                   >
                     Skip version
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

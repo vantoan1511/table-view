@@ -170,9 +170,11 @@ export const useGridStore = defineStore('grid', () => {
     // New Row
     newRowIdx: newRow.newRowIdx,
     newRowData: newRow.newRowData,
+    newRowErrors: newRow.newRowErrors,
     createNewRow: newRow.createNewRow,
     cancelNewRow: newRow.cancelNewRow,
     saveNewRow: newRow.saveNewRow,
+    validateNewRowCell: newRow.validateNewRowCell,
     insertRow: newRow.insertRowToDB, // Keep original name for compatibility if needed, or rename
 
     // Actions

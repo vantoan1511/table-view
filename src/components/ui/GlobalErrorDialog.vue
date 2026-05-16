@@ -2,6 +2,7 @@
 import { useErrorStore } from '@/stores/error';
 import { AlertCircle, ChevronDown, ChevronRight, X } from 'lucide-vue-next';
 import { ref } from 'vue';
+import Button from './Button.vue';
 
 const errorStore = useErrorStore();
 const showDetails = ref(false);
@@ -24,12 +25,14 @@ const handleClose = () => {
       <div class="border-border bg-danger/5 text-danger flex items-center gap-3 border-b px-5 py-4">
         <AlertCircle :size="20" class="shrink-0" />
         <h3 class="flex-1 text-[15px] font-semibold">Application Error</h3>
-        <button
+        <Button
+          variant="none"
+          size="icon"
           @click="handleClose"
-          class="text-danger/70 hover:text-danger cursor-pointer transition-colors"
+          class="text-danger/70 hover:text-danger"
         >
           <X :size="18" />
-        </button>
+        </Button>
       </div>
 
       <!-- Body -->
@@ -39,13 +42,15 @@ const handleClose = () => {
         </p>
 
         <div v-if="errorStore.details" class="mt-2">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             @click="showDetails = !showDetails"
-            class="text-text-tertiary hover:text-text-secondary flex cursor-pointer items-center gap-1.5 text-[12px] font-medium transition-colors focus:outline-none"
+            class="text-text-tertiary! hover:text-text-secondary! p-0!"
           >
             <component :is="showDetails ? ChevronDown : ChevronRight" :size="14" />
             <span>{{ showDetails ? 'Hide details' : 'Show details' }}</span>
-          </button>
+          </Button>
 
           <div
             v-show="showDetails"
@@ -58,12 +63,7 @@ const handleClose = () => {
 
       <!-- Footer -->
       <div class="border-border bg-muted/30 flex items-center justify-end border-t px-5 py-4">
-        <button
-          @click="handleClose"
-          class="bg-danger hover:bg-danger-hover cursor-pointer rounded-lg px-5 py-2 text-[13px] font-medium text-white shadow-sm transition-colors"
-        >
-          Close
-        </button>
+        <Button variant="danger" @click="handleClose" class="px-5"> Close </Button>
       </div>
     </div>
   </div>

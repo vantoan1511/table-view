@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { AlertTriangle, Info, Trash2, X } from 'lucide-vue-next';
+import Button from './Button.vue';
 
 interface Props {
   title: string;
@@ -30,17 +31,17 @@ const colorMap = {
   danger: {
     bg: 'bg-danger-light',
     icon: 'text-danger',
-    btn: 'bg-danger hover:bg-danger/90 text-white'
+    variant: 'danger' as const
   },
   warning: {
     bg: 'bg-warning/10',
     icon: 'text-warning',
-    btn: 'bg-warning hover:bg-warning/90 text-white'
+    variant: 'warning' as const
   },
   info: {
     bg: 'bg-primary-light',
     icon: 'text-primary',
-    btn: 'bg-primary hover:bg-primary-hover text-text-inverse'
+    variant: 'primary' as const
   }
 };
 </script>
@@ -67,12 +68,9 @@ const colorMap = {
             <h3 class="text-text-primary text-[14px] leading-tight font-semibold">{{ title }}</h3>
             <p class="text-text-secondary mt-1 text-[13px] leading-relaxed">{{ message }}</p>
           </div>
-          <button
-            class="text-text-tertiary hover:text-text-secondary hover:bg-hover shrink-0 rounded-md p-1 transition-colors"
-            @click="emit('cancel')"
-          >
+          <Button variant="ghost" size="icon" @click="emit('cancel')">
             <X :size="16" />
-          </button>
+          </Button>
         </div>
 
         <!-- Divider -->
@@ -80,21 +78,12 @@ const colorMap = {
 
         <!-- Footer -->
         <div class="flex items-center justify-end gap-2 p-4">
-          <button
-            class="text-text-secondary hover:bg-hover border-border cursor-pointer rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors"
-            @click="emit('cancel')"
-          >
+          <Button variant="secondary" @click="emit('cancel')">
             {{ cancelLabel }}
-          </button>
-          <button
-            :class="[
-              'cursor-pointer rounded-lg px-4 py-2 text-[13px] font-medium shadow-sm transition-colors',
-              colorMap[variant].btn
-            ]"
-            @click="emit('confirm')"
-          >
+          </Button>
+          <Button :variant="colorMap[variant].variant" @click="emit('confirm')">
             {{ confirmLabel }}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

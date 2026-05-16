@@ -1,21 +1,24 @@
 <script setup lang="ts">
-import ResizeHandle from '@/components/ui/ResizeHandle.vue';
+import Button from '@/components/ui/Button.vue';
 import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
+import ResizeHandle from '@/components/ui/ResizeHandle.vue';
+import ResultsGrid from './ResultsGrid.vue';
+
 import { useDebounce } from '@/composables/useDebounce';
 import { useSqlEditor } from '@/composables/useSqlEditor';
 import { editorTheme, sqlHighlightStyle } from '@/lib/editorConfig';
 import { useGridStore } from '@/stores/grid';
 import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
-import type { Tab } from '@/types';
 import { PostgreSQL, sql } from '@codemirror/lang-sql';
 import { syntaxHighlighting } from '@codemirror/language';
 import { Compartment, EditorState, Prec } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { EditorView, basicSetup } from 'codemirror';
-import { Clock, Download, Loader2, Play, Save } from 'lucide-vue-next';
+import { Clock, Download, Play, Save } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
-import ResultsGrid from './ResultsGrid.vue';
+
+import type { Tab } from '@/types';
 
 const props = defineProps<{
   tab: Tab;
@@ -139,28 +142,30 @@ onMounted(() => {
         Query Results
       </div>
       <div class="border-border ml-auto flex items-center border-l">
-        <button
-          class="cursor-pointer px-3 py-1.5 text-[12px] font-medium transition-colors"
+        <Button
+          variant="none"
+          class="px-3 py-1.5 text-[12px] font-medium"
           :class="
             activeResultTab === 'results'
-              ? 'text-primary border-primary border-b-2'
+              ? 'text-primary border-primary rounded-none border-b-2'
               : 'text-text-secondary hover:text-text-primary'
           "
           @click="activeResultTab = 'results'"
         >
           Results
-        </button>
-        <button
-          class="cursor-pointer px-3 py-1.5 text-[12px] font-medium transition-colors"
+        </Button>
+        <Button
+          variant="none"
+          class="px-3 py-1.5 text-[12px] font-medium"
           :class="
             activeResultTab === 'messages'
-              ? 'text-primary border-primary border-b-2'
+              ? 'text-primary border-primary rounded-none border-b-2'
               : 'text-text-secondary hover:text-text-primary'
           "
           @click="activeResultTab = 'messages'"
         >
           Messages
-        </button>
+        </Button>
       </div>
     </div>
 
@@ -175,33 +180,34 @@ onMounted(() => {
 
         <!-- Run Bar -->
         <div class="border-border bg-muted flex items-center gap-3 border-t px-3 py-1.5">
-          <button
+          <Button
             id="btn-run-query"
-            class="bg-primary hover:bg-primary-hover text-text-inverse flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-70"
-            :disabled="gridStore.isLoading"
+            variant="primary"
+            size="sm"
+            :loading="gridStore.isLoading"
+            :icon="Play"
             @click="handleRun"
           >
-            <Loader2 v-if="gridStore.isLoading" :size="13" class="animate-spin" />
-            <Play v-else :size="13" fill="currentColor" />
             {{ gridStore.isLoading ? 'Running...' : 'Run' }}
-          </button>
+          </Button>
 
-          <button
-            class="bg-surface border-border hover:border-border-strong text-text-secondary flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors"
+          <Button
+            variant="secondary"
+            size="sm"
+            :icon="Save"
             @click="saveQuery"
             title="Save (Ctrl+S)"
-          >
-            <Save :size="13" />
-          </button>
+          />
 
-          <button
-            class="bg-surface border-border hover:border-border-strong text-text-secondary flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors"
+          <Button
+            variant="secondary"
+            size="sm"
+            :icon="Download"
             @click="exportQuery"
             title="Export to .sql file"
           >
-            <Download :size="13" />
-            <span>Export</span>
-          </button>
+            Export
+          </Button>
 
           <div class="border-border ml-1 flex h-5 items-center gap-1 border-l pl-3">
             <span class="text-text-tertiary text-[11px]">Limit:</span>

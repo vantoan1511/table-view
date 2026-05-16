@@ -188,6 +188,11 @@ const handleContextAction = (action: string) => {
                   gridStore.editingCell?.column.name === col.name
                 "
                 :is-new-row="gridStore.newRowIdx === rowIdx"
+                :validation-error="
+                  gridStore.newRowIdx === rowIdx
+                    ? gridStore.newRowErrors[col.name]
+                    : undefined
+                "
                 :column-width="gridStore.columnWidths[col.name]"
                 :min-width="MIN_COLUMN_WIDTH"
                 :max-width="MAX_COLUMN_WIDTH"
@@ -196,7 +201,8 @@ const handleContextAction = (action: string) => {
                 @dblclick="startEdit(rowIdx, col)"
                 @update:value="
                   gridStore.newRowIdx === rowIdx
-                    ? (gridStore.newRowData[col.name] = $event)
+                    ? ((gridStore.newRowData[col.name] = $event),
+                      gridStore.validateNewRowCell(col.name, $event))
                     : gridStore.editingCell
                       ? (gridStore.editingCell.currentValue = $event)
                       : null
@@ -211,31 +217,33 @@ const handleContextAction = (action: string) => {
                 "
               />
 
-              <!-- Save/Cancel Floating Buttons for New Row -->
-              <div
-                v-if="gridStore.newRowIdx === rowIdx"
-                class="absolute right-2 z-40 mt-1 flex justify-end"
-                :style="{ top: '100%' }"
+            </tr>
+
+            <!-- Save/Cancel action row for new row -->
+            <tr v-if="gridStore.newRowIdx === rowIdx" class="border-grid-border border-b">
+              <td
+                :colspan="visibleColumns.length + 1"
+                class="border-grid-border border-r px-2 py-1"
               >
-                <div
-                  class="border-border bg-surface flex items-center gap-1 rounded-md border px-1.5 py-1 shadow-lg"
-                >
+                <div class="flex items-center justify-end gap-1.5">
                   <button
                     @click.stop="gridStore.saveNewRow"
-                    class="text-success hover:bg-success/10 rounded p-1"
+                    class="text-success hover:bg-success/10 flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium"
                     title="Save row"
                   >
-                    <Check :size="14" />
+                    <Check :size="12" />
+                    <span>Save</span>
                   </button>
                   <button
                     @click.stop="gridStore.cancelNewRow"
-                    class="text-danger hover:bg-danger/10 rounded p-1"
-                    title="Cancel"
+                    class="text-danger hover:bg-danger/10 flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium"
+                    title="Discard"
                   >
-                    <X :size="14" />
+                    <X :size="12" />
+                    <span>Discard</span>
                   </button>
                 </div>
-              </div>
+              </td>
             </tr>
           </template>
         </template>

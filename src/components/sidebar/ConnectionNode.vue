@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DbIcon from '@/components/icons/DbIcon.vue';
+import Button from '@/components/ui/Button.vue';
 import { useConnectionsStore } from '@/stores/connections';
 import { useSchemaStore } from '@/stores/schema';
 import type { Connection } from '@/types';
@@ -112,12 +113,14 @@ const connectionDatabases = computed(
         class="text-text-tertiary shrink-0 animate-spin"
       />
 
-      <span
-        class="text-text-tertiary hover:text-text-secondary hover:bg-border flex h-5 w-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100"
+      <Button
+        variant="ghost"
+        size="icon"
+        class="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100"
         @click.stop="emit('contextmenu', $event)"
       >
         <MoreVertical :size="12" />
-      </span>
+      </Button>
     </div>
 
     <!-- Connection children -->
