@@ -492,8 +492,50 @@ impl DatabaseDriver for PostgresDriver {
     }
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
+        use sqlx::Executor;
         let pool = self.pool()?;
-        let (data, fields, elapsed) = Self::execute_query(pool, sql, &[]).await?;
+        let start = std::time::Instant::now();
+        log::info!("postgres: executing raw query: {}", sql);
+
+        // Use the simple query protocol so multi-statement scripts work.
+        // `sqlx::raw_sql` sends all statements in one go without preparing them.
+        let rows = pool
+            .fetch_all(sqlx::raw_sql(sql))
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let elapsed = start.elapsed().as_millis() as u64;
+        log::info!("postgres: raw query finished in {}ms", elapsed);
+
+        if rows.is_empty() {
+            return Ok(QueryResult {
+                rows: vec![],
+                fields: vec![],
+                row_count: 0,
+                execution_time: elapsed,
+            });
+        }
+
+        let mut fields = Vec::new();
+        for col in rows[0].columns() {
+            fields.push(ColumnInfo {
+                name: col.name().to_string(),
+                data_type: col.type_info().name().to_string(),
+                is_primary_key: false,
+                is_nullable: true,
+            });
+        }
+
+        let mut data = Vec::new();
+        for row in &rows {
+            let mut map = std::collections::HashMap::new();
+            for (i, col) in row.columns().iter().enumerate() {
+                let val = Self::get_column_value(row, i);
+                map.insert(col.name().to_string(), val);
+            }
+            data.push(map);
+        }
+
         let count = data.len();
         Ok(QueryResult {
             rows: data,
