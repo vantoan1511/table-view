@@ -17,6 +17,7 @@ const props = defineProps<{
   minWidth: number;
   maxWidth: number;
   defaultWidth: number;
+  validationError?: string;
 }>();
 
 const emit = defineEmits<{
@@ -115,14 +116,28 @@ const getCellClass = (colName: string, value: unknown): string => {
 
     <!-- New Row State -->
     <template v-else-if="isNewRow">
-      <input
-        v-model="localValue"
-        :placeholder="column.isPrimaryKey ? '(auto)' : column.isNullable ? 'NULL' : '*Req'"
-        class="border-border focus:border-primary focus:ring-primary bg-surface w-full rounded border px-1.5 py-0.5 text-[12px] font-(--font-mono) transition-all outline-none focus:ring-1"
-        @input="emit('update:value', localValue)"
-        @keydown.enter="emit('save')"
-        @keydown.esc="emit('cancel')"
-      />
+      <div class="relative w-full">
+        <input
+          v-model="localValue"
+          :placeholder="column.isPrimaryKey ? '*Req' : 'NULL'"
+          class="w-full rounded border px-1.5 py-0.5 text-[12px] font-(--font-mono) transition-all outline-none focus:ring-1"
+          :class="
+            props.validationError
+              ? 'border-danger bg-danger/5 focus:border-danger focus:ring-danger/30 text-danger'
+              : 'border-border bg-surface focus:border-primary focus:ring-primary'
+          "
+          @input="emit('update:value', localValue)"
+          @keydown.enter="emit('save')"
+          @keydown.esc="emit('cancel')"
+        />
+        <!-- Validation error tooltip -->
+        <div
+          v-if="props.validationError"
+          class="bg-danger text-white pointer-events-none absolute top-full left-0 z-50 mt-1 max-w-[200px] truncate rounded px-2 py-0.5 text-[10px] font-medium shadow-lg"
+        >
+          {{ props.validationError }}
+        </div>
+      </div>
     </template>
 
     <!-- Normal State -->

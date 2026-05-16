@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DatabaseTree from '@/components/sidebar/DatabaseTree.vue';
+import Button from '@/components/ui/Button.vue';
 import { useConnectionsStore } from '@/stores/connections';
 import { useSchemaStore } from '@/stores/schema';
 import { Plus, Search } from 'lucide-vue-next';
@@ -14,14 +15,15 @@ const schemaStore = useSchemaStore();
   >
     <!-- Header -->
     <div class="border-border shrink-0 border-b px-2.5 py-2.5">
-      <button
+      <Button
         id="btn-new-connection"
-        class="bg-primary hover:bg-primary-hover text-text-inverse flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium shadow-sm transition-colors"
+        variant="primary"
+        class="w-full"
+        :icon="Plus"
         @click="connectionsStore.toggleConnectionModal(true)"
       >
-        <Plus :size="14" />
         New Connection
-      </button>
+      </Button>
     </div>
 
     <!-- Search filter -->

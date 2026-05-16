@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DbIcon from '@/components/icons/DbIcon.vue';
+import Button from '@/components/ui/Button.vue';
 import ColorPicker from '@/components/ui/ColorPicker.vue';
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
 import { DB_TYPES } from '@/lib/dbTypes';
@@ -7,7 +8,7 @@ import { useConnectionsStore } from '@/stores/connections';
 import { useErrorStore } from '@/stores/error';
 import { ConnectionColor, DbType, OracleConnectType, OracleRole, type Connection } from '@/types';
 import * as Neutralino from '@neutralinojs/lib';
-import { CircleHelp, Download, Eye, EyeOff, Loader2, X } from 'lucide-vue-next';
+import { CircleHelp, Download, Eye, EyeOff, X } from 'lucide-vue-next';
 import { reactive, ref, watch } from 'vue';
 
 const connectionsStore = useConnectionsStore();
@@ -225,12 +226,9 @@ const handleClose = () => {
           <h2 class="text-text-primary text-[15px] font-semibold">
             {{ connectionsStore.connectionToEdit ? 'Edit Connection' : 'New Connection' }}
           </h2>
-          <button
-            class="text-text-tertiary hover:text-text-secondary hover:bg-hover flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-colors"
-            @click="handleClose"
-          >
+          <Button variant="ghost" size="icon" @click="handleClose">
             <X :size="16" />
-          </button>
+          </Button>
         </div>
 
         <!-- Body -->
@@ -243,31 +241,29 @@ const handleClose = () => {
               Connection Type
             </div>
             <div class="flex-1 px-2">
-              <button
+              <Button
                 v-for="db in DB_TYPES"
                 :key="db.key"
-                class="mb-0.5 flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-all duration-150"
-                :class="
-                  form.type === db.key
-                    ? 'bg-active text-primary border-primary/20 border font-medium'
-                    : 'text-text-primary hover:bg-hover border border-transparent'
-                "
+                class="mb-0.5 w-full !justify-start"
+                :variant="form.type === db.key ? 'subtle' : 'ghost'"
                 @click="selectDbType(db.key)"
               >
                 <DbIcon :type="db.key" size="18" />
                 <span>{{ db.label }}</span>
-              </button>
+              </Button>
             </div>
 
             <!-- Import Connection -->
             <div class="border-border mt-2 border-t px-3 pt-2">
-              <button
-                class="text-text-secondary hover:text-text-primary hover:bg-hover flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-[12px] transition-colors"
+              <Button
+                variant="ghost"
+                size="sm"
+                class="w-full !justify-start"
+                :icon="Download"
                 @click="handleImportConnection"
               >
-                <Download :size="14" />
                 <span>Import Connection</span>
-              </button>
+              </Button>
               <p v-if="importError" class="text-danger mt-1 px-3 text-[11px]">{{ importError }}</p>
             </div>
           </div>
@@ -276,19 +272,20 @@ const handleClose = () => {
           <div class="flex min-h-0 flex-1 flex-col">
             <!-- Tabs -->
             <div class="border-border flex items-center gap-1 border-b px-5 pt-3 pb-0">
-              <button
+              <Button
                 v-for="tab in ['general', 'ssl', 'advanced'] as const"
                 :key="tab"
-                class="-mb-px cursor-pointer px-3 py-2 text-[13px] font-medium capitalize transition-colors"
+                variant="none"
+                class="-mb-px px-3 py-2 text-[13px] font-medium capitalize"
                 :class="
                   activeTab === tab
-                    ? 'text-primary border-primary border-b-2'
+                    ? 'text-primary border-primary rounded-none border-b-2'
                     : 'text-text-secondary hover:text-text-primary'
                 "
                 @click="activeTab = tab"
               >
                 {{ tab === 'ssl' ? 'SSL' : tab }}
-              </button>
+              </Button>
             </div>
 
             <!-- Form Content -->
@@ -403,14 +400,15 @@ const handleClose = () => {
                       :type="showPassword ? 'text' : 'password'"
                       class="border-border text-text-primary bg-surface focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 pr-10 text-[13px] transition-all outline-none focus:ring-1"
                     />
-                    <button
-                      type="button"
-                      class="text-text-tertiary hover:text-text-secondary absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer"
+                    <Button
+                      variant="none"
+                      size="icon"
+                      class="text-text-tertiary hover:text-text-secondary absolute top-1/2 right-1 -translate-y-1/2"
                       @click="showPassword = !showPassword"
                     >
                       <Eye v-if="!showPassword" :size="15" />
                       <EyeOff v-else :size="15" />
-                    </button>
+                    </Button>
                   </div>
                   <div class="mt-2 flex items-center gap-1.5">
                     <ToggleSwitch v-model="form.savePassword" />
@@ -478,27 +476,27 @@ const handleClose = () => {
         <div class="border-border bg-muted flex items-center justify-between border-t px-5 py-3">
           <!-- Left: Test Connection -->
           <div class="flex items-center gap-3">
-            <button
+            <Button
               id="btn-test-connection"
-              class="border-border text-text-secondary hover:bg-hover hover:border-border-strong flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-[13px] transition-colors"
-              :disabled="testStatus === 'testing'"
+              variant="secondary"
+              :loading="testStatus === 'testing'"
               @click="handleTestConnection"
             >
-              <Loader2 v-if="testStatus === 'testing'" :size="14" class="animate-spin" />
-              <svg
-                v-else
-                class="h-3.5 w-3.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"
-                />
-              </svg>
+              <template v-if="testStatus !== 'testing'">
+                <svg
+                  class="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"
+                  />
+                </svg>
+              </template>
               <span>Test Connection</span>
-            </button>
+            </Button>
             <span class="flex items-center gap-1.5 text-[12px]">
               <span
                 class="h-2 w-2 rounded-full"
@@ -525,19 +523,10 @@ const handleClose = () => {
 
           <!-- Right: Cancel / Save -->
           <div class="flex items-center gap-2">
-            <button
-              class="border-border text-text-secondary hover:bg-hover cursor-pointer rounded-lg border px-4 py-2 text-[13px] transition-colors"
-              @click="handleClose"
-            >
-              Cancel
-            </button>
-            <button
-              id="btn-save-connection"
-              class="bg-primary hover:bg-primary-hover text-text-inverse cursor-pointer rounded-lg px-4 py-2 text-[13px] font-medium shadow-sm transition-colors"
-              @click="handleSave"
-            >
+            <Button variant="secondary" @click="handleClose"> Cancel </Button>
+            <Button id="btn-save-connection" variant="primary" @click="handleSave">
               Save Connection
-            </button>
+            </Button>
           </div>
         </div>
       </div>

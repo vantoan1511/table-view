@@ -3,6 +3,7 @@ import { useAboutStore } from '@/stores/about';
 import * as Neutralino from '@neutralinojs/lib';
 import { Coffee, Github, Globe, Heart, X } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
+import Button from './Button.vue';
 
 const aboutStore = useAboutStore();
 const version = ref('0.1.0');
@@ -68,12 +69,14 @@ const openLink = (url: string) => {
               <h2 class="text-xl font-bold tracking-tight text-white">Table View</h2>
             </div>
 
-            <button
+            <Button
+              variant="none"
+              size="icon"
               @click="aboutStore.close"
               class="absolute top-4 right-4 rounded-full bg-white/10 p-1.5 text-white backdrop-blur-md transition-colors hover:bg-white/20"
             >
               <X :size="18" />
-            </button>
+            </Button>
           </div>
 
           <!-- Content -->
@@ -91,32 +94,33 @@ const openLink = (url: string) => {
             </div>
 
             <div class="grid grid-cols-2 gap-3">
-              <button
+              <Button
+                variant="secondary"
+                :icon="Github"
                 @click="openLink('https://github.com/vantoan1511/table-view')"
-                class="bg-surface-lighter hover:bg-hover border-border text-text-primary flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all"
               >
-                <Github :size="16" />
                 GitHub
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                :icon="Globe"
                 @click="openLink('https://github.com/vantoan1511')"
-                class="bg-surface-lighter hover:bg-hover border-border text-text-primary flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all"
               >
-                <Globe :size="16" />
                 Toan Nguyen
-              </button>
+              </Button>
             </div>
 
             <div class="bg-border/50 h-px" />
 
             <div class="flex flex-col gap-3">
-              <button
+              <Button
+                variant="none"
+                :icon="Coffee"
                 @click="openLink('https://www.buymeacoffee.com/vantoan1511')"
                 class="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFDD00] px-4 py-3 text-sm font-bold text-black shadow-sm transition-all hover:bg-[#FFDD00]/90 active:scale-[0.98]"
               >
-                <Coffee :size="18" fill="currentColor" />
                 Buy me a coffee
-              </button>
+              </Button>
               <div class="text-text-tertiary flex items-center justify-center gap-1.5 text-[11px]">
                 Made with <Heart :size="10" class="text-danger fill-danger" /> by Toan Nguyen
               </div>

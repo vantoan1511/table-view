@@ -4,6 +4,7 @@ import { useTabsStore } from '@/stores/tabs';
 import type { Tab } from '@/types';
 import { LayoutGrid, Plus, Trash2, X } from 'lucide-vue-next';
 import { computed } from 'vue';
+import Button from './Button.vue';
 
 const tabsStore = useTabsStore();
 const connectionsStore = useConnectionsStore();
@@ -62,12 +63,9 @@ const deleteTab = (id: string) => {
             Open Editor: {{ connection?.name }}
           </h3>
         </div>
-        <button
-          class="hover:bg-hover text-text-tertiary rounded-md p-1 transition-colors"
-          @click="close"
-        >
+        <Button variant="ghost" size="icon" @click="close">
           <X :size="18" />
-        </button>
+        </Button>
       </div>
 
       <!-- List -->
@@ -90,13 +88,14 @@ const deleteTab = (id: string) => {
               <span v-if="tab.closed" class="text-warning ml-2">• Closed</span>
             </div>
           </div>
-          <button
-            class="hover:text-danger hover:bg-danger/10 rounded-md p-2 opacity-0 transition-all group-hover:opacity-100"
+          <Button
+            variant="ghost"
+            size="icon"
+            class="hover:!text-danger hover:!bg-danger/10 opacity-0 group-hover:opacity-100"
             @click.stop="deleteTab(tab.id)"
-            title="Delete permanently"
           >
             <Trash2 :size="14" />
-          </button>
+          </Button>
         </div>
 
         <div
@@ -112,13 +111,7 @@ const deleteTab = (id: string) => {
         <span class="text-text-tertiary text-[12px]"
           >{{ connectionTabs.length }} editors found</span
         >
-        <button
-          class="bg-primary hover:bg-primary-hover text-text-inverse flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-medium shadow-sm transition-colors"
-          @click="createNew"
-        >
-          <Plus :size="16" />
-          Create New Editor
-        </button>
+        <Button variant="primary" :icon="Plus" @click="createNew"> Create New Editor </Button>
       </div>
     </div>
   </div>
