@@ -267,6 +267,77 @@ export const useGridStore = defineStore('grid', () => {
     }
   };
 
+  const dropSchema = async (
+    connectionId: string,
+    schemaName: string,
+    dbName?: string
+  ): Promise<void> => {
+    if (!window.NL_PORT) return;
+
+    try {
+      isLoading.value = true;
+      await BridgeService.request('dbBridge.dropSchema', 'dbBridge.dropSchemaResult', {
+        connectionId,
+        schemaName,
+        targetDatabase: dbName
+      });
+
+      // Refresh schema
+      if (dbName) {
+        await schemaStore.refreshDbSchema(connectionId, dbName);
+      } else {
+        await schemaStore.loadSchema(undefined, connectionId);
+      }
+
+      toastStore.addToast({
+        severity: 'success',
+        title: 'Schema Dropped',
+        message: `Schema ${schemaName} was successfully dropped.`
+      });
+    } catch (err: any) {
+      console.error('Failed to drop schema:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Drop Failed',
+        message: err.message || 'An unknown error occurred while dropping the schema.'
+      });
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const dropDatabase = async (connectionId: string, dbName: string): Promise<void> => {
+    if (!window.NL_PORT) return;
+
+    try {
+      isLoading.value = true;
+      await BridgeService.request('dbBridge.dropDatabase', 'dbBridge.dropDatabaseResult', {
+        connectionId,
+        dbName: dbName
+      });
+
+      // Refresh schema
+      await schemaStore.loadSchema(undefined, connectionId);
+
+      toastStore.addToast({
+        severity: 'success',
+        title: 'Database Dropped',
+        message: `Database ${dbName} was successfully dropped.`
+      });
+    } catch (err: any) {
+      console.error('Failed to drop database:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Drop Failed',
+        message: err.message || 'An unknown error occurred while dropping the database.'
+      });
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   return {
     // Re-export from tableData
     columns: tableData.columns,
@@ -341,6 +412,8 @@ export const useGridStore = defineStore('grid', () => {
     getTableColumns,
     alterTable,
     dropTable,
+    dropSchema,
+    dropDatabase,
     createTable,
     createSchema
   };

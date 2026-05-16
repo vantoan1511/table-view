@@ -54,6 +54,8 @@ struct Payload {
     #[serde(default)]
     target_database: String,
     #[serde(default)]
+    db_name: String,
+    #[serde(default)]
     message: String,
     #[serde(default)]
     level: String,
@@ -324,6 +326,14 @@ pub async fn handle_message(
                 "createSchema" => {
                     let result = driver.create_schema(&payload.schema_name).await;
                     handle_result_void(&writer, &token, "dbBridge.createSchemaResult", &payload.req_id, result).await;
+                }
+                "dropSchema" => {
+                    let result = driver.drop_schema(&payload.schema_name).await;
+                    handle_result_void(&writer, &token, "dbBridge.dropSchemaResult", &payload.req_id, result).await;
+                }
+                "dropDatabase" => {
+                    let result = driver.drop_database(&payload.db_name).await;
+                    handle_result_void(&writer, &token, "dbBridge.dropDatabaseResult", &payload.req_id, result).await;
                 }
                 "exportCSV" => {
                     let result = driver.export_to_csv(&payload.table_name, &payload.export_path).await;

@@ -143,6 +143,10 @@ export const useSchemaStore = defineStore('schema', () => {
     setSelectedSchema,
     isConnectionLoading,
     isDbLoading,
+    removeConnection: (id: string) => {
+      cache.removeConnection(id);
+      treeState.removeConnection(id);
+    },
 
     // Legacy shims
     schema,

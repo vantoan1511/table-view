@@ -42,6 +42,12 @@ export function useTreeState() {
     expandedDbsByConnection.value[connectionId][dbName] = expanded;
   };
 
+  const removeConnection = (connectionId: string) => {
+    delete expandedDbsByConnection.value[connectionId];
+    delete expandedSchemasByConnection.value[connectionId];
+    delete selectedSchemaByConnection.value[connectionId];
+  };
+
   return {
     expandedDbsByConnection,
     expandedSchemasByConnection,
@@ -52,6 +58,7 @@ export function useTreeState() {
     setSchemaExpanded,
     isSchemaExpanded,
     isDbExpanded,
-    setDbExpanded
+    setDbExpanded,
+    removeConnection
   };
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ContextMenu from '../ui/ContextMenu.vue';
 
-import { LayoutGrid, RefreshCw } from 'lucide-vue-next';
+import { LayoutGrid, RefreshCw, Trash2 } from 'lucide-vue-next';
 
 defineProps<{
   show: boolean;
@@ -30,6 +30,14 @@ const emit = defineEmits<{
     >
       <LayoutGrid :size="13" class="text-text-secondary" />
       <span>Create Table</span>
+    </button>
+    <div class="bg-border my-1 h-px w-full" />
+    <button
+      class="text-danger hover:bg-danger/10 flex w-full items-center gap-2 px-3 py-1.5 text-[12px]"
+      @click="emit('action', 'deleteSchema')"
+    >
+      <Trash2 :size="13" />
+      <span>Delete Schema</span>
     </button>
   </ContextMenu>
 </template>

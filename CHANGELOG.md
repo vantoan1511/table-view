@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Backend: Schema & Database Deletion**: Implemented `drop_schema` and `drop_database` across all drivers (PostgreSQL, MySQL, SQLite, Oracle).
+- **UI: Sidebar Dialogs**: Extracted all sidebar-related confirmation and creation dialogs into a dedicated `SidebarDialogs.vue` component for better maintainability.
+- **UI: Deletion Workflows**: Integrated interactive deletion for databases and schemas with confirmation dialogs.
+
+### Changed
+- **Architecture: State Cleanup**: Enhanced `schemaStore` with formal cleanup logic to prevent state leaks when deleting connections.
+- **Production: Security Hardening**: Enforced `tokenSecurity: "one-time"`, `dataLocation: "system"`, and disabled developer inspector in `neutralino.config.json`.
+- **UI: Database Tree**: Refactored `DatabaseTree.vue` to use the new centralized `SidebarDialogs` component.
+
 ## [0.2.9] - 2026-05-16
 
 ### Added

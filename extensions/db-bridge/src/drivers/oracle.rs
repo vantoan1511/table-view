@@ -637,6 +637,17 @@ impl DatabaseDriver for OracleDriver {
         Ok(())
     }
 
+    async fn drop_schema(&self, schema_name: &str) -> Result<(), String> {
+        let pool = self.pool()?;
+        let sql = format!("DROP USER {} CASCADE", Self::quote(schema_name));
+        Self::execute_dml(pool, &sql, &[]).await?;
+        Ok(())
+    }
+
+    async fn drop_database(&self, _db_name: &str) -> Result<(), String> {
+        Err("Dropping database via SQL is not supported in Oracle. Please use database management tools.".to_string())
+    }
+
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;
         let (owner, table) = self.split_table_name(table_name);
