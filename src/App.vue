@@ -75,7 +75,7 @@ const exitApp = async () => {
   if (window.NL_PORT) {
     try {
       await Neutralino.extensions.dispatch(
-        'com.github.vantoan1511.table-view.db-bridge',
+        'com.github.vantoan1511.tableview.db-bridge',
         'dbBridge.shutdown',
         {}
       );

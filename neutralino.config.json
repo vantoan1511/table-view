@@ -34,7 +34,7 @@
   ],
   "extensions": [
     {
-      "id": "com.github.vantoan1511.table-view.db-bridge",
+      "id": "com.github.vantoan1511.tableview.db-bridge",
       "command": "extensions\\db-bridge\\db-bridge.exe"
     }
   ],

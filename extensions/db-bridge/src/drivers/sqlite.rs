@@ -401,6 +401,49 @@ impl DatabaseDriver for SqliteDriver {
         Ok(())
     }
 
+    async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String> {
+        let pool = self.pool()?;
+        let safe_table = Self::quote(table_name);
+
+        let mut column_defs = Vec::new();
+        for col in columns {
+            if !crate::drivers::utils::is_safe_data_type(&col.data_type) {
+                return Err(format!("Invalid or unsafe data type: {}", col.data_type));
+            }
+            let mut def = format!("{} {}", Self::quote(&col.name), col.data_type);
+            if !col.nullable {
+                def.push_str(" NOT NULL");
+            }
+            if let Some(ref d) = col.default {
+                if !crate::drivers::utils::is_safe_default(d) {
+                    return Err(format!("Invalid or unsafe default value: {}", d));
+                }
+                def.push_str(&format!(" DEFAULT {}", d));
+            }
+            if col.is_primary_key {
+                def.push_str(" PRIMARY KEY");
+            }
+            column_defs.push(def);
+        }
+
+        let sql = format!("CREATE TABLE {} ({})", safe_table, column_defs.join(", "));
+        sqlx::query(&sql)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    async fn drop_table(&self, table_name: &str) -> Result<(), String> {
+        let pool = self.pool()?;
+        let sql = format!("DROP TABLE {}", Self::quote(table_name));
+        sqlx::query(&sql)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;
         let safe_table = Self::quote(table_name);

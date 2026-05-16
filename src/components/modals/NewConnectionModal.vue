@@ -171,7 +171,7 @@ const handleTestConnection = () => {
 
     Neutralino.events.on('dbBridge.testConnectionResult', onTestResult);
     Neutralino.extensions.dispatch(
-      'com.github.vantoan1511.table-view.db-bridge',
+      'com.github.vantoan1511.tableview.db-bridge',
       'dbBridge.testConnection',
       {
         reqId,

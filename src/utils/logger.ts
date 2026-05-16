@@ -18,7 +18,7 @@ async function sendToExtension(level: LogLevel, message: string) {
   if (isExtensionConnected) {
     try {
       await Neutralino.extensions.dispatch(
-        'com.github.vantoan1511.table-view.db-bridge',
+        'com.github.vantoan1511.tableview.db-bridge',
         'dbBridge.log',
         {
           level,
@@ -40,7 +40,7 @@ async function sendToExtension(level: LogLevel, message: string) {
 export function initLogger() {
   // Monitor extension ready event
   Neutralino.events.on('extensionReady', (event) => {
-    if (event.detail === 'com.github.vantoan1511.table-view.db-bridge') {
+    if (event.detail === 'com.github.vantoan1511.tableview.db-bridge') {
       isExtensionConnected = true;
       processQueue();
     }
@@ -53,7 +53,7 @@ export function initLogger() {
 async function checkConnection() {
   try {
     const stats = await Neutralino.extensions.getStats();
-    if (stats.loaded.includes('com.github.vantoan1511.table-view.db-bridge')) {
+    if (stats.loaded.includes('com.github.vantoan1511.tableview.db-bridge')) {
       isExtensionConnected = true;
       processQueue();
     }

@@ -13,6 +13,7 @@ import DatabaseContextMenu from './DatabaseContextMenu.vue';
 import SchemaContextMenu from './SchemaContextMenu.vue';
 import TableContextMenu from './TableContextMenu.vue';
 import ConnectionNode from './ConnectionNode.vue';
+import CreateTableDialog from '../ui/CreateTableDialog.vue';
 
 const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
@@ -62,7 +63,14 @@ const contextMenu = ref({
 });
 
 const showDeleteConfirm = ref(false);
+const showTableDeleteConfirm = ref(false);
 const idToDelete = ref<string | null>(null);
+const tableToDelete = ref<{
+  name: string;
+  connId: string;
+  dbName?: string;
+  schemaName?: string;
+} | null>(null);
 
 const connectionName = computed(
   () => connectionsStore.connections.find((c) => c.id === idToDelete.value)?.name || ''
@@ -141,6 +149,13 @@ const handleContextAction = async (action: string) => {
       } else {
         await schemaStore.loadSchema(undefined, connId, schemaName || undefined);
       }
+    } else if (action === 'createTable') {
+      gridStore.createTableTarget = {
+        connectionId: connId,
+        schema: schemaName || '',
+        db: dbName || undefined
+      };
+      gridStore.showCreateTableDialog = true;
     }
   } else if (type === 'table') {
     if (action === 'refresh' && tableName) {
@@ -157,6 +172,17 @@ const handleContextAction = async (action: string) => {
           await schemaStore.loadSchema(undefined, connId);
         }
       }
+    } else if (action === 'alterTable' && tableName) {
+      tabsStore.openTableTab(tableName, schemaName || undefined, connId, dbName || undefined);
+      gridStore.showAlterTableDialog = true;
+    } else if (action === 'deleteTable' && tableName) {
+      tableToDelete.value = {
+        name: tableName,
+        connId,
+        dbName: dbName || undefined,
+        schemaName: schemaName || undefined
+      };
+      showTableDeleteConfirm.value = true;
     }
   }
 };
@@ -180,6 +206,19 @@ const confirmDelete = () => {
   }
   showDeleteConfirm.value = false;
   idToDelete.value = null;
+};
+
+const confirmTableDelete = async () => {
+  if (!tableToDelete.value) return;
+  const { name, connId, dbName, schemaName } = tableToDelete.value;
+  try {
+    await gridStore.dropTable(name, connId, schemaName, dbName);
+  } catch {
+    // Error handled in store
+  } finally {
+    showTableDeleteConfirm.value = false;
+    tableToDelete.value = null;
+  }
 };
 </script>
 
@@ -250,6 +289,24 @@ const confirmDelete = () => {
       variant="danger"
       @confirm="confirmDelete"
       @cancel="showDeleteConfirm = false"
+    />
+
+    <ConfirmDialog
+      v-if="showTableDeleteConfirm"
+      title="Delete Table"
+      :message="`Are you sure you want to drop table '${tableToDelete?.name}'? This action cannot be undone.`"
+      confirm-label="Drop Table"
+      variant="danger"
+      @confirm="confirmTableDelete"
+      @cancel="showTableDeleteConfirm = false"
+    />
+
+    <CreateTableDialog
+      v-if="gridStore.showCreateTableDialog && gridStore.createTableTarget"
+      :connection-id="gridStore.createTableTarget.connectionId"
+      :schema="gridStore.createTableTarget.schema"
+      :db="gridStore.createTableTarget.db"
+      @close="gridStore.showCreateTableDialog = false"
     />
   </div>
 </template>

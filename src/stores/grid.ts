@@ -3,6 +3,9 @@ import { computed, ref, toRef } from 'vue';
 
 import { BridgeService } from '@/services/bridge';
 import { useConnectionsStore } from './connections';
+import { useSchemaStore } from './schema';
+import { useTabsStore } from './tabs';
+import { useToastStore } from './toast';
 import { useCellEditing } from './grid/useCellEditing';
 import { useNewRow } from './grid/useNewRow';
 import { useSelection } from './grid/useSelection';
@@ -11,6 +14,9 @@ import { useTableData } from './grid/useTableData';
 
 export const useGridStore = defineStore('grid', () => {
   const connectionsStore = useConnectionsStore();
+  const schemaStore = useSchemaStore();
+  const tabsStore = useTabsStore();
+  const toastStore = useToastStore();
   const isLoading = ref(false);
 
   // Use sub-composables
@@ -20,6 +26,8 @@ export const useGridStore = defineStore('grid', () => {
   // Grid specific state
   const columnWidths = ref<Record<string, number>>({});
   const showAlterTableDialog = ref(false);
+  const showCreateTableDialog = ref(false);
+  const createTableTarget = ref<{ connectionId: string; schema: string; db?: string } | null>(null);
   const columnVisibility = ref<Record<string, boolean>>({});
 
   // Sub-composables for specific features
@@ -112,6 +120,95 @@ export const useGridStore = defineStore('grid', () => {
     });
   };
 
+  const dropTable = async (
+    tableName: string,
+    connectionId?: string,
+    schemaName?: string,
+    dbName?: string
+  ): Promise<void> => {
+    if (!window.NL_PORT) return;
+    const targetConnectionId = connectionId || connectionsStore.activeConnectionId;
+
+    try {
+      isLoading.value = true;
+      await BridgeService.request('dbBridge.dropTable', 'dbBridge.dropTableResult', {
+        connectionId: targetConnectionId,
+        tableName: tableData.resolveBackendTableName(tableName, targetConnectionId, schemaName),
+        targetDatabase: dbName
+      });
+
+      // Close associated tabs
+      tabsStore.tabs
+        .filter(
+          (t) =>
+            t.type === 'table' &&
+            t.tableName === tableName &&
+            t.connectionId === targetConnectionId &&
+            t.schema === (schemaName || t.schema) &&
+            t.dbName === (dbName || t.dbName)
+        )
+        .forEach((t) => tabsStore.closeTab(t.id));
+
+      // Refresh schema
+      await schemaStore.refreshDbSchema(targetConnectionId, dbName);
+
+      toastStore.addToast({
+        severity: 'success',
+        title: 'Table Dropped',
+        message: `Table ${tableName} was successfully dropped.`
+      });
+    } catch (err: any) {
+      console.error('Failed to drop table:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Drop Failed',
+        message: err.message || 'An unknown error occurred while dropping the table.'
+      });
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const createTable = async (
+    tableName: string,
+    columns: any[],
+    connectionId: string,
+    schemaName: string,
+    dbName?: string
+  ): Promise<void> => {
+    if (!window.NL_PORT) return;
+
+    try {
+      isLoading.value = true;
+      await BridgeService.request('dbBridge.createTable', 'dbBridge.createTableResult', {
+        connectionId,
+        tableName: tableData.resolveBackendTableName(tableName, connectionId, schemaName),
+        targetDatabase: dbName,
+        columns
+      });
+
+      // Refresh schema
+      await schemaStore.refreshDbSchema(connectionId, dbName);
+
+      toastStore.addToast({
+        severity: 'success',
+        title: 'Table Created',
+        message: `Table ${tableName} was successfully created.`
+      });
+    } catch (err: any) {
+      console.error('Failed to create table:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Creation Failed',
+        message: err.message || 'An unknown error occurred while creating the table.'
+      });
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   return {
     // Re-export from tableData
     columns: tableData.columns,
@@ -147,6 +244,8 @@ export const useGridStore = defineStore('grid', () => {
     toggleSort,
     setColumnWidth,
     showAlterTableDialog,
+    showCreateTableDialog,
+    createTableTarget,
     columnVisibility,
     toggleColumnVisibility,
 
@@ -180,6 +279,8 @@ export const useGridStore = defineStore('grid', () => {
     // Actions
     deleteRows,
     getTableColumns,
-    alterTable
+    alterTable,
+    dropTable,
+    createTable
   };
 });

@@ -189,9 +189,7 @@ const handleContextAction = (action: string) => {
                 "
                 :is-new-row="gridStore.newRowIdx === rowIdx"
                 :validation-error="
-                  gridStore.newRowIdx === rowIdx
-                    ? gridStore.newRowErrors[col.name]
-                    : undefined
+                  gridStore.newRowIdx === rowIdx ? gridStore.newRowErrors[col.name] : undefined
                 "
                 :column-width="gridStore.columnWidths[col.name]"
                 :min-width="MIN_COLUMN_WIDTH"
@@ -216,7 +214,6 @@ const handleContextAction = (action: string) => {
                     : gridStore.cancelEditCell()
                 "
               />
-
             </tr>
 
             <!-- Save/Cancel action row for new row -->
