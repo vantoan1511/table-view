@@ -36,8 +36,10 @@ export const useGridStore = defineStore('grid', () => {
   const showAlterTableDialog = ref(false);
   const showCreateTableDialog = ref(false);
   const showCreateSchemaDialog = ref(false);
+  const showCreateDatabaseDialog = ref(false);
   const createTableTarget = ref<{ connectionId: string; schema: string; db?: string } | null>(null);
   const createSchemaTarget = ref<{ connectionId: string; db?: string } | null>(null);
+  const createDatabaseTarget = ref<{ connectionId: string } | null>(null);
   const columnVisibility = ref<Record<string, boolean>>({});
 
   // Sub-composables for specific features
@@ -267,6 +269,37 @@ export const useGridStore = defineStore('grid', () => {
     }
   };
 
+  const createDatabase = async (connectionId: string, dbName: string): Promise<void> => {
+    if (!window.NL_PORT) return;
+
+    try {
+      isLoading.value = true;
+      await BridgeService.request('dbBridge.createDatabase', 'dbBridge.createDatabaseResult', {
+        connectionId,
+        dbName
+      });
+
+      // Refresh schema
+      await schemaStore.loadSchema(undefined, connectionId);
+
+      toastStore.addToast({
+        severity: 'success',
+        title: 'Database Created',
+        message: `Database ${dbName} was successfully created.`
+      });
+    } catch (err: any) {
+      console.error('Failed to create database:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Creation Failed',
+        message: err.message || 'An unknown error occurred while creating the database.'
+      });
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   const dropSchema = async (
     connectionId: string,
     schemaName: string,
@@ -375,8 +408,10 @@ export const useGridStore = defineStore('grid', () => {
     showAlterTableDialog,
     showCreateTableDialog,
     showCreateSchemaDialog,
+    showCreateDatabaseDialog,
     createTableTarget,
     createSchemaTarget,
+    createDatabaseTarget,
     columnVisibility,
     toggleColumnVisibility,
 
@@ -415,6 +450,7 @@ export const useGridStore = defineStore('grid', () => {
     dropSchema,
     dropDatabase,
     createTable,
+    createDatabase,
     createSchema
   };
 });

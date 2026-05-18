@@ -335,6 +335,10 @@ pub async fn handle_message(
                     let result = driver.drop_database(&payload.db_name).await;
                     handle_result_void(&writer, &token, "dbBridge.dropDatabaseResult", &payload.req_id, result).await;
                 }
+                "createDatabase" => {
+                    let result = driver.create_database(&payload.db_name).await;
+                    handle_result_void(&writer, &token, "dbBridge.createDatabaseResult", &payload.req_id, result).await;
+                }
                 "exportCSV" => {
                     let result = driver.export_to_csv(&payload.table_name, &payload.export_path).await;
                     handle_result_void(&writer, &token, "dbBridge.exportCSVResult", &payload.req_id, result).await;
