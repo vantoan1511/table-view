@@ -595,7 +595,7 @@ impl DatabaseDriver for PostgresDriver {
         let pool = self.pool()?;
         let safe_table = Self::qualified_table_name(table_name);
         let sql = format!(
-            "UPDATE {} SET {} = $1 WHERE {}::text = $2",
+            "UPDATE {} SET {} = $1 WHERE {}::text = $2::text",
             safe_table,
             Self::quote(target_column),
             Self::quote(pk_column)

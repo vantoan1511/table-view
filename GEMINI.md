@@ -5,7 +5,7 @@
 - **Backend Architecture**: All backend bridge logic must reside in the `extensions/db-bridge` directory and be written in **Rust**.
 - **Database Driver Guidelines**:
   - Use `sqlx` or dedicated Rust drivers (like `rusqlite`, `tokio-postgres`, `mysql_async`) to maintain high performance and safety.
-  - For PostgreSQL, ensure proper connection pooling and error handling.
+  - For PostgreSQL, ensure proper connection pooling and error handling. Always cast both operands of dynamic comparisons (e.g., column comparisons with dynamic placeholders) to the same explicit type (e.g. `col::text = $1::text` or `col::text IN ($1::text)`) to prevent prepared statement type mismatch errors (e.g. `operator does not exist: text = bigint`).
   - For Oracle, use `oracle-rs` with `deadpool-oracle` for pure Rust thin-driver connectivity without Oracle Instant Client or OCI/ODPI-C dependencies.
 - **Frontend State**: Use Pinia for global state. Ensure WebSocket response handling in stores matches the expected payload structures (e.g., `payload.schema` vs direct flattening).
 - **Styling**: Maintain the established dark-mode aesthetic using Tailwind CSS 4.
