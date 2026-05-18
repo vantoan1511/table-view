@@ -53,13 +53,13 @@ const confirmDelete = async () => {
   const id = props.idToDelete;
   await connectionsStore.removeConnection(id);
   schemaStore.removeConnection(id);
-  
+
   toastStore.addToast({
     message: 'Connection deleted.',
     severity: 'success',
     variation: 'subtle'
   });
-  
+
   emit('update:idToDelete', null);
   emit('closeDeleteConfirm');
 };

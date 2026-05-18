@@ -11,11 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backend: Schema & Database Deletion**: Implemented `drop_schema` and `drop_database` across all drivers (PostgreSQL, MySQL, SQLite, Oracle).
 - **UI: Sidebar Dialogs**: Extracted all sidebar-related confirmation and creation dialogs into a dedicated `SidebarDialogs.vue` component for better maintainability.
 - **UI: Deletion Workflows**: Integrated interactive deletion for databases and schemas with confirmation dialogs.
+- **UI: Data Grid & SQL Results Virtualization**: Fully implemented high-performance virtual scrolling for both main Data Grid and SQL Results Grid to handle large datasets.
+- **UI: Grid Cell Value Selection**: Enabled select-text on grid cell values and added a "Copy Cell Value" option to the grid context menu.
 
 ### Changed
 - **Architecture: State Cleanup**: Enhanced `schemaStore` with formal cleanup logic to prevent state leaks when deleting connections.
 - **Production: Security Hardening**: Enforced `tokenSecurity: "one-time"`, `dataLocation: "system"`, and disabled developer inspector in `neutralino.config.json`.
 - **UI: Database Tree**: Refactored `DatabaseTree.vue` to use the new centralized `SidebarDialogs` component.
+- **UI: SQL Editor Layout Optimization**: Restructured the results header by integrating tab selection (Results/Messages) and row count metadata directly into the result pane, maximizing the active workspace.
+- **UI: Button Icon Standardization**: Standardized icon button bindings across dialogs to use consistent Vue property definitions (e.g., `:icon`).
 
 ## [0.2.9] - 2026-05-16
 

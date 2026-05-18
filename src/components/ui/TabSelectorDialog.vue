@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import Button from './Button.vue';
+
 import { useConnectionsStore } from '@/stores/connections';
 import { useTabsStore } from '@/stores/tabs';
+
 import type { Tab } from '@/types';
+
 import { LayoutGrid, Plus, Trash2, X } from 'lucide-vue-next';
 import { computed } from 'vue';
-import Button from './Button.vue';
 
 const tabsStore = useTabsStore();
 const connectionsStore = useConnectionsStore();
@@ -63,9 +66,7 @@ const deleteTab = (id: string) => {
             Open Editor: {{ connection?.name }}
           </h3>
         </div>
-        <Button variant="ghost" size="icon" @click="close">
-          <X :size="18" />
-        </Button>
+        <Button variant="ghost" size="icon" :icon="X" @click="close" />
       </div>
 
       <!-- List -->
@@ -91,11 +92,10 @@ const deleteTab = (id: string) => {
           <Button
             variant="ghost"
             size="icon"
+            :icon="Trash2"
             class="hover:!text-danger hover:!bg-danger/10 opacity-0 group-hover:opacity-100"
             @click.stop="deleteTab(tab.id)"
-          >
-            <Trash2 :size="14" />
-          </Button>
+          />
         </div>
 
         <div

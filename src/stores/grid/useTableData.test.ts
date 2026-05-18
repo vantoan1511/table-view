@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ref } from 'vue';
+import { setActivePinia, createPinia } from 'pinia';
 import { useTableData } from './useTableData';
 import { BridgeService } from '@/services/bridge';
 
@@ -15,6 +16,7 @@ describe('useTableData', () => {
   let isLoading: any;
 
   beforeEach(() => {
+    setActivePinia(createPinia());
     vi.clearAllMocks();
     window.NL_PORT = 1234; // Simulate Neutralino environment
 
