@@ -26,7 +26,7 @@ struct Payload {
     #[serde(default)]
     sort_direction: String,
     #[serde(default)]
-    _filter: String,
+    filter: String,
     #[serde(default)]
     sql: String,
     #[serde(default)]
@@ -262,7 +262,7 @@ pub async fn handle_message(
                     }
                 }
                 "fetchTableData" => {
-                    let result = driver.fetch_table_data(&payload.table_name, payload.limit, payload.offset, &payload.sort_column, &payload.sort_direction).await;
+                    let result = driver.fetch_table_data(&payload.table_name, payload.limit, payload.offset, &payload.sort_column, &payload.sort_direction, &payload.filter).await;
                     match result {
                         Ok(data) => {
                             let mut resp = serde_json::to_value(&data).unwrap_or(json!({}));

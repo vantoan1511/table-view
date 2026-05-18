@@ -147,6 +147,7 @@ pub trait DatabaseDriver: Send + Sync {
         offset: i64,
         sort_column: &str,
         sort_direction: &str,
+        filter: &str,
     ) -> Result<TableDataResult, String>;
     async fn query(&self, sql: &str) -> Result<QueryResult, String>;
     async fn update_cell(

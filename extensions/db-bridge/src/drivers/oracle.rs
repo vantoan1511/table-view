@@ -349,6 +349,7 @@ impl DatabaseDriver for OracleDriver {
         offset: i64,
         sort_column: &str,
         sort_direction: &str,
+        filter: &str,
     ) -> Result<TableDataResult, String> {
         let pool = self.pool()?;
         let (owner, table) = self.split_table_name(table_name);
@@ -363,6 +364,12 @@ impl DatabaseDriver for OracleDriver {
             JsonValue::String(table.to_string()),
         ];
 
+        let where_clause = if !filter.trim().is_empty() {
+            format!(" WHERE {}", filter.trim())
+        } else {
+            String::new()
+        };
+
         let order_clause = if !sort_column.is_empty() {
             let dir = if sort_direction.eq_ignore_ascii_case("desc") {
                 "DESC"
@@ -375,12 +382,13 @@ impl DatabaseDriver for OracleDriver {
         };
 
         let data_sql = format!(
-            "SELECT * FROM {}{}{}",
+            "SELECT * FROM {}{}{}{}",
             qualified_table,
+            where_clause,
             order_clause,
             Self::pagination_clause(limit, offset)
         );
-        let count_sql = format!("SELECT COUNT(*) AS CNT FROM {}", qualified_table);
+        let count_sql = format!("SELECT COUNT(*) AS CNT FROM {}{}", qualified_table, where_clause);
 
         let (pk_res, data_res, count_res) = tokio::join!(
             Self::execute_query(pool, pk_sql, &pk_params),
