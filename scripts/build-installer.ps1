@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.1.9"
+    [string]$Version = "0.2.9"
 )
 
 # Table-View Installer Build Script
@@ -63,7 +63,8 @@ Write-Host "--- Compiling Installer (Version: $Version) ---" -ForegroundColor Cy
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "--- Success! Installer created in scripts\Output ---" -ForegroundColor Green
-} else {
+}
+else {
     Write-Error "Inno Setup compilation failed."
     exit $LASTEXITCODE
 }
