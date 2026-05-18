@@ -202,6 +202,7 @@ impl DatabaseDriver for SqliteDriver {
         offset: i64,
         sort_column: &str,
         sort_direction: &str,
+        filter: &str,
     ) -> Result<TableDataResult, String> {
         let pool = self.pool()?;
         let safe_table = Self::quote(table_name);
@@ -215,6 +216,12 @@ impl DatabaseDriver for SqliteDriver {
             .filter_map(|r| r.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
             .collect();
 
+        let where_clause = if !filter.trim().is_empty() {
+            format!(" WHERE {}", filter.trim())
+        } else {
+            String::new()
+        };
+
         let order_clause = if !sort_column.is_empty() {
             let dir = if sort_direction.eq_ignore_ascii_case("desc") { "DESC" } else { "ASC" };
             format!(" ORDER BY {} {}", Self::quote(sort_column), dir)
@@ -223,8 +230,8 @@ impl DatabaseDriver for SqliteDriver {
         };
 
         let sql = format!(
-            "SELECT * FROM {}{} LIMIT ? OFFSET ?",
-            safe_table, order_clause
+            "SELECT * FROM {}{}{} LIMIT ? OFFSET ?",
+            safe_table, where_clause, order_clause
         );
         let (data, mut fields, elapsed) = Self::execute_query(
             pool,
@@ -239,7 +246,7 @@ impl DatabaseDriver for SqliteDriver {
             }
         }
 
-        let count_sql = format!("SELECT COUNT(*) as cnt FROM {}", safe_table);
+        let count_sql = format!("SELECT COUNT(*) as cnt FROM {}{}", safe_table, where_clause);
         let (count_rows, _, _) = Self::execute_query(pool, &count_sql, &[]).await?;
         let total = count_rows
             .first()

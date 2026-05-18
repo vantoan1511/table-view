@@ -321,6 +321,7 @@ impl DatabaseDriver for MysqlDriver {
         offset: i64,
         sort_column: &str,
         sort_direction: &str,
+        filter: &str,
     ) -> Result<TableDataResult, String> {
         let pool = self.pool()?;
         let safe_table = Self::quote(table_name);
@@ -328,6 +329,12 @@ impl DatabaseDriver for MysqlDriver {
         let pk_sql = "SELECT COLUMN_NAME FROM information_schema.COLUMNS \
             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_KEY = 'PRI'";
         
+        let where_clause = if !filter.trim().is_empty() {
+            format!(" WHERE {}", filter.trim())
+        } else {
+            String::new()
+        };
+
         let order_clause = if !sort_column.is_empty() {
             let dir = if sort_direction.eq_ignore_ascii_case("desc") { "DESC" } else { "ASC" };
             format!(" ORDER BY {} {}", Self::quote(sort_column), dir)
@@ -336,10 +343,10 @@ impl DatabaseDriver for MysqlDriver {
         };
 
         let data_sql = format!(
-            "SELECT * FROM {}{} LIMIT ? OFFSET ?",
-            safe_table, order_clause
+            "SELECT * FROM {}{}{} LIMIT ? OFFSET ?",
+            safe_table, where_clause, order_clause
         );
-        let count_sql = format!("SELECT COUNT(*) as cnt FROM {}", safe_table);
+        let count_sql = format!("SELECT COUNT(*) as cnt FROM {}{}", safe_table, where_clause);
 
         let pk_params = [Value::String(table_name.to_string())];
         let data_params = [

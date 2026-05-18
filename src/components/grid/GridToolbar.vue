@@ -2,21 +2,24 @@
 import AlterTableDialog from '@/components/ui/AlterTableDialog.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
+
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
+
 import * as Neutralino from '@neutralinojs/lib';
 import { computed, ref, watch } from 'vue';
-
 import {
   Columns3,
   Download,
+  Filter,
   LayoutGrid,
   MoreHorizontal,
   Plus,
   RefreshCw,
   Trash2,
-  Wrench
+  Wrench,
+  X
 } from 'lucide-vue-next';
 
 const gridStore = useGridStore();
@@ -56,6 +59,17 @@ const handleInsert = async () => {
 // ─── Refresh ──────────────────────────────────────────────────────────────────────
 const handleRefresh = () => {
   gridStore.loadTable(gridStore.activeTableName);
+};
+
+// ─── Filter ──────────────────────────────────────────────────────────────────────
+const handleFilter = () => {
+  gridStore.currentPage = 1;
+  gridStore.loadTable(gridStore.activeTableName);
+};
+
+const clearFilter = () => {
+  gridStore.filterText = '';
+  handleFilter();
 };
 
 // ─── Delete Confirmation ──────────────────────────────────────────────────────
@@ -265,6 +279,32 @@ const vFocus = {
           ></div>
         </div>
       </button>
+    </div>
+
+    <!-- Filter Query Input -->
+    <div
+      v-if="gridStore.activeTableName"
+      class="max-w-[200px] flex-1 shrink-0 @[750px]:max-w-[320px]"
+    >
+      <div
+        class="bg-surface border-border focus-within:border-primary/50 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors"
+      >
+        <Filter :size="12" class="text-text-tertiary shrink-0" />
+        <input
+          type="text"
+          placeholder="Filter condition (e.g. id > 10)..."
+          class="text-text-primary placeholder-text-tertiary flex-1 border-none bg-transparent text-[12px] outline-none"
+          v-model="gridStore.filterText"
+          @keydown.enter="handleFilter"
+        />
+        <button
+          v-if="gridStore.filterText"
+          class="text-text-tertiary hover:text-text-primary shrink-0 cursor-pointer"
+          @click="clearFilter"
+        >
+          <X :size="12" />
+        </button>
+      </div>
     </div>
 
     <!-- Right: Actions -->

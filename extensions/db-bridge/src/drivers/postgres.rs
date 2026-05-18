@@ -398,6 +398,7 @@ impl DatabaseDriver for PostgresDriver {
         offset: i64,
         sort_column: &str,
         sort_direction: &str,
+        filter: &str,
     ) -> Result<TableDataResult, String> {
         let pool = self.pool()?;
         let (schema_name, bare_table_name) = Self::split_table_name(table_name);
@@ -423,6 +424,12 @@ impl DatabaseDriver for PostgresDriver {
             WHERE c.table_schema = $1 AND c.table_name = $2 \
             ORDER BY c.ordinal_position";
 
+        let where_clause = if !filter.trim().is_empty() {
+            format!(" WHERE {}", filter.trim())
+        } else {
+            String::new()
+        };
+
         let order_clause = if !sort_column.is_empty() {
             let dir = if sort_direction.eq_ignore_ascii_case("desc") {
                 "DESC"
@@ -435,10 +442,10 @@ impl DatabaseDriver for PostgresDriver {
         };
 
         let data_sql = format!(
-            "SELECT * FROM {}{} LIMIT $1 OFFSET $2",
-            safe_table, order_clause
+            "SELECT * FROM {}{}{} LIMIT $1 OFFSET $2",
+            safe_table, where_clause, order_clause
         );
-        let count_sql = format!("SELECT COUNT(*) FROM {}", safe_table);
+        let count_sql = format!("SELECT COUNT(*) FROM {}{}", safe_table, where_clause);
 
         let column_params = [
             Value::String(schema_name.to_string()),
