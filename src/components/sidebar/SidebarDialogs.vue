@@ -7,6 +7,7 @@ import { computed } from 'vue';
 import ConfirmDialog from '../ui/ConfirmDialog.vue';
 import CreateTableDialog from '../ui/CreateTableDialog.vue';
 import CreateSchemaDialog from '../ui/CreateSchemaDialog.vue';
+import CreateDatabaseDialog from '../ui/CreateDatabaseDialog.vue';
 
 const props = defineProps<{
   idToDelete: string | null;
@@ -153,6 +154,12 @@ const confirmDatabaseDelete = async () => {
       :connection-id="gridStore.createSchemaTarget.connectionId"
       :db="gridStore.createSchemaTarget.db"
       @close="gridStore.showCreateSchemaDialog = false"
+    />
+
+    <CreateDatabaseDialog
+      v-if="gridStore.showCreateDatabaseDialog && gridStore.createDatabaseTarget"
+      :connection-id="gridStore.createDatabaseTarget.connectionId"
+      @close="gridStore.showCreateDatabaseDialog = false"
     />
   </div>
 </template>

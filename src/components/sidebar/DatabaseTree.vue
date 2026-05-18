@@ -6,13 +6,13 @@ import { useTabsStore } from '@/stores/tabs';
 import { useToastStore } from '@/stores/toast';
 import type { Connection } from '@/types';
 import { Layers } from 'lucide-vue-next';
-import { computed, provide, ref } from 'vue';
+import { provide, ref } from 'vue';
 import ConnectionContextMenu from './ConnectionContextMenu.vue';
+import ConnectionNode from './ConnectionNode.vue';
 import DatabaseContextMenu from './DatabaseContextMenu.vue';
 import SchemaContextMenu from './SchemaContextMenu.vue';
-import TableContextMenu from './TableContextMenu.vue';
-import ConnectionNode from './ConnectionNode.vue';
 import SidebarDialogs from './SidebarDialogs.vue';
+import TableContextMenu from './TableContextMenu.vue';
 
 const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
@@ -142,6 +142,9 @@ const handleContextAction = async (action: string) => {
       }
     } else if (action === 'refresh') {
       schemaStore.loadSchema(false, connId);
+    } else if (action === 'createDatabase') {
+      gridStore.createDatabaseTarget = { connectionId: connId };
+      gridStore.showCreateDatabaseDialog = true;
     } else if (action === 'delete') {
       idToDelete.value = connId;
       showDeleteConfirm.value = true;
@@ -219,7 +222,6 @@ const handleContextAction = async (action: string) => {
     }
   }
 };
-
 </script>
 
 <template>

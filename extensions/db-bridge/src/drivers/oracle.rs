@@ -648,6 +648,10 @@ impl DatabaseDriver for OracleDriver {
         Err("Dropping database via SQL is not supported in Oracle. Please use database management tools.".to_string())
     }
 
+    async fn create_database(&self, _db_name: &str) -> Result<(), String> {
+        Err("Creating database via SQL is not supported in Oracle. Please use database management tools.".to_string())
+    }
+
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {
         let pool = self.pool()?;
         let (owner, table) = self.split_table_name(table_name);
