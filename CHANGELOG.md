@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.10] - 2026-05-18
+
 ### Added
 - **Backend: Schema & Database Deletion**: Implemented `drop_schema` and `drop_database` across all drivers (PostgreSQL, MySQL, SQLite, Oracle).
 - **UI: Sidebar Dialogs**: Extracted all sidebar-related confirmation and creation dialogs into a dedicated `SidebarDialogs.vue` component for better maintainability.
