@@ -5,7 +5,6 @@ import { ref, type Ref } from 'vue';
 import { useToastStore } from '../toast';
 import { parseGridInputValue } from './valueConversion';
 
-
 export function useNewRow(
   rows: Ref<GridRow[]>,
   columns: Ref<GridColumn[]>,
@@ -58,11 +57,8 @@ export function useNewRow(
     const type = col.dataType ? col.dataType.toLowerCase() : '';
     const isUuid = type.includes('uuid') || type === '2950';
     const isStringPk =
-      ['1043', '25', '1042'].includes(type) ||
-      type.includes('char') ||
-      type.includes('text');
-    const isSerial =
-      type === 'serial' || type === 'bigserial' || type === 'smallserial';
+      ['1043', '25', '1042'].includes(type) || type.includes('char') || type.includes('text');
+    const isSerial = type === 'serial' || type === 'bigserial' || type === 'smallserial';
     return isUuid || isStringPk || isSerial;
   };
 
@@ -130,9 +126,7 @@ export function useNewRow(
           const type = col.dataType ? col.dataType.toLowerCase() : '';
           const isUuid = type.includes('uuid') || type === '2950';
           const isStringPk =
-            ['1043', '25', '1042'].includes(type) ||
-            type.includes('char') ||
-            type.includes('text');
+            ['1043', '25', '1042'].includes(type) || type.includes('char') || type.includes('text');
           if (isUuid || isStringPk) {
             cleanData[col.name] = crypto.randomUUID();
           }

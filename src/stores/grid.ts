@@ -145,7 +145,11 @@ export const useGridStore = defineStore('grid', () => {
       isLoading.value = true;
       await BridgeService.request('dbBridge.dropTable', 'dbBridge.dropTableResult', {
         connectionId: targetConnectionId!,
-        tableName: tableData.resolveBackendTableName(tableName, targetConnectionId!, schemaName || undefined),
+        tableName: tableData.resolveBackendTableName(
+          tableName,
+          targetConnectionId!,
+          schemaName || undefined
+        ),
         targetDatabase: dbName
       });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ref } from 'vue';
+import { setActivePinia, createPinia } from 'pinia';
 import { useSchemaActions } from './useSchemaActions';
 import { BridgeService } from '@/services/bridge';
 
@@ -16,6 +17,7 @@ describe('useSchemaActions', () => {
   let loadedAllDatabases: any;
 
   beforeEach(() => {
+    setActivePinia(createPinia());
     vi.clearAllMocks();
     cache = {
       loadingByConnection: ref({}),

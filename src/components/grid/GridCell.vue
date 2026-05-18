@@ -1,10 +1,10 @@
-// src/components/grid/GridCell.vue
 <script setup lang="ts">
-import { formatGridCellValue } from '@/stores/grid/valueConversion';
+import type { GridColumn } from '@/types';
+
 import { Check, X } from 'lucide-vue-next';
 import { nextTick, ref, watch } from 'vue';
 
-import type { GridColumn } from '@/types';
+import { formatGridCellValue } from '@/stores/grid/valueConversion';
 
 const props = defineProps<{
   rowIndex: number;
@@ -133,7 +133,7 @@ const getCellClass = (colName: string, value: unknown): string => {
         <!-- Validation error tooltip -->
         <div
           v-if="props.validationError"
-          class="bg-danger text-white pointer-events-none absolute top-full left-0 z-50 mt-1 max-w-[200px] truncate rounded px-2 py-0.5 text-[10px] font-medium shadow-lg"
+          class="bg-danger pointer-events-none absolute top-full left-0 z-50 mt-1 max-w-[200px] truncate rounded px-2 py-0.5 text-[10px] font-medium text-white shadow-lg"
         >
           {{ props.validationError }}
         </div>
@@ -155,7 +155,7 @@ const getCellClass = (colName: string, value: unknown): string => {
 
       <span
         v-else
-        class="block cursor-text truncate tabular-nums select-none"
+        class="block cursor-text truncate tabular-nums select-text"
         :class="{ 'text-text-tertiary italic': value === null }"
       >
         {{ value === null ? 'NULL' : formatGridCellValue(value) }}

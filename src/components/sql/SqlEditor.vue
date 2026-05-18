@@ -1,15 +1,22 @@
 <script setup lang="ts">
+// Components
 import Button from '@/components/ui/Button.vue';
-import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
 import ResizeHandle from '@/components/ui/ResizeHandle.vue';
 import ResultsGrid from './ResultsGrid.vue';
 
+// Composables
 import { useDebounce } from '@/composables/useDebounce';
 import { useSqlEditor } from '@/composables/useSqlEditor';
-import { editorTheme, sqlHighlightStyle } from '@/lib/editorConfig';
+
+// Pinia stores
 import { useGridStore } from '@/stores/grid';
 import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
+
+// Types
+import type { Tab } from '@/types';
+
+// External libraries
 import { PostgreSQL, sql } from '@codemirror/lang-sql';
 import { syntaxHighlighting } from '@codemirror/language';
 import { Compartment, EditorState, Prec } from '@codemirror/state';
@@ -18,7 +25,8 @@ import { EditorView, basicSetup } from 'codemirror';
 import { Clock, Download, Play, Save } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
 
-import type { Tab } from '@/types';
+// Other imports
+import { editorTheme, sqlHighlightStyle } from '@/lib/editorConfig';
 
 const props = defineProps<{
   tab: Tab;
@@ -32,10 +40,6 @@ const { activeResultTab, executeRun, saveQuery, exportQuery } = useSqlEditor(pro
 
 const editorContainer = ref<HTMLElement>();
 const editorWidth = ref(600);
-const sqlLimitOptions = [100, 200, 500, 1000, 5000].map((value) => ({
-  label: String(value),
-  value
-}));
 
 let editorView: EditorView | null = null;
 const sqlCompartment = new Compartment();
@@ -61,10 +65,6 @@ const handleRun = useDebounce(
   },
   { delay: 300 }
 );
-
-const setSqlLimit = (limit: DropdownValue) => {
-  gridStore.sqlLimit = Number(limit);
-};
 
 const initEditor = () => {
   if (editorView) {
@@ -134,41 +134,6 @@ onMounted(() => {
 
 <template>
   <div class="bg-surface flex min-h-0 flex-1 flex-col">
-    <!-- Results / Messages tabs toggle -->
-    <div class="border-border bg-muted flex shrink-0 items-center border-b">
-      <div
-        class="text-text-secondary px-4 py-1.5 text-[12px] font-semibold tracking-wider uppercase"
-      >
-        Query Results
-      </div>
-      <div class="border-border ml-auto flex items-center border-l">
-        <Button
-          variant="none"
-          class="px-3 py-1.5 text-[12px] font-medium"
-          :class="
-            activeResultTab === 'results'
-              ? 'text-primary border-primary rounded-none border-b-2'
-              : 'text-text-secondary hover:text-text-primary'
-          "
-          @click="activeResultTab = 'results'"
-        >
-          Results
-        </Button>
-        <Button
-          variant="none"
-          class="px-3 py-1.5 text-[12px] font-medium"
-          :class="
-            activeResultTab === 'messages'
-              ? 'text-primary border-primary rounded-none border-b-2'
-              : 'text-text-secondary hover:text-text-primary'
-          "
-          @click="activeResultTab = 'messages'"
-        >
-          Messages
-        </Button>
-      </div>
-    </div>
-
     <!-- Split Content -->
     <div class="flex min-h-0 flex-1">
       <!-- Editor Pane -->
@@ -179,7 +144,7 @@ onMounted(() => {
         <div ref="editorContainer" class="min-h-0 flex-1 overflow-auto"></div>
 
         <!-- Run Bar -->
-        <div class="border-border bg-muted flex items-center gap-3 border-t px-3 py-1.5">
+        <div class="border-border bg-muted flex items-center gap-2 border-t px-3 py-1.5">
           <Button
             id="btn-run-query"
             variant="primary"
@@ -209,19 +174,6 @@ onMounted(() => {
             Export
           </Button>
 
-          <div class="border-border ml-1 flex h-5 items-center gap-1 border-l pl-3">
-            <span class="text-text-tertiary text-[11px]">Limit:</span>
-            <DropdownMenu
-              :model-value="gridStore.sqlLimit"
-              :options="sqlLimitOptions"
-              placement="top"
-              aria-label="SQL result limit"
-              button-class="border-none bg-transparent px-1 py-0 text-[11px] text-text-primary hover:bg-transparent hover:text-primary"
-              menu-class="min-w-18"
-              @update:model-value="setSqlLimit"
-            />
-          </div>
-
           <div class="text-text-secondary ml-auto flex items-center gap-1 text-[11px]">
             <Clock :size="12" class="text-success" />
             <span>{{ gridStore.sqlExecutionTime }} ms</span>
@@ -233,25 +185,70 @@ onMounted(() => {
       <ResizeHandle orientation="horizontal" v-model="editorWidth" />
 
       <!-- Results Pane -->
-      <div class="min-h-0 flex-1 overflow-auto">
-        <div v-if="activeResultTab === 'results'" class="h-full">
-          <ResultsGrid />
-        </div>
-        <div v-else class="text-text-secondary p-3 text-[12px] font-(--font-mono)">
-          <div
-            v-for="(msg, i) in gridStore.sqlMessages"
-            :key="i"
-            class="py-1"
-            :class="{
-              'text-success': msg.type === 'info',
-              'text-danger': msg.type === 'error',
-              'text-warning': msg.type === 'warning'
-            }"
-          >
-            {{ msg.text }}
+      <div class="bg-surface flex min-h-0 flex-1 flex-col overflow-hidden">
+        <!-- Results / Messages Header -->
+        <div
+          class="bg-muted border-border flex h-9 shrink-0 items-center justify-between border-b px-3 select-none"
+        >
+          <div class="flex h-full items-center">
+            <button
+              class="h-full border-b-2 px-3 text-[12px] font-medium whitespace-nowrap transition-colors"
+              :class="
+                activeResultTab === 'results'
+                  ? 'border-primary text-primary bg-primary/5'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-hover/50 border-transparent'
+              "
+              @click="activeResultTab = 'results'"
+            >
+              Results
+            </button>
+            <button
+              class="h-full border-b-2 px-3 text-[12px] font-medium whitespace-nowrap transition-colors"
+              :class="
+                activeResultTab === 'messages'
+                  ? 'border-primary text-primary bg-primary/5'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-hover/50 border-transparent'
+              "
+              @click="activeResultTab = 'messages'"
+            >
+              Messages
+            </button>
           </div>
-          <div v-if="gridStore.sqlMessages.length === 0" class="text-text-tertiary italic">
-            No messages yet. Run a query to see output.
+
+          <!-- Metadata info -->
+          <div class="flex items-center gap-3">
+            <div class="text-text-tertiary text-[11px] font-medium">
+              <span v-if="activeResultTab === 'results' && gridStore.sqlRows.length > 0">
+                {{ gridStore.sqlRows.length }} rows
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="min-h-0 flex-1 overflow-hidden">
+          <div v-if="activeResultTab === 'results'" class="h-full">
+            <ResultsGrid />
+          </div>
+          <div
+            v-else
+            class="text-text-secondary h-full overflow-auto p-3 text-[12px] font-(--font-mono)"
+          >
+            <div
+              v-for="(msg, i) in gridStore.sqlMessages"
+              :key="i"
+              class="py-1"
+              :class="{
+                'text-success': msg.type === 'info',
+                'text-danger': msg.type === 'error',
+                'text-warning': msg.type === 'warning'
+              }"
+            >
+              {{ msg.text }}
+            </div>
+            <div v-if="gridStore.sqlMessages.length === 0" class="text-text-tertiary italic">
+              No messages yet. Run a query to see output.
+            </div>
           </div>
         </div>
       </div>
