@@ -1,6 +1,6 @@
 {
   "name": "src",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "Lightweight, high-performance desktop database management tool for PostgreSQL, MySQL, SQLite, and Oracle.",
   "private": true,
   "type": "module",

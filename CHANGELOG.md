@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.11] - 2026-05-18
+
 ### Added
 - **Backend: Standalone CLI Mode**: Added standalone mode support (`--standalone` or `-s`) to the `db-bridge` Rust binary, allowing connection testing, querying, schema retrieval, and table data fetching directly from the CLI.
 
