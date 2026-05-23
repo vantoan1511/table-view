@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.13] - 2026-05-23
+
+### Fixed
+- **Updater: Restart Binary Mismatch**: Resolved post-update restart error by dynamically querying the running executable path using the current process ID (`window.NL_PID`) via PowerShell, ensuring it successfully kills and restarts the correct binary.
+
 ## [0.2.12] - 2026-05-23
 
 ### Added

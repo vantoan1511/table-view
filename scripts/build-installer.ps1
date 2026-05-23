@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.2.12"
+    [string]$Version = "0.2.13"
 )
 
 # Table-View Installer Build Script
