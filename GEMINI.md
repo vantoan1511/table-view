@@ -31,7 +31,69 @@
 
 - **Use arrow function** syntax for all functions.
 - **Imports order**: components, composables, Pinia stores, Pinia actions, types, external libraries, other imports, each group separated by a blank line.
+- **Component reuse**: Always reference to existing component at `/components` as the base for creating new components. Do not reinvent the wheel. Try to reuse when possible.
+- **Single responsibility**: Each component should have a single responsibility. Do not create monolithic components.
+- **Props and emits**: Components should use props to receive data from the parent component and emit events to communicate with the parent component.
+- **Testability**: Components should be testable. Do not create components that are hard to test.
+- **Performance**: Components should be performant. Do not create components that are slow to render.
 
-## Coding conventions:
+## Codebase Architecture & Directory Map
 
-- Always reference to existing component at `/components` as the base for creating new components. Do not reinvent the wheel.
+To help future agent workflows, here is the complete structural layout of the Table View project:
+
+```text
+table-view/
+├── extensions/                  # Desktop application extension backends
+│   └── db-bridge/               # Rust-based database bridge (Neutralino extension)
+│       ├── Cargo.toml           # Rust package configuration
+│       └── src/
+│           ├── main.rs          # Extension entry point, command dispatch, and event loop
+│           ├── bridge.rs        # Neutralino bridge communication interface
+│           ├── handler.rs       # Client request / database query execution handler
+│           ├── pool.rs          # Database connection pool manager
+│           └── drivers/         # Database-specific connection & query drivers
+│               ├── mod.rs       # Driver manager and common traits
+│               ├── postgres.rs  # PostgreSQL driver (sqlx)
+│               ├── mysql.rs     # MySQL driver (sqlx)
+│               ├── sqlite.rs    # SQLite driver (rusqlite)
+│               ├── oracle.rs    # Oracle driver (oracle-rs / deadpool-oracle)
+│               └── utils.rs     # Shared database utility functions
+│
+├── src/                         # Vue 3 Frontend source code
+│   ├── main.ts                  # Application entry point
+│   ├── App.vue                  # Root Vue component
+│   │
+│   ├── components/              # Vue components, namespaces:
+│   │   ├── grid/                # Data table, Grid cell/header, grid toolbar, pagination
+│   │   ├── layout/              # MinimizedDock, PanelHeader, TitleBar, StatusBar, WorkspaceContainer
+│   │   ├── modals/              # NewConnectionModal and related connection modals
+│   │   ├── panels/              # Properties, indexes, outputs, history, and ValueViewer
+│   │   ├── sidebar/             # SidebarDialogs, DatabaseTree, DatabaseNode, ContextMenus (Schema, Table, etc.)
+│   │   ├── sql/                 # SqlEditor, ResultsGrid (monaco or textarea wrappers)
+│   │   └── ui/                  # UI atoms/dialogs (Button, Dropdown, Checkbox, Dialogs: AlterTable, CreateTable, Toast, Updater)
+│   │
+│   ├── stores/                  # Pinia stores for global application state
+│   │   ├── about.ts             # App information & version metadata
+│   │   ├── connections.ts       # Active and configured database connections state
+│   │   ├── error.ts             # Global application error tracing state
+│   │   ├── grid.ts              # DataGrid rendering, sorting, pagination & active row/cell state
+│   │   ├── layout.ts            # Sidebar, panels, active tab, and modal visibility state
+│   │   ├── schema.ts            # Selected database, schema, table metadata, table columns state
+│   │   ├── tabs.ts              # Active workspace query/table tabs and history state
+│   │   ├── toast.ts             # Transient UI notifications/toast message state
+│   │   └── updater.ts           # Auto-update status, release manifests and changelog state
+│   │
+│   ├── composables/             # Custom Vue composables (useSqlEditor, useGridResizing, useKeyboardShortcuts, useTabSync, etc.)
+│   ├── services/                # Communications (bridge.ts for extension WebSocket, native.ts for Neutralino API)
+│   ├── router/                  # Vue router configuration (index.ts)
+│   ├── types/                   # TypeScript interfaces and global schemas (index.ts)
+│   ├── utils/                   # Frontend helpers (crypto.ts, logger.ts)
+│   └── views/                   # Vue route views (MainView.vue)
+│
+├── public/                      # Static resources (icons, assets)
+├── scripts/                     # Local builds and automated update helper scripts
+├── package.json                 # Node project definition
+├── tsconfig.json                # TypeScript compilation config
+├── vite.config.ts               # Vite configuration
+└── neutralino.config.json       # NeutralinoJS desktop wrapper and extension mappings
+```
