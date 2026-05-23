@@ -32,7 +32,7 @@ export function useTableData(connectionsStore: any) {
     }
   };
 
-  const autoDistributeColumnWidths = (columnsList: GridColumn[], rowsList?: GridRow[]) => {
+  const autoDistributeColumnWidths = (columnsList: GridColumn[]) => {
     const newWidths = { ...columnWidths.value };
     const numCols = columnsList.length;
     if (numCols === 0) return;
@@ -177,16 +177,17 @@ export function useTableData(connectionsStore: any) {
 
       const activeTab = tabsStore.activeTab;
       if (activeTab && !activeTab.columnWidths) {
-        autoDistributeColumnWidths(columns.value, rows.value);
+        autoDistributeColumnWidths(columns.value);
       } else if (!activeTab) {
-        autoDistributeColumnWidths(columns.value, rows.value);
+        autoDistributeColumnWidths(columns.value);
       }
     } catch (error: any) {
-      console.error('Failed to fetch table data:', error.message);
+      const errorMsg = error?.message || String(error);
+      console.error('Failed to fetch table data:', errorMsg);
       toastStore.addToast({
         severity: 'error',
         title: 'Failed to Load Table',
-        message: error.message || 'An unknown error occurred while loading table data.'
+        message: errorMsg
       });
     } finally {
       isLoading.value = false;
