@@ -140,6 +140,7 @@ pub async fn handle_message(
             match driver.connect(config).await {
                 Ok(()) => {
                     let mut p = pool.lock().await;
+                    p.remove_all_for_connection(&conn_id).await;
                     p.put(conn_id.clone(), driver, config.clone()).await;
                     broadcast(&writer, &token, "dbBridge.connectResult", json!({"reqId": payload.req_id, "success": true})).await;
                 }

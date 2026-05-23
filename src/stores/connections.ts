@@ -114,6 +114,17 @@ export const useConnectionsStore = defineStore('connections', () => {
   const updateConnection = async (id: string, updates: Partial<Connection>) => {
     const conn = connections.value.find((c) => c.id === id);
     if (conn) {
+      const credentialsChanged =
+        (updates.host !== undefined && updates.host !== conn.host) ||
+        (updates.port !== undefined && updates.port !== conn.port) ||
+        (updates.database !== undefined && updates.database !== conn.database) ||
+        (updates.username !== undefined && updates.username !== conn.username) ||
+        (updates.password !== undefined && updates.password !== conn.password) ||
+        (updates.type !== undefined && updates.type !== conn.type) ||
+        (updates.oracleConnectType !== undefined &&
+          updates.oracleConnectType !== conn.oracleConnectType) ||
+        (updates.oracleRole !== undefined && updates.oracleRole !== conn.oracleRole);
+
       Object.assign(conn, updates);
       await saveConnections();
 
@@ -124,7 +135,16 @@ export const useConnectionsStore = defineStore('connections', () => {
         const schemaStore = useSchemaStore();
         // Clear the cached schema so the tree reloads cleanly
         delete schemaStore.schemasByConnection[id];
-        schemaStore.loadSchema(conn.displayAllDatabases, id);
+
+        if (credentialsChanged) {
+          try {
+            await setActiveConnection(id);
+          } catch (err) {
+            console.error('Failed to reconnect after credentials update:', err);
+          }
+        } else {
+          schemaStore.loadSchema(conn.displayAllDatabases, id);
+        }
       }
     }
   };

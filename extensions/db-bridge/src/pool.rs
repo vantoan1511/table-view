@@ -103,6 +103,27 @@ impl Pool {
         }
     }
 
+    /// Explicitly close and remove all connections from the pool for a given connectionId.
+    pub async fn remove_all_for_connection(&mut self, id: &str) {
+        let prefix = format!("{}:", id);
+        let mut keys_to_remove = Vec::new();
+        for key in self.drivers.keys() {
+            if key.starts_with(&prefix) {
+                keys_to_remove.push(key.clone());
+            }
+        }
+        for key in keys_to_remove {
+            if let Some(driver_arc) = self.drivers.remove(&key) {
+                let mut driver = driver_arc.write().await;
+                if let Err(e) = driver.disconnect().await {
+                    log::warn!("pool: error disconnecting removed driver {}: {}", key, e);
+                }
+                self.order.retain(|x| x != &key);
+            }
+        }
+        self.configs.remove(id);
+    }
+
     /// Disconnect every active driver in the pool.
     pub async fn close_all(&mut self) {
         for (key, driver_arc) in self.drivers.drain() {

@@ -326,3 +326,10 @@ const color = computed(() => dbColors[normalizedType.value] || 'currentColor');
     </svg>
   </div>
 </template>
+
+<style scoped>
+svg {
+  width: 100%;
+  height: 100%;
+}
+</style>
