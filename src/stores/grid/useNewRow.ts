@@ -9,9 +9,10 @@ export function useNewRow(
   rows: Ref<GridRow[]>,
   columns: Ref<GridColumn[]>,
   totalRows: Ref<number>,
-  activeConnectionId: Ref<string | null>,
+  activeConnectionId: Ref<string | null | undefined>,
   activeTableName: Ref<string>,
-  resolveBackendTableName: (name: string) => string
+  resolveBackendTableName: (name: string) => string,
+  activeDbName: Ref<string | undefined>
 ) {
   const toastStore = useToastStore();
   const newRowIdx = ref<number | null>(null);
@@ -158,7 +159,8 @@ export function useNewRow(
     const payload = await BridgeService.request('dbBridge.insertRow', 'dbBridge.insertRowResult', {
       connectionId: activeConnectionId.value,
       tableName: resolveBackendTableName(activeTableName.value),
-      data
+      data,
+      targetDatabase: activeDbName.value
     });
     return payload.row;
   };

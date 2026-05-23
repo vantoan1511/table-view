@@ -9,9 +9,10 @@ import { useToastStore } from '../toast';
 export function useCellEditing(
   rows: Ref<GridRow[]>,
   columns: Ref<GridColumn[]>,
-  activeConnectionId: Ref<string | null>,
+  activeConnectionId: Ref<string | null | undefined>,
   activeTableName: Ref<string>,
-  resolveBackendTableName: (name: string) => string
+  resolveBackendTableName: (name: string) => string,
+  activeDbName: Ref<string | undefined>
 ) {
   const toastStore = useToastStore();
   const editingCell = ref<{
@@ -56,7 +57,8 @@ export function useCellEditing(
         pkColumn: pkColumn.name,
         pkValue,
         targetColumn: column.name,
-        newValue: parsedValue.value
+        newValue: parsedValue.value,
+        targetDatabase: activeDbName.value
       });
 
       row[column.name] = parsedValue.value as GridRow[string];

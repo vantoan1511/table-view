@@ -156,5 +156,37 @@ describe('useTableData', () => {
       expect(loadingInProcess).toBe(true);
       expect(isLoading.value).toBe(false);
     });
+
+    it('saves connectionId and dbName and reuses them on subsequent load/sort', async () => {
+      const tableData = useTableData(connectionsStore);
+      vi.mocked(BridgeService.request).mockResolvedValue({ rows: [], fields: [], totalCount: 0 });
+
+      // Load table with explicit connectionId and dbName
+      await tableData.loadTable('users', isLoading, 'conn-2', undefined, 'custom_db');
+
+      expect(tableData.activeConnectionId.value).toBe('conn-2');
+      expect(tableData.activeDbName.value).toBe('custom_db');
+      expect(BridgeService.request).toHaveBeenLastCalledWith(
+        'dbBridge.fetchTableData',
+        'dbBridge.fetchTableDataResult',
+        expect.objectContaining({
+          connectionId: 'conn-2',
+          targetDatabase: 'custom_db'
+        })
+      );
+
+      // Now toggle sort — this calls loadTable internally without passing connectionId or dbName
+      await tableData.toggleSort('id', isLoading);
+
+      // It should reuse the saved values
+      expect(BridgeService.request).toHaveBeenLastCalledWith(
+        'dbBridge.fetchTableData',
+        'dbBridge.fetchTableDataResult',
+        expect.objectContaining({
+          connectionId: 'conn-2',
+          targetDatabase: 'custom_db'
+        })
+      );
+    });
   });
 });

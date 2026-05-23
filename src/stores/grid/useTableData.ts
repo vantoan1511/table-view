@@ -16,6 +16,8 @@ export function useTableData(connectionsStore: any) {
   const executionTime = ref(0);
   const activeTableName = ref('');
   const activeTableSchema = ref('');
+  const activeConnectionId = ref<string | undefined>();
+  const activeDbName = ref<string | undefined>();
   const filterText = ref('');
 
   const resolveConnection = (connectionId?: string) =>
@@ -28,7 +30,8 @@ export function useTableData(connectionsStore: any) {
     connectionId?: string,
     schemaName?: string
   ) => {
-    const connection = resolveConnection(connectionId);
+    const targetConnectionId = connectionId || activeConnectionId.value;
+    const connection = resolveConnection(targetConnectionId);
     const targetSchema = schemaName || activeTableSchema.value;
 
     if (['oracle', 'postgres', 'postgresql'].includes(connection?.type ?? '') && targetSchema) {
@@ -51,10 +54,20 @@ export function useTableData(connectionsStore: any) {
     if (schemaName) {
       activeTableSchema.value = schemaName;
     }
+
+    const targetConnectionId = connectionId || activeConnectionId.value || connectionsStore.activeConnectionId || undefined;
+    const targetDbName = dbName || activeDbName.value || undefined;
+
+    if (targetConnectionId) {
+      activeConnectionId.value = targetConnectionId;
+    }
+    if (targetDbName) {
+      activeDbName.value = targetDbName;
+    }
+
     const startTime = performance.now();
     isLoading.value = true;
 
-    const targetConnectionId = connectionId || connectionsStore.activeConnectionId || undefined;
     const backendTableName = resolveBackendTableName(tableName, targetConnectionId, schemaName);
 
     try {
@@ -69,7 +82,7 @@ export function useTableData(connectionsStore: any) {
           sortColumn: sortColumn.value,
           sortDirection: sortDirection.value,
           filter: filterText.value,
-          targetDatabase: dbName
+          targetDatabase: targetDbName
         }
       );
 
@@ -121,6 +134,8 @@ export function useTableData(connectionsStore: any) {
     executionTime,
     activeTableName,
     activeTableSchema,
+    activeConnectionId,
+    activeDbName,
     filterText,
     loadTable,
     toggleSort,
