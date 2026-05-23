@@ -82,7 +82,7 @@ impl Pool {
         }
 
         self.order.push_front(key.clone());
-        self.configs.insert(id, config);
+        self.configs.entry(id).or_insert(config);
         self.drivers.insert(key, Arc::new(RwLock::new(driver)));
     }
 

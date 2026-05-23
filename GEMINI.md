@@ -31,3 +31,7 @@
 
 - **Use arrow function** syntax for all functions.
 - **Imports order**: components, composables, Pinia stores, Pinia actions, types, external libraries, other imports, each group separated by a blank line.
+
+## Coding conventions:
+
+- Always reference to existing component at `/components` as the base for creating new components. Do not reinvent the wheel.

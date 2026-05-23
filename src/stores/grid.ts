@@ -1,16 +1,16 @@
 import { defineStore } from 'pinia';
-import { computed, ref, toRef } from 'vue';
+import { computed, ref } from 'vue';
 
 import { BridgeService } from '@/services/bridge';
 import { useConnectionsStore } from './connections';
-import { useSchemaStore } from './schema';
-import { useTabsStore } from './tabs';
-import { useToastStore } from './toast';
 import { useCellEditing } from './grid/useCellEditing';
 import { useNewRow } from './grid/useNewRow';
 import { useSelection } from './grid/useSelection';
 import { useSqlQuery } from './grid/useSqlQuery';
 import { useTableData } from './grid/useTableData';
+import { useSchemaStore } from './schema';
+import { useTabsStore } from './tabs';
+import { useToastStore } from './toast';
 
 export interface TableColumn {
   name: string;
@@ -359,8 +359,31 @@ export const useGridStore = defineStore('grid', () => {
         dbName: dbName
       });
 
-      // Refresh schema
-      await schemaStore.loadSchema(undefined, connectionId);
+      // Close associated tabs
+      tabsStore.tabs
+        .filter((t) => t.connectionId === connectionId && t.dbName === dbName)
+        .forEach((t) => tabsStore.closeTab(t.id));
+
+      if (tableData.activeDbName.value === dbName) {
+        tableData.activeDbName.value = undefined;
+      }
+
+      // Explicitly clear database schemas/caches in schemaStore
+      schemaStore.clearDbSchema(connectionId, dbName);
+
+      // Check if the database being dropped was the active configured database for the connection
+      const conn = connectionsStore.connections.find((c) => c.id === connectionId);
+      if (conn && conn.database === dbName) {
+        const availableDbs = schemaStore.schemasByConnection[connectionId]?.databases || [];
+        const nextDb =
+          availableDbs.find((d) => d !== dbName) ||
+          (['postgres', 'postgresql'].includes(conn.type) ? 'postgres' : 'mysql');
+        // Update connection with fallback database, which automatically triggers reconnection & schema refresh
+        await connectionsStore.updateConnection(connectionId, { database: nextDb });
+      } else {
+        // Refresh schema if not the active configured database
+        await schemaStore.loadSchema(undefined, connectionId);
+      }
 
       toastStore.addToast({
         severity: 'success',

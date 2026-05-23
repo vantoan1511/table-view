@@ -185,6 +185,12 @@ export function useSchemaActions(
     if (cache.errorDbByConnection.value[connectionId]) {
       delete cache.errorDbByConnection.value[connectionId][dbName];
     }
+    if (cache.loadingDbByConnection.value[connectionId]) {
+      delete cache.loadingDbByConnection.value[connectionId][dbName];
+    }
+    if (treeState.expandedDbsByConnection.value[connectionId]) {
+      delete treeState.expandedDbsByConnection.value[connectionId][dbName];
+    }
   };
 
   const refreshDbSchema = async (connectionId: string, dbName: string) => {

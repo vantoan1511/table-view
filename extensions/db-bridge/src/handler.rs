@@ -166,6 +166,96 @@ pub async fn handle_message(
             }
         }
 
+        "dropDatabase" => {
+            // 1. Remove the connection to the database being dropped from the pool to close it
+            {
+                let mut p = pool.lock().await;
+                p.remove(&payload.connection_id, &payload.db_name).await;
+            }
+
+            // 2. We need a driver connected to a database other than payload.db_name to execute the DROP command.
+            // Let's get the original connection config to see what database/type it is.
+            let config_opt = {
+                let p = pool.lock().await;
+                p.get_config(&payload.connection_id).cloned()
+            };
+
+            let config = match config_opt {
+                Some(c) => c,
+                None => {
+                    broadcast(&writer, &token, "dbBridge.dropDatabaseResult", json!({"reqId": payload.req_id, "success": false, "error": format!("connection config not found for {}", payload.connection_id)})).await;
+                    return;
+                }
+            };
+
+            // Determine the fallback/temporary database to connect to
+            let fallback_db = match config.db_type.as_str() {
+                "postgres" | "postgresql" => {
+                    if config.database == payload.db_name {
+                        "postgres".to_string()
+                    } else {
+                        config.database.clone()
+                    }
+                }
+                "mysql" => {
+                    if config.database == payload.db_name {
+                        "mysql".to_string()
+                    } else {
+                        config.database.clone()
+                    }
+                }
+                _ => {
+                    if config.database == payload.db_name {
+                        "".to_string()
+                    } else {
+                        config.database.clone()
+                    }
+                }
+            };
+
+            // 3. Create a temporary driver connected to the fallback/temporary database
+            let mut temp_driver = match drivers::create_driver(&config.db_type) {
+                Some(d) => d,
+                None => {
+                    broadcast(&writer, &token, "dbBridge.dropDatabaseResult", json!({"reqId": payload.req_id, "success": false, "error": format!("unsupported driver type: {}", config.db_type)})).await;
+                    return;
+                }
+            };
+
+            let mut temp_config = config.clone();
+            temp_config.database = fallback_db;
+
+            if let Err(e) = temp_driver.connect(&temp_config).await {
+                broadcast(&writer, &token, "dbBridge.dropDatabaseResult", json!({"reqId": payload.req_id, "success": false, "error": format!("failed to connect to temporary database: {}", e)})).await;
+                return;
+            }
+
+            // 4. For PostgreSQL, we should also terminate all other active connections to payload.db_name.
+            // This is a common and robust practice to make sure we don't get the "database is being accessed by other users" error.
+            if config.db_type == "postgres" || config.db_type == "postgresql" {
+                let escaped_db_name = payload.db_name.replace('\'', "''");
+                let terminate_sql = format!(
+                    "SELECT pg_terminate_backend(pid) \
+                     FROM pg_stat_activity \
+                     WHERE datname = '{}' \
+                       AND pid <> pg_backend_pid()",
+                    escaped_db_name
+                );
+                if let Err(e) = temp_driver.query(&terminate_sql).await {
+                    log::warn!("Failed to terminate active connections for database '{}': {}", payload.db_name, e);
+                }
+            }
+
+            // 5. Drop the database
+            let result = temp_driver.drop_database(&payload.db_name).await;
+
+            // 6. Clean up temporary driver
+            let _ = temp_driver.disconnect().await;
+
+            // 7. Handle and return result
+            handle_result_void(&writer, &token, "dbBridge.dropDatabaseResult", &payload.req_id, result).await;
+        }
+
         _ => {
             let driver_arc = {
                 let mut p = pool.lock().await;
@@ -331,10 +421,6 @@ pub async fn handle_message(
                 "dropSchema" => {
                     let result = driver.drop_schema(&payload.schema_name).await;
                     handle_result_void(&writer, &token, "dbBridge.dropSchemaResult", &payload.req_id, result).await;
-                }
-                "dropDatabase" => {
-                    let result = driver.drop_database(&payload.db_name).await;
-                    handle_result_void(&writer, &token, "dbBridge.dropDatabaseResult", &payload.req_id, result).await;
                 }
                 "createDatabase" => {
                     let result = driver.create_database(&payload.db_name).await;
