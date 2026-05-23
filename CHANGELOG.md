@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.12] - 2026-05-23
+
+### Added
+- **UI: Dynamic Release Notes**: Implemented real-time release notes fetching from the GitHub Releases API (queried via tags `v<version>`) in the updater dialog.
+- **UI: Inline Markdown Support**: Enabled rich formatting (bold, italic, inline code) for release notes using a secure HTML-escaped inline parser in the updater dialog.
+- **Testing: Robust Coverage**: Added comprehensive unit tests for `updaterStore` update check and API fallback logic.
+- **Backend: Driver Refactoring**: Consolidated database driver implementations (PostgreSQL, MySQL, SQLite, Oracle) by extracting duplicate connection and transaction patterns into a unified `utils.rs`.
+- **UI: Centralized Input Component**: Extracted duplicate modal schemas from `CreateDatabaseDialog` and `CreateSchemaDialog` into a new, reusable `InputDialog.vue` component.
+
 ## [0.2.11] - 2026-05-18
 
 ### Added
