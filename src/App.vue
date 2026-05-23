@@ -39,9 +39,12 @@ useKeyboardShortcuts();
 useTabSync();
 
 onMounted(async () => {
-  // Load initial data
-  await connectionsStore.loadConnections();
-  await layoutStore.init();
+  // Load initial data and persisted state in parallel to optimize startup time
+  await Promise.all([
+    connectionsStore.loadConnections(),
+    layoutStore.init(),
+    tabsStore.loadTabsFromStorage()
+  ]);
 
   // Initialize background services
   if (window.NL_PORT) {
@@ -58,9 +61,6 @@ onMounted(async () => {
     loader.classList.add('fade-out');
     setTimeout(() => loader.remove(), 600);
   }
-
-  // Load persisted tabs
-  tabsStore.loadTabsFromStorage();
 
   // Handle window close
   if (window.NL_PORT) {

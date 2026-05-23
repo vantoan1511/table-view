@@ -22,6 +22,46 @@ export function useTableData(connectionsStore: any) {
   const activeDbName = ref<string | undefined>();
   const filterText = ref('');
   const currentTabId = ref<string>('');
+  const columnWidths = ref<Record<string, number>>({});
+
+  const setColumnWidth = (colName: string, width: number) => {
+    columnWidths.value = { ...columnWidths.value, [colName]: width };
+    const activeTab = tabsStore.activeTab;
+    if (activeTab) {
+      activeTab.columnWidths = { ...columnWidths.value };
+    }
+  };
+
+  const autoDistributeColumnWidths = (columnsList: GridColumn[], rowsList: GridRow[]) => {
+    const newWidths = { ...columnWidths.value };
+    const MIN_WIDTH = 80;
+    const MAX_WIDTH = 320;
+
+    for (const col of columnsList) {
+      if (newWidths[col.name] !== undefined) continue;
+
+      let maxLength = col.name.length;
+      const sampleRows = rowsList.slice(0, 50);
+      for (const row of sampleRows) {
+        const val = row[col.name];
+        if (val !== undefined && val !== null) {
+          const strVal = String(val);
+          if (strVal.length > maxLength) {
+            maxLength = strVal.length;
+          }
+        }
+      }
+
+      const calculatedWidth = maxLength * 8.5 + 32;
+      newWidths[col.name] = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(calculatedWidth)));
+    }
+
+    columnWidths.value = newWidths;
+    const activeTab = tabsStore.activeTab;
+    if (activeTab) {
+      activeTab.columnWidths = { ...newWidths };
+    }
+  };
 
   const resolveConnection = (connectionId?: string) =>
     connectionsStore.connections.find(
@@ -80,6 +120,11 @@ export function useTableData(connectionsStore: any) {
         currentPage.value = 1;
         filterText.value = '';
       }
+      if (isSameTab && activeTab.columnWidths) {
+        columnWidths.value = { ...activeTab.columnWidths };
+      } else {
+        columnWidths.value = {};
+      }
       currentTabId.value = activeTab?.id ?? '';
     }
 
@@ -131,6 +176,13 @@ export function useTableData(connectionsStore: any) {
       }));
       totalRows.value = payload.totalCount;
       executionTime.value = payload.executionTime ?? Math.round(performance.now() - startTime);
+
+      const activeTab = tabsStore.activeTab;
+      if (activeTab && !activeTab.columnWidths) {
+        autoDistributeColumnWidths(columns.value, rows.value);
+      } else if (!activeTab) {
+        autoDistributeColumnWidths(columns.value, rows.value);
+      }
     } catch (error: any) {
       console.error('Failed to fetch table data:', error.message);
       toastStore.addToast({
@@ -173,6 +225,9 @@ export function useTableData(connectionsStore: any) {
     activeConnectionId,
     activeDbName,
     filterText,
+    columnWidths,
+    setColumnWidth,
+    autoDistributeColumnWidths,
     loadTable,
     toggleSort,
     resolveBackendTableName

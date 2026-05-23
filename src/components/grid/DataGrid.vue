@@ -16,7 +16,7 @@ import { useLayoutStore } from '@/stores/layout';
 import type { GridColumn } from '@/types';
 
 import { Check, Copy, Plus, RefreshCw, Trash2, Wrench, X } from 'lucide-vue-next';
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { NativeService } from '@/services/native';
 
@@ -210,6 +210,16 @@ onUnmounted(() => {
       @click.self="gridStore.clearSelectedCell"
     >
       <table class="table-fixed border-collapse text-[12px] font-(--font-mono)">
+        <colgroup>
+          <col class="w-12" style="width: 48px" />
+          <col
+            v-for="col in visibleColumns"
+            :key="'col-group-' + col.name"
+            :style="{
+              width: `${Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, gridStore.columnWidths[col.name] ?? DEFAULT_COLUMN_WIDTH))}px`
+            }"
+          />
+        </colgroup>
         <thead class="sticky top-0 z-20">
           <tr class="bg-grid-header border-grid-border border-b">
             <th

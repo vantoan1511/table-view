@@ -32,7 +32,6 @@ export const useGridStore = defineStore('grid', () => {
   const sqlQuery = useSqlQuery(connectionsStore);
 
   // Grid specific state
-  const columnWidths = ref<Record<string, number>>({});
   const showAlterTableDialog = ref(false);
   const showCreateTableDialog = ref(false);
   const showCreateSchemaDialog = ref(false);
@@ -79,10 +78,6 @@ export const useGridStore = defineStore('grid', () => {
 
   const toggleSort = (colName: string) => {
     tableData.toggleSort(colName, isLoading);
-  };
-
-  const setColumnWidth = (colName: string, width: number) => {
-    columnWidths.value = { ...columnWidths.value, [colName]: width };
   };
 
   const toggleColumnVisibility = (colName: string) => {
@@ -434,11 +429,12 @@ export const useGridStore = defineStore('grid', () => {
     // Grid specific
     isLoading,
     totalPages,
-    columnWidths,
+    columnWidths: tableData.columnWidths,
     setPage,
     setRowsPerPage,
     toggleSort,
-    setColumnWidth,
+    setColumnWidth: tableData.setColumnWidth,
+    autoDistributeColumnWidths: tableData.autoDistributeColumnWidths,
     showAlterTableDialog,
     showCreateTableDialog,
     showCreateSchemaDialog,

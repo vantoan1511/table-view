@@ -76,6 +76,7 @@ export interface Tab {
   sortDirection?: 'asc' | 'desc';
   currentPage?: number;
   filterText?: string;
+  columnWidths?: Record<string, number>;
 }
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
