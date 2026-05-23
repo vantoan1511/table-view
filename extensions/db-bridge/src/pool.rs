@@ -49,17 +49,17 @@ impl Pool {
         }
     }
 
-    /// Register a driver under the given connectionId and its config.
-    /// The driver is keyed by "connectionId:database" using the database from the config.
     pub async fn put(&mut self, id: String, driver: Box<dyn DatabaseDriver>, config: Config) {
         let key = Self::make_key(&id, &config.database);
 
         // Replace existing
         if let Some(old) = self.drivers.remove(&key) {
-            let mut d = old.write().await;
-            if let Err(e) = d.disconnect().await {
-                log::warn!("pool: error disconnecting replaced driver {}: {}", key, e);
-            }
+            tokio::spawn(async move {
+                let mut d = old.write().await;
+                if let Err(e) = d.disconnect().await {
+                    log::warn!("pool: error disconnecting replaced driver: {}", e);
+                }
+            });
             self.order.retain(|x| x != &key);
         }
 
@@ -68,14 +68,15 @@ impl Pool {
             if let Some(oldest_key) = self.order.pop_back() {
                 log::info!("pool: evicting LRU connection {} (pool full)", oldest_key);
                 if let Some(evicted_arc) = self.drivers.remove(&oldest_key) {
-                    let mut evicted = evicted_arc.write().await;
-                    if let Err(e) = evicted.disconnect().await {
-                        log::warn!(
-                            "pool: error disconnecting evicted driver {}: {}",
-                            oldest_key,
-                            e
-                        );
-                    }
+                    tokio::spawn(async move {
+                        let mut evicted = evicted_arc.write().await;
+                        if let Err(e) = evicted.disconnect().await {
+                            log::warn!(
+                                "pool: error disconnecting evicted driver: {}",
+                                e
+                            );
+                        }
+                    });
                 }
             }
         }

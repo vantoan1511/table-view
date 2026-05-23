@@ -6,7 +6,7 @@ use crate::bind_json_value;
 use async_trait::async_trait;
 use serde_json::Value;
 use sqlx::sqlite::{SqlitePool, SqlitePoolOptions, SqliteRow};
-use sqlx::{Column, Row, TypeInfo};
+use sqlx::{Column, Row, TypeInfo, ValueRef};
 use std::collections::HashMap;
 
 pub struct SqliteDriver {
@@ -70,6 +70,14 @@ impl SqliteDriver {
     }
 
     fn get_column_value(row: &SqliteRow, i: usize) -> Value {
+        let raw = match row.try_get_raw(i) {
+            Ok(v) => v,
+            Err(_) => return Value::Null,
+        };
+        if raw.is_null() {
+            return Value::Null;
+        }
+
         // SQLite is weakly typed, so we try common types
         if let Ok(v) = row.try_get::<i64, _>(i) {
             return Value::Number(v.into());

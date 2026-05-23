@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ref } from 'vue';
 import { setActivePinia, createPinia } from 'pinia';
 import { useTableData } from './useTableData';
+import { useTabsStore } from '../tabs';
 import { BridgeService } from '@/services/bridge';
+import { TabType } from '@/types';
 
 // Mock BridgeService
 vi.mock('@/services/bridge', () => ({
@@ -187,6 +189,81 @@ describe('useTableData', () => {
           targetDatabase: 'custom_db'
         })
       );
+    });
+
+    it('persists and restores sort/filter/page state per tab', async () => {
+      const tableData = useTableData(connectionsStore);
+      const tabsStore = useTabsStore();
+      vi.mocked(BridgeService.request).mockResolvedValue({ rows: [], fields: [], totalCount: 0 });
+
+      // Create two mocked tab objects
+      const usersTab = {
+        id: 'tab-users',
+        type: TabType.TABLE,
+        title: 'users',
+        tableName: 'users',
+        connectionId: 'conn-1',
+        schema: undefined,
+        dbName: undefined,
+        sortColumn: undefined,
+        sortDirection: undefined,
+        currentPage: undefined,
+        filterText: undefined
+      };
+
+      const productsTab = {
+        id: 'tab-products',
+        type: TabType.TABLE,
+        title: 'products',
+        tableName: 'products',
+        connectionId: 'conn-1',
+        schema: undefined,
+        dbName: undefined,
+        sortColumn: 'price',
+        sortDirection: 'desc' as const,
+        currentPage: 2,
+        filterText: 'instock'
+      };
+
+      // Populate tabs store
+      tabsStore.tabs = [usersTab, productsTab];
+
+      // 1. Load users table (with active tab set to usersTab)
+      tabsStore.activeTabId = usersTab.id;
+      await tableData.loadTable('users', isLoading, 'conn-1');
+
+      // Update state for usersTab
+      tableData.sortColumn.value = 'first_name';
+      tableData.sortDirection.value = 'desc';
+      tableData.currentPage.value = 3;
+      tableData.filterText.value = 'active';
+
+      // Load table again to trigger persistence write back to usersTab
+      await tableData.loadTable('users', isLoading, 'conn-1');
+      expect(usersTab.sortColumn).toBe('first_name');
+      expect(usersTab.sortDirection).toBe('desc');
+      expect(usersTab.currentPage).toBe(3);
+      expect(usersTab.filterText).toBe('active');
+
+      // 2. Switch active tab to productsTab and load products table
+      tabsStore.activeTabId = productsTab.id;
+      await tableData.loadTable('products', isLoading, 'conn-1');
+
+      // State should be restored from productsTab
+      expect(tableData.sortColumn.value).toBe('price');
+      expect(tableData.sortDirection.value).toBe('desc');
+      expect(tableData.currentPage.value).toBe(2);
+      expect(tableData.filterText.value).toBe('instock');
+
+      // 3. Switch back to usersTab
+      tabsStore.activeTabId = usersTab.id;
+      await tableData.loadTable('users', isLoading, 'conn-1');
+
+      // State should be restored from usersTab
+      expect(tableData.sortColumn.value).toBe('first_name');
+      expect(tableData.sortDirection.value).toBe('desc');
+      expect(tableData.currentPage.value).toBe(3);
+      expect(tableData.filterText.value).toBe('active');
     });
   });
 });

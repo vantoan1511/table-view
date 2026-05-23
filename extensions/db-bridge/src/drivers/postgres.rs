@@ -202,12 +202,17 @@ impl DatabaseDriver for PostgresDriver {
             config.connection_timeout
         );
 
+        use std::str::FromStr;
+        let mut connect_options = sqlx::postgres::PgConnectOptions::from_str(&dsn)
+            .map_err(|e| e.to_string())?;
+        connect_options = connect_options.statement_cache_capacity(0);
+
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .acquire_timeout(std::time::Duration::from_secs(
                 config.connection_timeout as u64,
             ))
-            .connect(&dsn)
+            .connect_with(connect_options)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -225,14 +230,22 @@ impl DatabaseDriver for PostgresDriver {
     async fn get_schema(
         &self,
         all_databases: bool,
-        _schema_name: Option<&str>,
+        schema_name: Option<&str>,
     ) -> Result<SchemaResult, String> {
         let pool = self.pool()?;
 
-        // We always fetch all schemas, tables, views, and functions (excluding system ones)
-        // because the user wants to see everything in the tree.
-        let where_clause = "WHERE table_schema NOT IN ('information_schema') AND table_schema NOT LIKE 'pg_%'";
-        let params = vec![];
+        let (where_clause, params) = if let Some(s) = schema_name {
+            (
+                "WHERE table_schema::text = $1::text".to_string(),
+                vec![Value::String(s.to_string())],
+            )
+        } else {
+            (
+                "WHERE table_schema NOT IN ('information_schema') AND table_schema NOT LIKE 'pg_%'"
+                    .to_string(),
+                vec![],
+            )
+        };
 
         // Run all schema queries in parallel
         let table_sql = format!(
@@ -395,7 +408,7 @@ impl DatabaseDriver for PostgresDriver {
                         AND kcu.column_name = c.column_name \
                 ) as is_primary_key \
             FROM information_schema.columns c \
-            WHERE c.table_schema = $1 AND c.table_name = $2 \
+            WHERE c.table_schema::text = $1::text AND c.table_name::text = $2::text \
             ORDER BY c.ordinal_position";
 
         let where_clause = if !filter.trim().is_empty() {
@@ -639,7 +652,7 @@ impl DatabaseDriver for PostgresDriver {
         let sql =
             "SELECT column_name::text, data_type::text, is_nullable::text, column_default::text \
              FROM information_schema.columns \
-             WHERE table_schema = $1 AND table_name = $2 \
+             WHERE table_schema::text = $1::text AND table_name::text = $2::text \
              ORDER BY ordinal_position";
 
         let (rows, _, _) = Self::execute_query(

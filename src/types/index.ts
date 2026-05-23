@@ -72,6 +72,10 @@ export interface Tab {
   isDirty?: boolean;
   filePath?: string;
   closed?: boolean;
+  sortColumn?: string;
+  sortDirection?: 'asc' | 'desc';
+  currentPage?: number;
+  filterText?: string;
 }
 
 // ─── Schema ─────────────────────────────────────────────────────────────────

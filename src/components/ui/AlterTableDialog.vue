@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import TableColumnsEditor, { type ColumnDef } from './TableColumnsEditor.vue';
+
+import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
-import { Check, Edit2, Plus, Trash2, X } from 'lucide-vue-next';
+import { DbType } from '@/types';
+import { X } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps<{
@@ -15,18 +19,9 @@ const emit = defineEmits<{
 
 const gridStore = useGridStore();
 const toastStore = useToastStore();
+const connectionsStore = useConnectionsStore();
 
-interface ColumnDef {
-  id: string;
-  name: string;
-  dataType: string;
-  nullable: boolean;
-  default: string | null;
-  _originalName?: string;
-  _isNew?: boolean;
-  _deleted?: boolean;
-  _editing?: boolean;
-}
+const dbType = computed(() => connectionsStore.activeConnection?.type ?? DbType.POSTGRESQL);
 
 const columns = ref<ColumnDef[]>([]);
 const loading = ref(true);
@@ -41,6 +36,7 @@ onMounted(async () => {
       name: c.name,
       dataType: c.dataType,
       nullable: c.nullable,
+      isPrimaryKey: c.isPrimaryKey || false,
       default: c.default,
       _originalName: c.name,
       _isNew: false,
@@ -58,32 +54,6 @@ onMounted(async () => {
     loading.value = false;
   }
 });
-
-const visibleColumns = computed(() => columns.value.filter((c) => !c._deleted));
-
-const addColumn = () => {
-  columns.value.push({
-    id: crypto.randomUUID(),
-    name: 'new_column',
-    dataType: 'varchar(255)',
-    nullable: true,
-    default: null,
-    _isNew: true,
-    _editing: true
-  });
-};
-
-const removeColumn = (col: ColumnDef) => {
-  col._deleted = true;
-};
-
-const editColumn = (col: ColumnDef) => {
-  col._editing = true;
-};
-
-const saveColumn = (col: ColumnDef) => {
-  col._editing = false;
-};
 
 const applyChanges = async () => {
   const operations: any[] = [];
@@ -159,117 +129,7 @@ const applyChanges = async () => {
         </div>
 
         <div v-else-if="activeTab === 'Columns'">
-          <div class="border-border overflow-hidden rounded-lg border">
-            <table class="w-full border-collapse text-left">
-              <thead>
-                <tr
-                  class="bg-muted border-border text-text-secondary border-b text-[12px] font-medium"
-                >
-                  <th class="w-[30%] px-4 py-2">Column Name</th>
-                  <th class="w-[25%] px-4 py-2">Data Type</th>
-                  <th class="w-[15%] px-4 py-2">Nullable</th>
-                  <th class="w-[20%] px-4 py-2">Default</th>
-                  <th class="w-[10%] px-4 py-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="col in visibleColumns"
-                  :key="col.id"
-                  class="border-border/50 hover:bg-muted/50 border-b text-[13px] last:border-0"
-                >
-                  <td class="px-4 py-2">
-                    <input
-                      v-if="col._editing"
-                      v-model="col.name"
-                      type="text"
-                      class="bg-surface border-primary/50 focus:border-primary w-full rounded border px-2 py-1 outline-none"
-                    />
-                    <span v-else class="text-text-primary">{{ col.name }}</span>
-                  </td>
-
-                  <td class="px-4 py-2">
-                    <input
-                      v-if="col._editing && col._isNew"
-                      v-model="col.dataType"
-                      type="text"
-                      class="bg-surface border-primary/50 focus:border-primary w-full rounded border px-2 py-1 outline-none"
-                    />
-                    <span v-else class="text-text-secondary">{{ col.dataType }}</span>
-                  </td>
-
-                  <td class="px-4 py-2">
-                    <select
-                      v-if="col._editing && col._isNew"
-                      v-model="col.nullable"
-                      class="bg-surface border-primary/50 focus:border-primary w-full rounded border px-2 py-1 outline-none"
-                    >
-                      <option :value="true">YES</option>
-                      <option :value="false">NO</option>
-                    </select>
-                    <span v-else class="text-text-secondary">{{
-                      col.nullable ? 'YES' : 'NO'
-                    }}</span>
-                  </td>
-
-                  <td class="px-4 py-2">
-                    <input
-                      v-if="col._editing && col._isNew"
-                      v-model="col.default"
-                      type="text"
-                      placeholder="—"
-                      class="bg-surface border-primary/50 focus:border-primary w-full rounded border px-2 py-1 outline-none"
-                    />
-                    <span v-else class="text-text-secondary">{{ col.default || '—' }}</span>
-                  </td>
-
-                  <td class="px-4 py-2 text-right">
-                    <div class="flex items-center justify-end gap-2">
-                      <button
-                        v-if="col._editing"
-                        @click="saveColumn(col)"
-                        class="text-success hover:text-success/80 transition-colors"
-                        title="Save"
-                      >
-                        <Check :size="14" />
-                      </button>
-                      <button
-                        v-else
-                        @click="editColumn(col)"
-                        class="text-text-tertiary hover:text-primary transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 :size="14" />
-                      </button>
-
-                      <button
-                        @click="removeColumn(col)"
-                        class="text-text-tertiary hover:text-danger transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 :size="14" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                <tr v-if="visibleColumns.length === 0">
-                  <td colspan="5" class="text-text-tertiary px-4 py-6 text-center text-[13px]">
-                    No columns found.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="mt-4">
-            <button
-              @click="addColumn"
-              class="border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors"
-            >
-              <Plus :size="14" />
-              <span>Add Column</span>
-            </button>
-          </div>
+          <TableColumnsEditor v-model="columns" :db-type="dbType" mode="alter" />
         </div>
 
         <div v-else class="text-text-tertiary flex h-40 items-center justify-center text-[13px]">

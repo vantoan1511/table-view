@@ -3,9 +3,11 @@ import type { Connection, GridColumn, GridRow } from '@/types';
 import { ref } from 'vue';
 
 import { useToastStore } from '../toast';
+import { useTabsStore } from '../tabs';
 
 export function useTableData(connectionsStore: any) {
   const toastStore = useToastStore();
+  const tabsStore = useTabsStore();
   const columns = ref<GridColumn[]>([]);
   const rows = ref<GridRow[]>([]);
   const totalRows = ref(0);
@@ -19,6 +21,7 @@ export function useTableData(connectionsStore: any) {
   const activeConnectionId = ref<string | undefined>();
   const activeDbName = ref<string | undefined>();
   const filterText = ref('');
+  const currentTabId = ref<string>('');
 
   const resolveConnection = (connectionId?: string) =>
     connectionsStore.connections.find(
@@ -50,14 +53,47 @@ export function useTableData(connectionsStore: any) {
   ) => {
     if (!tableName || !window.NL_PORT) return;
 
+    const activeTab = tabsStore.activeTab;
+    const targetConnectionId =
+      connectionId || activeConnectionId.value || connectionsStore.activeConnectionId || undefined;
+    const targetDbName = dbName || activeDbName.value || undefined;
+
+    const isNewTab = activeTab ? activeTab.id !== currentTabId.value : currentTabId.value !== '';
+
+    const isSameTab =
+      activeTab &&
+      activeTab.type === 'table' &&
+      activeTab.tableName === tableName &&
+      activeTab.connectionId === targetConnectionId &&
+      activeTab.schema === schemaName &&
+      activeTab.dbName === targetDbName;
+
+    if (isNewTab) {
+      if (isSameTab && activeTab.sortColumn !== undefined) {
+        sortColumn.value = activeTab.sortColumn;
+        sortDirection.value = activeTab.sortDirection;
+        currentPage.value = activeTab.currentPage ?? 1;
+        filterText.value = activeTab.filterText ?? '';
+      } else {
+        sortColumn.value = undefined;
+        sortDirection.value = undefined;
+        currentPage.value = 1;
+        filterText.value = '';
+      }
+      currentTabId.value = activeTab?.id ?? '';
+    }
+
+    if (isSameTab) {
+      activeTab.sortColumn = sortColumn.value;
+      activeTab.sortDirection = sortDirection.value;
+      activeTab.currentPage = currentPage.value;
+      activeTab.filterText = filterText.value;
+    }
+
     activeTableName.value = tableName;
     if (schemaName) {
       activeTableSchema.value = schemaName;
     }
-
-    const targetConnectionId = connectionId || activeConnectionId.value || connectionsStore.activeConnectionId || undefined;
-    const targetDbName = dbName || activeDbName.value || undefined;
-
     if (targetConnectionId) {
       activeConnectionId.value = targetConnectionId;
     }
