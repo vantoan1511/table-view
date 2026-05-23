@@ -24,6 +24,14 @@ const { onResizeStart, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH 
   }
 );
 
+const tableWidth = computed(() => {
+  let sum = 48; // row index column
+  for (const col of gridStore.sqlColumns) {
+    sum += gridStore.columnWidths[col.name] ?? DEFAULT_COLUMN_WIDTH;
+  }
+  return `${sum}px`;
+});
+
 // Cell selection click handler
 const onCellClick = (rowIdx: number, col: GridColumn) => {
   selectedCell.value = { rowIndex: rowIdx, columnName: col.name };
@@ -185,14 +193,17 @@ onUnmounted(() => {
       @scroll="handleScroll"
       @click.self="selectedCell = null"
     >
-      <table class="table-fixed border-collapse text-[12px] font-(--font-mono)">
+      <table
+        class="table-fixed border-collapse text-[12px] font-(--font-mono)"
+        :style="{ width: `var(--table-width, ${tableWidth})` }"
+      >
         <colgroup>
           <col class="w-12" style="width: 48px" />
           <col
             v-for="col in gridStore.sqlColumns"
             :key="'sql-col-group-' + col.name"
             :style="{
-              width: `${Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, gridStore.columnWidths[col.name] ?? DEFAULT_COLUMN_WIDTH))}px`
+              width: `var(--col-width-${col.name}, ${Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, gridStore.columnWidths[col.name] ?? DEFAULT_COLUMN_WIDTH))}px)`
             }"
           />
         </colgroup>
@@ -208,10 +219,6 @@ onUnmounted(() => {
               v-for="col in gridStore.sqlColumns"
               :key="col.name"
               :column="col"
-              :column-width="gridStore.columnWidths[col.name]"
-              :min-width="MIN_COLUMN_WIDTH"
-              :max-width="MAX_COLUMN_WIDTH"
-              :default-width="DEFAULT_COLUMN_WIDTH"
               @resize="onResizeStart(col.name, $event)"
             />
           </tr>
@@ -293,10 +300,6 @@ onUnmounted(() => {
                     selectedCell?.rowIndex === startIndex + i &&
                     selectedCell?.columnName === col.name
                   "
-                  :column-width="gridStore.columnWidths[col.name]"
-                  :min-width="MIN_COLUMN_WIDTH"
-                  :max-width="MAX_COLUMN_WIDTH"
-                  :default-width="DEFAULT_COLUMN_WIDTH"
                   @click="onCellClick(startIndex + i, col)"
                 />
               </tr>
