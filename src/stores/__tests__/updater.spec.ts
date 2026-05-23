@@ -151,4 +151,51 @@ describe('Updater Store', () => {
 
     expect(store.updateAvailable).toBeNull();
   });
+
+  it('installs updates and writes the swapper batch script with the dynamic/detected exe name', async () => {
+    // Setup window environment
+    // @ts-ignore
+    window.NL_PID = 9999;
+
+    // Mock Neutralino.os.execCommand to simulate PowerShell returning a path
+    vi.mocked(Neutralino.os.execCommand).mockImplementation(async (cmd) => {
+      if (cmd.includes('Get-Process')) {
+        return {
+          exitCode: 0,
+          stdOut: 'C:\\Program Files\\Table View\\custom-table-view.exe\n',
+          stdErr: ''
+        };
+      }
+      return { exitCode: 0, stdOut: '', stdErr: '' };
+    });
+
+    const store = useUpdaterStore();
+
+    // Setup updateAvailable manifest
+    store.updateAvailable = {
+      applicationId: 'table-view',
+      version: '0.2.11',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: {
+        extensionUrl: 'https://example.com/db-bridge.exe'
+      }
+    };
+
+    // Trigger update installation
+    await store.installUpdates();
+
+    // Verify download calls
+    expect(Neutralino.os.execCommand).toHaveBeenCalledWith(
+      expect.stringContaining("Invoke-WebRequest -Uri 'https://example.com/resources.neu'")
+    );
+    expect(Neutralino.os.execCommand).toHaveBeenCalledWith(
+      expect.stringContaining("Invoke-WebRequest -Uri 'https://example.com/db-bridge.exe'")
+    );
+
+    // Verify that the swapper batch script is written with the correct dynamic exe name
+    expect(Neutralino.filesystem.writeFile).toHaveBeenCalledWith(
+      'updater.bat',
+      expect.stringContaining('custom-table-view.exe')
+    );
+  });
 });

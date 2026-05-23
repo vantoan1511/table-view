@@ -39,11 +39,11 @@ export const useUpdaterStore = defineStore('updater', () => {
       try {
         const platform = window.NL_OS.toLowerCase();
         if (platform === 'windows') {
-          await Neutralino.filesystem.remove('updater.bat').catch(() => { });
-          await Neutralino.filesystem.remove('resources.neu.new').catch(() => { });
+          await Neutralino.filesystem.remove('updater.bat').catch(() => {});
+          await Neutralino.filesystem.remove('resources.neu.new').catch(() => {});
           await Neutralino.filesystem
             .remove('extensions\\db-bridge\\db-bridge.exe.new')
-            .catch(() => { });
+            .catch(() => {});
         }
       } catch (err) {
         console.warn('Cleanup failed:', err);
@@ -113,14 +113,37 @@ export const useUpdaterStore = defineStore('updater', () => {
       const extPath = 'extensions\\db-bridge\\db-bridge.exe.new';
       await downloadFileNative(manifest.data.extensionUrl, extPath);
 
-      // 3. Create Swapper Batch Script
+      // 3. Determine running executable name dynamically on Windows
+      let exeName = 'table-view.exe'; // Standard production fallback
+      if (window.NL_PID) {
+        try {
+          const pid = window.NL_PID;
+          const cmd = `powershell -Command "(Get-Process -Id ${pid}).Path"`;
+          const res = await Neutralino.os.execCommand(cmd);
+          if (res.exitCode === 0 && res.stdOut.trim()) {
+            const fullPath = res.stdOut.trim();
+            const parts = fullPath.split(/[\\/]/);
+            const filename = parts[parts.length - 1];
+            if (filename && filename.endsWith('.exe')) {
+              exeName = filename;
+            }
+          }
+        } catch (e) {
+          console.warn(
+            'Failed to dynamically determine running executable name, falling back to table-view.exe',
+            e
+          );
+        }
+      }
+
+      // 4. Create Swapper Batch Script
       updateStatus.value = 'Staging installation...';
-      const batContent = createSwapperBat();
+      const batContent = createSwapperBat(exeName);
       await Neutralino.filesystem.writeFile('updater.bat', batContent);
 
       updateStatus.value = 'Update staged! Restarting in 3 seconds...';
 
-      // 4. Trigger swapper and exit
+      // 5. Trigger swapper and exit
       setTimeout(async () => {
         await Neutralino.os.execCommand('cmd /c start /min updater.bat');
         await Neutralino.app.exit();
@@ -156,8 +179,7 @@ export const useUpdaterStore = defineStore('updater', () => {
     }
   };
 
-  const createSwapperBat = () => {
-    const exeName = 'table-view-win_x64.exe';
+  const createSwapperBat = (exeName: string) => {
     return `@echo off
 echo Finalizing update... Please wait.
 timeout /t 2 /nobreak > nul
