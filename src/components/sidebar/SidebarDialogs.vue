@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Button from '../ui/Button.vue';
+import Checkbox from '../ui/Checkbox.vue';
 import ConfirmDialog from '../ui/ConfirmDialog.vue';
 import CreateDatabaseDialog from '../ui/CreateDatabaseDialog.vue';
 import CreateSchemaDialog from '../ui/CreateSchemaDialog.vue';
@@ -252,19 +253,16 @@ const confirmDatabaseDelete = async () => {
               </div>
             </div>
 
-            <label
+            <div
               class="hover:bg-hover border-border flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition-colors"
+              @click="backedUpChecked = !backedUpChecked"
             >
-              <input
-                v-model="backedUpChecked"
-                type="checkbox"
-                class="accent-primary border-border mt-1 h-4 w-4 shrink-0 rounded"
-              />
+              <Checkbox v-model="backedUpChecked" class="mt-1 shrink-0" @click.stop />
               <span class="text-text-secondary text-[13px] leading-relaxed select-none">
                 I have backed up my database and understand that this action is permanent and cannot
                 be undone.
               </span>
-            </label>
+            </div>
           </div>
 
           <!-- Divider -->
