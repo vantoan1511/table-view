@@ -174,32 +174,6 @@ impl PostgresDriver {
         Value::Null
     }
 
-    fn build_create_table_sql(table_name: &str, columns: &[TableColumn]) -> Result<String, String> {
-        let safe_table = Self::qualified_table_name(table_name);
-
-        let mut column_defs = Vec::new();
-        for col in columns {
-            if !crate::drivers::utils::is_safe_data_type(&col.data_type) {
-                return Err(format!("Invalid or unsafe data type: {}", col.data_type));
-            }
-            let mut def = format!("{} {}", Self::quote(&col.name), col.data_type);
-            if !col.nullable {
-                def.push_str(" NOT NULL");
-            }
-            if let Some(ref d) = col.default {
-                if !crate::drivers::utils::is_safe_default(d) {
-                    return Err(format!("Invalid or unsafe default value: {}", d));
-                }
-                def.push_str(&format!(" DEFAULT {}", d));
-            }
-            if col.is_primary_key {
-                def.push_str(" PRIMARY KEY");
-            }
-            column_defs.push(def);
-        }
-
-        Ok(format!("CREATE TABLE {} ({})", safe_table, column_defs.join(", ")))
-    }
 
     fn build_drop_table_sql(table_name: &str) -> String {
         let safe_table = Self::qualified_table_name(table_name);
@@ -762,7 +736,8 @@ impl DatabaseDriver for PostgresDriver {
 
     async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String> {
         let pool = self.pool()?;
-        let sql = Self::build_create_table_sql(table_name, columns)?;
+        let safe_table = Self::qualified_table_name(table_name);
+        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, columns, |s| Self::quote(s))?;
         sqlx::query(&sql)
             .execute(pool)
             .await
@@ -827,35 +802,7 @@ impl DatabaseDriver for PostgresDriver {
         let sql = format!("SELECT * FROM {}", safe_table);
 
         let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
-
-        if rows.is_empty() {
-            return Ok(());
-        }
-
-        let mut wtr = csv::Writer::from_path(export_path).map_err(|e| e.to_string())?;
-
-        // Header
-        let headers: Vec<String> = rows[0].keys().cloned().collect();
-        wtr.write_record(&headers).map_err(|e| e.to_string())?;
-
-        // Data
-        for row in rows {
-            let record: Vec<String> = headers
-                .iter()
-                .map(|h| {
-                    let v = row.get(h).unwrap_or(&Value::Null);
-                    match v {
-                        Value::Null => "".to_string(),
-                        Value::String(s) => s.clone(),
-                        _ => v.to_string(),
-                    }
-                })
-                .collect();
-            wtr.write_record(&record).map_err(|e| e.to_string())?;
-        }
-
-        wtr.flush().map_err(|e| e.to_string())?;
-        Ok(())
+        crate::drivers::utils::export_rows_to_csv(&rows, export_path)
     }
 }
 
@@ -883,7 +830,8 @@ mod tests {
             },
         ];
 
-        let sql = PostgresDriver::build_create_table_sql("public.users", &columns).unwrap();
+        let safe_table = PostgresDriver::qualified_table_name("public.users");
+        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, &columns, |s| PostgresDriver::quote(s)).unwrap();
         assert_eq!(
             sql,
             "CREATE TABLE \"public\".\"users\" (\"id\" SERIAL NOT NULL PRIMARY KEY, \"name\" VARCHAR(255) DEFAULT 'Guest')"
@@ -906,7 +854,7 @@ mod tests {
             default: None,
         }];
 
-        let res = PostgresDriver::build_create_table_sql("users", &columns);
+        let res = crate::drivers::utils::build_create_table_sql_generic("\"users\"", &columns, |s| PostgresDriver::quote(s));
         assert!(res.is_err());
         assert!(res.unwrap_err().contains("Invalid or unsafe data type"));
     }

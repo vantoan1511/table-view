@@ -548,28 +548,7 @@ impl DatabaseDriver for OracleDriver {
         let (owner, table) = self.split_table_name(table_name);
         let safe_table = Self::qualify_table(owner, table);
 
-        let mut column_defs = Vec::new();
-        for col in columns {
-            if !crate::drivers::utils::is_safe_data_type(&col.data_type) {
-                return Err(format!("Invalid or unsafe data type: {}", col.data_type));
-            }
-            let mut def = format!("{} {}", Self::quote(&col.name), col.data_type);
-            if !col.nullable {
-                def.push_str(" NOT NULL");
-            }
-            if let Some(ref d) = col.default {
-                if !crate::drivers::utils::is_safe_default(d) {
-                    return Err(format!("Invalid or unsafe default value: {}", d));
-                }
-                def.push_str(&format!(" DEFAULT {}", d));
-            }
-            if col.is_primary_key {
-                def.push_str(" PRIMARY KEY");
-            }
-            column_defs.push(def);
-        }
-
-        let sql = format!("CREATE TABLE {} ({})", safe_table, column_defs.join(", "));
+        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, columns, |s| Self::quote(s))?;
         Self::execute_dml(pool, &sql, &[]).await?;
         Ok(())
     }
@@ -666,28 +645,7 @@ impl DatabaseDriver for OracleDriver {
         let sql = format!("SELECT * FROM {}", Self::qualify_table(owner, table));
         let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
 
-        if rows.is_empty() {
-            return Ok(());
-        }
-
-        let mut writer = csv::Writer::from_path(export_path).map_err(|e| e.to_string())?;
-        let headers: Vec<String> = rows[0].keys().cloned().collect();
-        writer.write_record(&headers).map_err(|e| e.to_string())?;
-
-        for row in rows {
-            let record: Vec<String> = headers
-                .iter()
-                .map(|header| match row.get(header).unwrap_or(&JsonValue::Null) {
-                    JsonValue::Null => String::new(),
-                    JsonValue::String(v) => v.clone(),
-                    value => value.to_string(),
-                })
-                .collect();
-            writer.write_record(&record).map_err(|e| e.to_string())?;
-        }
-
-        writer.flush().map_err(|e| e.to_string())?;
-        Ok(())
+        crate::drivers::utils::export_rows_to_csv(&rows, export_path)
     }
 }
 

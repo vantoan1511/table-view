@@ -23,6 +23,8 @@ export const useUpdaterStore = defineStore('updater', () => {
   const MANIFEST_URL =
     'https://raw.githubusercontent.com/vantoan1511/table-view/main/manifest.json';
 
+  const RELEASE_URL = 'https://api.github.com/repos/vantoan1511/table-view/releases/tags';
+
   const init = async () => {
     // Cleanup update-related files on startup
     if (window.NL_PORT) {
@@ -37,11 +39,11 @@ export const useUpdaterStore = defineStore('updater', () => {
       try {
         const platform = window.NL_OS.toLowerCase();
         if (platform === 'windows') {
-          await Neutralino.filesystem.remove('updater.bat').catch(() => {});
-          await Neutralino.filesystem.remove('resources.neu.new').catch(() => {});
+          await Neutralino.filesystem.remove('updater.bat').catch(() => { });
+          await Neutralino.filesystem.remove('resources.neu.new').catch(() => { });
           await Neutralino.filesystem
             .remove('extensions\\db-bridge\\db-bridge.exe.new')
-            .catch(() => {});
+            .catch(() => { });
         }
       } catch (err) {
         console.warn('Cleanup failed:', err);
@@ -61,6 +63,20 @@ export const useUpdaterStore = defineStore('updater', () => {
       const appNeedsUpdate = isNewerVersion(manifest.version, currentAppVersion);
 
       if (appNeedsUpdate) {
+        try {
+          const tag = `v${manifest.version}`;
+          const response = await fetch(`${RELEASE_URL}/${tag}`);
+          if (response.ok) {
+            const release = await response.json();
+            if (release && typeof release.body === 'string') {
+              manifest.data = manifest.data || {};
+              manifest.data.releaseNotes = release.body;
+            }
+          }
+        } catch (fetchErr) {
+          console.warn('Failed to fetch release notes from GitHub API:', fetchErr);
+        }
+
         if (manual || manifest.version !== ignoredVersion.value) {
           updateAvailable.value = manifest;
         }

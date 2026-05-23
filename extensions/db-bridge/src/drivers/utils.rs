@@ -63,3 +63,73 @@ pub fn is_safe_default(s: &str) -> bool {
     let allowed_funcs = ["NOW()", "CURRENT_TIMESTAMP", "CURRENT_DATE", "GETDATE()"];
     allowed_funcs.contains(&s.to_uppercase().as_str())
 }
+
+pub fn export_rows_to_csv(
+    rows: &[std::collections::HashMap<String, serde_json::Value>],
+    export_path: &str,
+) -> Result<(), String> {
+    if rows.is_empty() {
+        return Ok(());
+    }
+
+    let mut wtr = csv::Writer::from_path(export_path).map_err(|e| e.to_string())?;
+
+    // Header extraction
+    let headers: Vec<String> = rows[0].keys().cloned().collect();
+    wtr.write_record(&headers).map_err(|e| e.to_string())?;
+
+    // Row rendering
+    for row in rows {
+        let record: Vec<String> = headers
+            .iter()
+            .map(|h| {
+                let v = row.get(h).unwrap_or(&serde_json::Value::Null);
+                match v {
+                    serde_json::Value::Null => "".to_string(),
+                    serde_json::Value::String(s) => s.clone(),
+                    _ => v.to_string(),
+                }
+            })
+            .collect();
+        wtr.write_record(&record).map_err(|e| e.to_string())?;
+    }
+
+    wtr.flush().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn build_create_table_sql_generic<F>(
+    qualified_table_name: &str,
+    columns: &[super::TableColumn],
+    quote_ident: F,
+) -> Result<String, String>
+where
+    F: Fn(&str) -> String,
+{
+    let mut column_defs = Vec::new();
+    for col in columns {
+        if !is_safe_data_type(&col.data_type) {
+            return Err(format!("Invalid or unsafe data type: {}", col.data_type));
+        }
+        let mut def = format!("{} {}", quote_ident(&col.name), col.data_type);
+        if !col.nullable {
+            def.push_str(" NOT NULL");
+        }
+        if let Some(ref d) = col.default {
+            if !is_safe_default(d) {
+                return Err(format!("Invalid or unsafe default value: {}", d));
+            }
+            def.push_str(&format!(" DEFAULT {}", d));
+        }
+        if col.is_primary_key {
+            def.push_str(" PRIMARY KEY");
+        }
+        column_defs.push(def);
+    }
+
+    Ok(format!(
+        "CREATE TABLE {} ({})",
+        qualified_table_name,
+        column_defs.join(", ")
+    ))
+}
