@@ -2,7 +2,7 @@
 import type { GridColumn } from '@/types';
 
 import { Check, X } from 'lucide-vue-next';
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 import { formatGridCellValue } from '@/stores/grid/valueConversion';
 
@@ -27,6 +27,11 @@ const emit = defineEmits<{
   (e: 'save'): void;
   (e: 'cancel'): void;
 }>();
+
+const computedWidth = computed(() => {
+  const w = props.columnWidth ?? props.defaultWidth;
+  return Math.min(props.maxWidth, Math.max(props.minWidth, w));
+});
 
 const inputRef = ref<HTMLInputElement | null>(null);
 const localValue = ref(props.value);
@@ -75,9 +80,9 @@ const getCellClass = (colName: string, value: unknown): string => {
       'ring-primary/50 bg-primary/5 z-10 ring-2 ring-inset': isSelected
     }"
     :style="{
-      width: `${Math.min(maxWidth, Math.max(minWidth, columnWidth ?? defaultWidth))}px`,
-      minWidth: `${minWidth}px`,
-      maxWidth: `${maxWidth}px`
+      width: `${computedWidth}px`,
+      minWidth: `${computedWidth}px`,
+      maxWidth: `${computedWidth}px`
     }"
     @click="emit('click', $event)"
     @dblclick="!isNewRow && emit('dblclick')"

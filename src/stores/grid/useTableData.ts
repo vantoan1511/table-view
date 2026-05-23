@@ -32,28 +32,26 @@ export function useTableData(connectionsStore: any) {
     }
   };
 
-  const autoDistributeColumnWidths = (columnsList: GridColumn[], rowsList: GridRow[]) => {
+  const autoDistributeColumnWidths = (columnsList: GridColumn[], rowsList?: GridRow[]) => {
     const newWidths = { ...columnWidths.value };
-    const MIN_WIDTH = 80;
-    const MAX_WIDTH = 320;
+    const numCols = columnsList.length;
+    if (numCols === 0) return;
+
+    // Estimate available container width minus row index column (approx. 1100px - 48px = 1052px)
+    const availableWidth = 1050;
+    const MIN_WIDTH = 100;
+    const MAX_WIDTH = 280;
+
+    // Distribute space evenly, but within a realistic range
+    const calculatedWidth = Math.min(
+      MAX_WIDTH,
+      Math.max(MIN_WIDTH, Math.floor(availableWidth / numCols))
+    );
 
     for (const col of columnsList) {
-      if (newWidths[col.name] !== undefined) continue;
-
-      let maxLength = col.name.length;
-      const sampleRows = rowsList.slice(0, 50);
-      for (const row of sampleRows) {
-        const val = row[col.name];
-        if (val !== undefined && val !== null) {
-          const strVal = String(val);
-          if (strVal.length > maxLength) {
-            maxLength = strVal.length;
-          }
-        }
+      if (newWidths[col.name] === undefined) {
+        newWidths[col.name] = calculatedWidth;
       }
-
-      const calculatedWidth = maxLength * 8.5 + 32;
-      newWidths[col.name] = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(calculatedWidth)));
     }
 
     columnWidths.value = newWidths;

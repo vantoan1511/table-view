@@ -1,10 +1,11 @@
 // src/components/grid/GridHeaderCell.vue
 <script setup lang="ts">
 import { ArrowDown, ArrowUp } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 import type { GridColumn } from '@/types';
 
-defineProps<{
+const props = defineProps<{
   column: GridColumn;
   isSorted?: boolean;
   sortDirection?: 'asc' | 'desc';
@@ -18,6 +19,11 @@ defineEmits<{
   (e: 'sort'): void;
   (e: 'resize', event: MouseEvent): void;
 }>();
+
+const computedWidth = computed(() => {
+  const w = props.columnWidth ?? props.defaultWidth;
+  return Math.min(props.maxWidth, Math.max(props.minWidth, w));
+});
 
 const formatDataType = (dt: string): string => {
   const pgOids: Record<string, string> = {
@@ -48,9 +54,9 @@ const formatDataType = (dt: string): string => {
   <th
     class="text-text-primary border-grid-border bg-grid-header group relative cursor-pointer overflow-hidden border-r px-3 py-1.5 text-left font-medium whitespace-nowrap select-none"
     :style="{
-      width: `${Math.min(maxWidth, Math.max(minWidth, columnWidth ?? defaultWidth))}px`,
-      minWidth: `${minWidth}px`,
-      maxWidth: `${maxWidth}px`
+      width: `${computedWidth}px`,
+      minWidth: `${computedWidth}px`,
+      maxWidth: `${computedWidth}px`
     }"
     @click="$emit('sort')"
   >
