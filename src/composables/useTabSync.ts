@@ -57,6 +57,8 @@ export function useTabSync() {
       if (tab.type === TabType.TABLE && tab.tableName) {
         gridStore.isLoading = true;
         gridStore.loadTable(tab.tableName, tab.connectionId, tab.schema, tab.dbName);
+      } else if (tab.type === TabType.SQL) {
+        gridStore.columnWidths = tab.columnWidths ? { ...tab.columnWidths } : {};
       }
     },
     { immediate: true }
