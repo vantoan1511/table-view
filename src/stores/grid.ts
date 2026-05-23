@@ -47,17 +47,19 @@ export const useGridStore = defineStore('grid', () => {
   const cellEditing = useCellEditing(
     tableData.rows,
     tableData.columns,
-    toRef(connectionsStore, 'activeConnectionId'),
+    tableData.activeConnectionId,
     tableData.activeTableName,
-    tableData.resolveBackendTableName
+    tableData.resolveBackendTableName,
+    tableData.activeDbName
   );
   const newRow = useNewRow(
     tableData.rows,
     tableData.columns,
     tableData.totalRows,
-    toRef(connectionsStore, 'activeConnectionId'),
+    tableData.activeConnectionId,
     tableData.activeTableName,
-    tableData.resolveBackendTableName
+    tableData.resolveBackendTableName,
+    tableData.activeDbName
   );
 
   const totalPages = computed(() =>
@@ -98,10 +100,11 @@ export const useGridStore = defineStore('grid', () => {
     if (pkValues.length === 0) return;
 
     await BridgeService.request('dbBridge.deleteRows', 'dbBridge.deleteRowsResult', {
-      connectionId: connectionsStore.activeConnectionId,
+      connectionId: tableData.activeConnectionId.value || connectionsStore.activeConnectionId,
       tableName: tableData.resolveBackendTableName(tableData.activeTableName.value),
       pkColumn: pkCol.name,
-      pkValues
+      pkValues,
+      targetDatabase: tableData.activeDbName.value
     });
 
     const idxSet = new Set(indices);
@@ -116,8 +119,9 @@ export const useGridStore = defineStore('grid', () => {
       'dbBridge.getTableColumns',
       'dbBridge.getTableColumnsResult',
       {
-        connectionId: connectionsStore.activeConnectionId,
-        tableName: tableData.resolveBackendTableName(tableName)
+        connectionId: tableData.activeConnectionId.value || connectionsStore.activeConnectionId,
+        tableName: tableData.resolveBackendTableName(tableName),
+        targetDatabase: tableData.activeDbName.value
       }
     );
     return payload.columns;
@@ -126,9 +130,10 @@ export const useGridStore = defineStore('grid', () => {
   const alterTable = async (tableName: string, operations: any[]): Promise<void> => {
     if (!window.NL_PORT) return;
     await BridgeService.request('dbBridge.alterTable', 'dbBridge.alterTableResult', {
-      connectionId: connectionsStore.activeConnectionId,
+      connectionId: tableData.activeConnectionId.value || connectionsStore.activeConnectionId,
       tableName: tableData.resolveBackendTableName(tableName),
-      operations
+      operations,
+      targetDatabase: tableData.activeDbName.value
     });
   };
 
@@ -387,6 +392,8 @@ export const useGridStore = defineStore('grid', () => {
     executionTime: tableData.executionTime,
     activeTableName: tableData.activeTableName,
     activeTableSchema: tableData.activeTableSchema,
+    activeConnectionId: tableData.activeConnectionId,
+    activeDbName: tableData.activeDbName,
     filterText: tableData.filterText,
     loadTable: (tableName: string, connectionId?: string, schemaName?: string, dbName?: string) =>
       tableData.loadTable(tableName, isLoading, connectionId, schemaName, dbName),

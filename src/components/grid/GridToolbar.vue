@@ -158,9 +158,10 @@ const handleExport = async () => {
         'dbBridge.exportCSV',
         {
           reqId,
-          connectionId: connectionsStore.activeConnectionId,
+          connectionId: gridStore.activeConnectionId || connectionsStore.activeConnectionId,
           tableName: gridStore.activeTableName,
-          exportPath: path
+          exportPath: path,
+          targetDatabase: gridStore.activeDbName
         }
       );
     }
