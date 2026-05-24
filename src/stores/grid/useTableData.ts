@@ -1,9 +1,16 @@
 import { BridgeService } from '@/services/bridge';
 import type { Connection, GridColumn, GridRow } from '@/types';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 import { useToastStore } from '../toast';
 import { useTabsStore } from '../tabs';
+
+export interface TableCacheEntry {
+  rows: GridRow[];
+  columns: GridColumn[];
+  totalRows: number;
+  executionTime: number;
+}
 
 export function useTableData(connectionsStore: any) {
   const toastStore = useToastStore();
@@ -23,6 +30,30 @@ export function useTableData(connectionsStore: any) {
   const filterText = ref('');
   const currentTabId = ref<string>('');
   const columnWidths = ref<Record<string, number>>({});
+  const tabCache = ref<Map<string, TableCacheEntry>>(new Map());
+
+  watch(rows, () => {
+    if (currentTabId.value) {
+      const cached = tabCache.value.get(currentTabId.value);
+      if (cached) {
+        cached.rows = rows.value;
+        cached.totalRows = totalRows.value;
+      }
+    }
+  });
+
+  watch(
+    () => tabsStore.tabs,
+    (tabs) => {
+      const activeTabIds = new Set(tabs.filter((t) => !t.closed).map((t) => t.id));
+      for (const key of tabCache.value.keys()) {
+        if (!activeTabIds.has(key)) {
+          tabCache.value.delete(key);
+        }
+      }
+    },
+    { deep: true }
+  );
 
   const setColumnWidth = (colName: string, width: number) => {
     columnWidths.value = { ...columnWidths.value, [colName]: width };
@@ -87,7 +118,8 @@ export function useTableData(connectionsStore: any) {
     isLoading: any,
     connectionId?: string,
     schemaName?: string,
-    dbName?: string
+    dbName?: string,
+    forceRefresh: boolean = false
   ) => {
     if (!tableName || !window.NL_PORT) return;
 
@@ -124,6 +156,24 @@ export function useTableData(connectionsStore: any) {
         columnWidths.value = {};
       }
       currentTabId.value = activeTab?.id ?? '';
+
+      if (!forceRefresh) {
+        const cached = tabCache.value.get(currentTabId.value);
+        if (cached) {
+          rows.value = cached.rows;
+          columns.value = cached.columns;
+          totalRows.value = cached.totalRows;
+          executionTime.value = cached.executionTime;
+          isLoading.value = false;
+
+          activeTableName.value = tableName;
+          if (schemaName) activeTableSchema.value = schemaName;
+          if (targetConnectionId) activeConnectionId.value = targetConnectionId;
+          if (targetDbName) activeDbName.value = targetDbName;
+
+          return;
+        }
+      }
     }
 
     if (isSameTab) {
@@ -176,6 +226,15 @@ export function useTableData(connectionsStore: any) {
       executionTime.value = payload.executionTime ?? Math.round(performance.now() - startTime);
 
       const activeTab = tabsStore.activeTab;
+      if (activeTab) {
+        tabCache.value.set(activeTab.id, {
+          rows: rows.value,
+          columns: columns.value,
+          totalRows: totalRows.value,
+          executionTime: executionTime.value
+        });
+      }
+
       if (activeTab && !activeTab.columnWidths) {
         autoDistributeColumnWidths(columns.value);
       } else if (!activeTab) {

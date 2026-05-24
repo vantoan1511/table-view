@@ -58,7 +58,7 @@ const handleInsert = async () => {
 
 // ─── Refresh ──────────────────────────────────────────────────────────────────────
 const handleRefresh = () => {
-  gridStore.loadTable(gridStore.activeTableName);
+  gridStore.loadTable(gridStore.activeTableName, undefined, undefined, undefined, true);
 };
 
 // ─── Filter ──────────────────────────────────────────────────────────────────────
