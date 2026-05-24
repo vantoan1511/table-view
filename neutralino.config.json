@@ -9,10 +9,10 @@
   "documentRoot": "/build/",
   "defaultMode": "window",
   "storageLocation": "system",
-  "dataLocation": "app",
+  "dataLocation": "system",
   "logging": {
     "enabled": true,
-    "writeToLogFile": false
+    "writeToLogFile": true
   },
   "port": 0,
   "url": "/",

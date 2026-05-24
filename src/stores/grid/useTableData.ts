@@ -36,8 +36,11 @@ export function useTableData(connectionsStore: any) {
     if (currentTabId.value) {
       const cached = tabCache.value.get(currentTabId.value);
       if (cached) {
-        cached.rows = rows.value;
-        cached.totalRows = totalRows.value;
+        tabCache.value.set(currentTabId.value, {
+          ...cached,
+          rows: rows.value,
+          totalRows: totalRows.value
+        });
       }
     }
   });
