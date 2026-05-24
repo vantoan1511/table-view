@@ -23,17 +23,23 @@ watch(
 
 // Sync with editing state (for real-time feedback if changed elsewhere)
 watch(
-  () => gridStore.editingCell?.currentValue,
-  (val) => {
+  () => gridStore.editingCell,
+  (editCell) => {
     if (
-      gridStore.editingCell &&
+      editCell &&
       gridStore.selectedCell &&
-      gridStore.editingCell.rowIndex === gridStore.selectedCell.rowIndex &&
-      gridStore.editingCell.column.name === gridStore.selectedCell.column.name
+      editCell.rowIndex === gridStore.selectedCell.rowIndex &&
+      editCell.column.name === gridStore.selectedCell.column.name
     ) {
-      localValue.value = formatGridCellValue(val);
+      localValue.value = formatGridCellValue(editCell.currentValue);
+    } else if (!editCell && gridStore.selectedCell) {
+      // Editing was canceled/saved, reset to the current grid value
+      const cell = gridStore.selectedCell;
+      const currentGridVal = gridStore.rows[cell.rowIndex]?.[cell.column.name];
+      localValue.value = formatGridCellValue(currentGridVal);
     }
-  }
+  },
+  { deep: true }
 );
 
 const isEditing = computed(() => {
