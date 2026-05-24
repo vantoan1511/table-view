@@ -1,5 +1,7 @@
 # Gemini CLI Mandates - Table View Project
 
+**Your code will be reviewed by Codex and Claude Code**
+
 ## Core Engineering Standards
 
 - **Backend Architecture**: All backend bridge logic must reside in the `extensions/db-bridge` directory and be written in **Rust**.

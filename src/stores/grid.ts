@@ -1,16 +1,18 @@
-import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
-
-import { BridgeService } from '@/services/bridge';
-import { useConnectionsStore } from './connections';
 import { useCellEditing } from './grid/useCellEditing';
 import { useNewRow } from './grid/useNewRow';
 import { useSelection } from './grid/useSelection';
 import { useSqlQuery } from './grid/useSqlQuery';
 import { useTableData } from './grid/useTableData';
+
+import { useConnectionsStore } from './connections';
 import { useSchemaStore } from './schema';
 import { useTabsStore } from './tabs';
 import { useToastStore } from './toast';
+
+import { defineStore } from 'pinia';
+import { computed, ref } from 'vue';
+
+import { BridgeService } from '@/services/bridge';
 
 export interface TableColumn {
   name: string;
@@ -94,42 +96,88 @@ export const useGridStore = defineStore('grid', () => {
       .filter((v) => v !== undefined);
     if (pkValues.length === 0) return;
 
-    await BridgeService.request('dbBridge.deleteRows', 'dbBridge.deleteRowsResult', {
-      connectionId: tableData.activeConnectionId.value || connectionsStore.activeConnectionId,
-      tableName: tableData.resolveBackendTableName(tableData.activeTableName.value),
-      pkColumn: pkCol.name,
-      pkValues,
-      targetDatabase: tableData.activeDbName.value
-    });
+    try {
+      isLoading.value = true;
+      await BridgeService.request('dbBridge.deleteRows', 'dbBridge.deleteRowsResult', {
+        connectionId: tableData.activeConnectionId.value || connectionsStore.activeConnectionId,
+        tableName: tableData.resolveBackendTableName(tableData.activeTableName.value),
+        pkColumn: pkCol.name,
+        pkValues,
+        targetDatabase: tableData.activeDbName.value
+      });
 
-    const idxSet = new Set(indices);
-    tableData.rows.value = tableData.rows.value.filter((_, i) => !idxSet.has(i));
-    tableData.totalRows.value -= indices.length;
-    selection.clearSelection();
+      const idxSet = new Set(indices);
+      tableData.rows.value = tableData.rows.value.filter((_, i) => !idxSet.has(i));
+      // Use pkValues.length instead of indices.length to avoid out-of-sync count
+      tableData.totalRows.value -= pkValues.length;
+      selection.clearSelection();
+
+      toastStore.addToast({
+        severity: 'success',
+        title: 'Rows Deleted',
+        message: `Successfully deleted ${pkValues.length} row(s).`
+      });
+    } catch (err: any) {
+      console.error('Failed to delete rows:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Delete Failed',
+        message: err.message || 'An unknown error occurred while deleting rows.'
+      });
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   const getTableColumns = async (tableName: string): Promise<TableColumn[]> => {
     if (!window.NL_PORT) return [];
-    const payload = await BridgeService.request(
-      'dbBridge.getTableColumns',
-      'dbBridge.getTableColumnsResult',
-      {
-        connectionId: tableData.activeConnectionId.value || connectionsStore.activeConnectionId,
-        tableName: tableData.resolveBackendTableName(tableName),
-        targetDatabase: tableData.activeDbName.value
-      }
-    );
-    return payload.columns;
+    try {
+      isLoading.value = true;
+      const payload = await BridgeService.request(
+        'dbBridge.getTableColumns',
+        'dbBridge.getTableColumnsResult',
+        {
+          connectionId: tableData.activeConnectionId.value || connectionsStore.activeConnectionId,
+          tableName: tableData.resolveBackendTableName(tableName),
+          targetDatabase: tableData.activeDbName.value
+        }
+      );
+      return payload.columns;
+    } catch (err: any) {
+      console.error('Failed to get table columns:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Fetch Columns Failed',
+        message: err.message || 'An unknown error occurred while fetching table columns.'
+      });
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   const alterTable = async (tableName: string, operations: any[]): Promise<void> => {
     if (!window.NL_PORT) return;
-    await BridgeService.request('dbBridge.alterTable', 'dbBridge.alterTableResult', {
-      connectionId: tableData.activeConnectionId.value || connectionsStore.activeConnectionId,
-      tableName: tableData.resolveBackendTableName(tableName),
-      operations,
-      targetDatabase: tableData.activeDbName.value
-    });
+    try {
+      isLoading.value = true;
+      await BridgeService.request('dbBridge.alterTable', 'dbBridge.alterTableResult', {
+        connectionId: tableData.activeConnectionId.value || connectionsStore.activeConnectionId,
+        tableName: tableData.resolveBackendTableName(tableName),
+        operations,
+        targetDatabase: tableData.activeDbName.value
+      });
+    } catch (err: any) {
+      console.error('Failed to alter table:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Alter Table Failed',
+        message: err.message || 'An unknown error occurred while altering table.'
+      });
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   const dropTable = async (

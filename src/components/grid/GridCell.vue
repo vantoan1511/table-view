@@ -2,7 +2,7 @@
 import type { GridColumn } from '@/types';
 
 import { Check, X } from 'lucide-vue-next';
-import { computed, nextTick, ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 
 import { formatGridCellValue } from '@/stores/grid/valueConversion';
 
@@ -66,9 +66,10 @@ const getCellClass = (colName: string, value: unknown): string => {
 
 <template>
   <td
-    class="text-text-primary border-grid-border relative overflow-hidden border-r px-3 py-1.5 transition-all duration-75"
+    class="text-text-primary border-grid-border relative border-r px-3 py-1.5 transition-all duration-75"
     :class="{
-      'ring-primary/50 bg-primary/5 z-10 ring-2 ring-inset': isSelected
+      'ring-primary/50 bg-primary/5 z-10 ring-2 ring-inset': isSelected,
+      'overflow-hidden': !isEditing
     }"
     @click="emit('click', $event)"
     @dblclick="!isNewRow && emit('dblclick')"
@@ -84,18 +85,19 @@ const getCellClass = (colName: string, value: unknown): string => {
           class="h-full flex-1 bg-transparent px-2 text-[12px] font-(--font-mono) outline-none"
           @keydown.enter="onEnter"
           @keydown.esc="onEsc"
-          @blur="onEnter"
         />
-        <div class="bg-surface border-border flex h-full items-center gap-0.5 border-l px-1">
+        <div
+          class="edit-actions-floating bg-surface border-primary absolute -top-0.5 left-full z-20 flex h-[calc(100%+4px)] items-center gap-1 rounded-r border-2 border-l-0 px-1.5 shadow-2xl"
+        >
           <button
-            @click.stop="onEnter"
+            @mousedown.prevent="onEnter"
             class="text-success hover:bg-success/10 rounded p-1"
             title="Save"
           >
             <Check :size="12" />
           </button>
           <button
-            @click.stop="onEsc"
+            @mousedown.prevent="onEsc"
             class="text-danger hover:bg-danger/10 rounded p-1"
             title="Discard"
           >
@@ -154,3 +156,13 @@ const getCellClass = (colName: string, value: unknown): string => {
     </template>
   </td>
 </template>
+
+<style scoped>
+td:last-child .edit-actions-floating {
+  left: auto;
+  right: 100%;
+  border-left-width: 2px;
+  border-right-width: 0px;
+  border-radius: 0.375rem 0 0 0.375rem;
+}
+</style>

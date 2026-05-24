@@ -74,6 +74,10 @@ export function useCellEditing(
   };
 
   const startEditCell = (rowIndex: number, column: GridColumn) => {
+    if (editingCell.value) {
+      return;
+    }
+
     const value = rows.value[rowIndex]?.[column.name];
     editingCell.value = {
       rowIndex,
