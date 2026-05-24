@@ -461,8 +461,13 @@ export const useGridStore = defineStore('grid', () => {
     activeConnectionId: tableData.activeConnectionId,
     activeDbName: tableData.activeDbName,
     filterText: tableData.filterText,
-    loadTable: (tableName: string, connectionId?: string, schemaName?: string, dbName?: string) =>
-      tableData.loadTable(tableName, isLoading, connectionId, schemaName, dbName),
+    loadTable: (
+      tableName: string,
+      connectionId?: string,
+      schemaName?: string,
+      dbName?: string,
+      forceRefresh?: boolean
+    ) => tableData.loadTable(tableName, isLoading, connectionId, schemaName, dbName, forceRefresh),
 
     // Re-export from sqlQuery
     sqlColumns: sqlQuery.sqlColumns,
