@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.15] - 2026-05-24
+
+### Added
+- **Grid: In-Memory Tab Caching**: Implemented a highly optimized in-memory table data cache per tab to eliminate redundant database queries when switching tabs, while maintaining consistency with active row edits and offering force-refresh capability.
+- **Grid: Persistent Layout & Column Editing**: Implemented state persistence for grid settings per tab, and extracted a reusable, modular column editor for cleaner layout management.
+- **Grid: Standardized Input Components**: Replaced manual HTML inputs with consolidated custom UI elements (e.g., standardizing on the unified `Checkbox` component).
+- **Database: Robust Deletion Workflow**: Added a secure 2-step database deletion flow including background session termination and clean schema/state invalidation.
+
+### Changed
+- **Grid: Resizable and Autodistributed Columns**: Refactored grid column width calculation, rendering, and distribution using a synchronized `colgroup` layout, eliminating flickering, handling overflow via dynamic CSS constraints, and preserving tab-specific column structures.
+- **Documentation**: Fully documented database tree layouts, components architecture, dynamic stores, and architectural coding conventions under `GEMINI.md`.
+
+### Fixed
+- **Database: Preferred DB Display**: Resolved issues on connection edits to ensure preferred databases render correctly.
+- **Architecture: Reactivity & Hardening**: Fixed reactivity inconsistencies in grid state caching and addressed architectural violations identified in PR reviews by restoring official settings and cleanup bounds.
+
 ## [0.2.14] - 2026-05-23
 
 ### Fixed
