@@ -172,6 +172,8 @@ const handleContextAction = async (action: string) => {
       } else {
         await schemaStore.loadSchema(false, connId, schemaName || undefined);
       }
+    } else if (action === 'viewDiagram' && schemaName) {
+      tabsStore.openDiagramTab(schemaName, connId, dbName || undefined);
     } else if (action === 'createTable') {
       gridStore.createTableTarget = {
         connectionId: connId,

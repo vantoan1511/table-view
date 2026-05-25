@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ContextMenu from '../ui/ContextMenu.vue';
 
-import { LayoutGrid, RefreshCw, Trash2 } from 'lucide-vue-next';
+import { LayoutGrid, RefreshCw, Trash2, Layers } from 'lucide-vue-next';
 
 defineProps<{
   show: boolean;
@@ -23,6 +23,13 @@ const emit = defineEmits<{
     >
       <RefreshCw :size="13" class="text-text-secondary" />
       <span>Refresh</span>
+    </button>
+    <button
+      class="text-text-primary hover:bg-hover flex w-full items-center gap-2 px-3 py-1.5 text-[12px]"
+      @click="emit('action', 'viewDiagram')"
+    >
+      <Layers :size="13" class="text-text-secondary" />
+      <span>View Diagram</span>
     </button>
     <button
       class="text-text-primary hover:bg-hover flex w-full items-center gap-2 px-3 py-1.5 text-[12px]"

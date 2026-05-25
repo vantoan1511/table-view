@@ -105,6 +105,37 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTabId.value = tab.id;
   };
 
+  const openDiagramTab = (
+    schemaName: string,
+    connectionId?: string,
+    dbName?: string
+  ) => {
+    const targetConnectionId = connectionId ?? connectionsStore.activeConnectionId ?? undefined;
+    const cached = tabs.value.find(
+      (t) =>
+        t.type === TabType.DIAGRAM &&
+        t.schema === schemaName &&
+        t.connectionId === connectionId &&
+        t.dbName === dbName
+    );
+    if (cached) {
+      cached.closed = false;
+      cached.minimized = false;
+      activeTabId.value = cached.id;
+      return;
+    }
+    const tab: Tab = {
+      id: `tab-diagram-${schemaName}-${Date.now()}`,
+      type: TabType.DIAGRAM,
+      title: `${schemaName} (Diagram)`,
+      connectionId: targetConnectionId,
+      schema: schemaName,
+      dbName
+    };
+    tabs.value.push(tab);
+    activeTabId.value = tab.id;
+  };
+
   const getNextEditorNumber = (connectionName: string) => {
     const prefix = `${connectionName}-`;
     const existingNumbers = tabs.value
@@ -245,6 +276,7 @@ export const useTabsStore = defineStore('tabs', () => {
     setActiveTab,
     reorderTab,
     openTableTab,
+    openDiagramTab,
     openSqlEditor,
     updateTabQuery,
     saveSqlTab,

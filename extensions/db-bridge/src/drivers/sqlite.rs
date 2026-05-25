@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, ColumnInfo
+    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -467,6 +467,52 @@ impl DatabaseDriver for SqliteDriver {
         
         let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
         crate::drivers::utils::export_rows_to_csv(&rows, export_path)
+    }
+
+    async fn get_schema_details(&self, _schema_name: &str) -> Result<SchemaDetails, String> {
+        let pool = self.pool()?;
+        
+        // 1. Get all tables
+        let (table_rows, _, _) = Self::execute_query(
+            pool,
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+            &[],
+        )
+        .await?;
+
+        let mut tables = Vec::new();
+        let mut relations = Vec::new();
+
+        for r in table_rows {
+            let table_name = r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            
+            // Fetch columns
+            let columns = self.get_table_columns(&table_name).await?;
+            tables.push(TableInfo {
+                name: table_name.clone(),
+                columns,
+            });
+
+            // Fetch foreign keys
+            let fk_sql = format!("PRAGMA foreign_key_list({})", Self::quote(&table_name));
+            let (fk_rows, _, _) = Self::execute_query(pool, &fk_sql, &[]).await?;
+            for (idx, fk) in fk_rows.iter().enumerate() {
+                let target_table = fk.get("table").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let source_col = fk.get("from").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let target_col = fk.get("to").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                
+                // Construct relation
+                relations.push(TableRelation {
+                    constraint_name: format!("fk_{}_{}_{}", table_name, source_col, idx),
+                    source_table: table_name.clone(),
+                    source_column: source_col,
+                    target_table,
+                    target_column: target_col,
+                });
+            }
+        }
+
+        Ok(SchemaDetails { tables, relations })
     }
 }
 

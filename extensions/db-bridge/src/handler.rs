@@ -430,6 +430,20 @@ pub async fn handle_message(
                     let result = driver.export_to_csv(&payload.table_name, &payload.export_path).await;
                     handle_result_void(&writer, &token, "dbBridge.exportCSVResult", &payload.req_id, result).await;
                 }
+                "getSchemaDetails" => {
+                    let result = driver.get_schema_details(&payload.schema_name).await;
+                    match result {
+                        Ok(details) => {
+                            let mut resp = serde_json::to_value(&details).unwrap_or(json!({}));
+                            if let Some(obj) = resp.as_object_mut() {
+                                obj.insert("reqId".to_string(), json!(payload.req_id));
+                                obj.insert("success".to_string(), json!(true));
+                            }
+                            broadcast(&writer, &token, "dbBridge.getSchemaDetailsResult", resp).await;
+                        }
+                        Err(e) => broadcast(&writer, &token, "dbBridge.getSchemaDetailsResult", json!({"reqId": payload.req_id, "success": false, "error": e})).await,
+                    }
+                }
                 _ => log::warn!("Unknown action: {}", action),
             }
         }

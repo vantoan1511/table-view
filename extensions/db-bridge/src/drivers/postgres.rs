@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, ColumnInfo, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult,
+    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation,
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -816,6 +816,98 @@ impl DatabaseDriver for PostgresDriver {
 
         let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
         crate::drivers::utils::export_rows_to_csv(&rows, export_path)
+    }
+
+    async fn get_schema_details(&self, schema_name: &str) -> Result<SchemaDetails, String> {
+        let pool = self.pool()?;
+        
+        let column_sql = "SELECT \
+                c.table_name::text, \
+                c.column_name::text, \
+                c.udt_name::text as data_type, \
+                (c.is_nullable = 'YES') as is_nullable, \
+                c.column_default::text as column_default, \
+                EXISTS ( \
+                    SELECT 1 \
+                    FROM information_schema.table_constraints tc \
+                    JOIN information_schema.key_column_usage kcu \
+                        ON tc.constraint_name = kcu.constraint_name \
+                        AND tc.table_schema = kcu.table_schema \
+                        AND tc.table_name = kcu.table_name \
+                    WHERE tc.constraint_type = 'PRIMARY KEY' \
+                        AND tc.table_schema = c.table_schema \
+                        AND tc.table_name = c.table_name \
+                        AND kcu.column_name = c.column_name \
+                ) as is_primary_key \
+            FROM information_schema.columns c \
+            WHERE c.table_schema::text = $1::text \
+            ORDER BY c.table_name, c.ordinal_position";
+
+        let relation_sql = "SELECT \
+                tc.constraint_name::text, \
+                tc.table_name::text as source_table, \
+                kcu.column_name::text as source_column, \
+                ccu.table_name::text as target_table, \
+                ccu.column_name::text as target_column \
+            FROM information_schema.table_constraints tc \
+            JOIN information_schema.key_column_usage kcu \
+                ON tc.constraint_name = kcu.constraint_name \
+                AND tc.table_schema = kcu.table_schema \
+            JOIN information_schema.constraint_column_usage ccu \
+                ON ccu.constraint_name = tc.constraint_name \
+                AND ccu.table_schema = tc.table_schema \
+            WHERE tc.constraint_type = 'FOREIGN KEY' \
+              AND tc.table_schema::text = $1::text";
+
+        let params = [Value::String(schema_name.to_string())];
+
+        let (column_res, relation_res) = tokio::join!(
+            Self::execute_query(pool, column_sql, &params),
+            Self::execute_query(pool, relation_sql, &params)
+        );
+
+        let (column_rows, _, _) = column_res?;
+        let (relation_rows, _, _) = relation_res?;
+
+        // Group columns by table_name to build TableInfo objects
+        let mut tables_map: HashMap<String, Vec<TableColumn>> = HashMap::new();
+        let mut table_order: Vec<String> = Vec::new();
+
+        for r in column_rows {
+            let table_name = r.get("table_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let col = TableColumn {
+                name: r.get("column_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                data_type: r.get("data_type").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                nullable: r.get("is_nullable").and_then(|v| v.as_bool()).unwrap_or(true),
+                is_primary_key: r.get("is_primary_key").and_then(|v| v.as_bool()).unwrap_or(false),
+                default: r.get("column_default").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            };
+
+            if !tables_map.contains_key(&table_name) {
+                table_order.push(table_name.clone());
+            }
+            tables_map.entry(table_name).or_insert_with(Vec::new).push(col);
+        }
+
+        let mut tables = Vec::new();
+        for name in table_order {
+            if let Some(columns) = tables_map.remove(&name) {
+                tables.push(TableInfo { name, columns });
+            }
+        }
+
+        let mut relations = Vec::new();
+        for r in relation_rows {
+            relations.push(TableRelation {
+                constraint_name: r.get("constraint_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                source_table: r.get("source_table").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                source_column: r.get("source_column").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                target_table: r.get("target_table").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                target_column: r.get("target_column").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            });
+        }
+
+        Ok(SchemaDetails { tables, relations })
     }
 }
 

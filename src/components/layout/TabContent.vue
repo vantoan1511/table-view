@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import DataGrid from '@/components/grid/DataGrid.vue';
 import SqlEditor from '@/components/sql/SqlEditor.vue';
+import SchemaDiagram from '@/components/layout/SchemaDiagram.vue';
 import type { Tab } from '@/types';
 
 defineProps<{
@@ -18,6 +19,11 @@ defineProps<{
     <!-- SQL Editor -->
     <template v-else-if="tab?.type === 'sql'">
       <SqlEditor v-if="tab" :tab="tab" />
+    </template>
+
+    <!-- Schema Diagram -->
+    <template v-else-if="tab?.type === 'diagram'">
+      <SchemaDiagram v-if="tab" :tab="tab" />
     </template>
 
     <!-- No tab: empty state -->

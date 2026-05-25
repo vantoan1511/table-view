@@ -12,7 +12,7 @@
   "dataLocation": "system",
   "logging": {
     "enabled": true,
-    "writeToLogFile": true
+    "writeToLogFile": false
   },
   "port": 0,
   "url": "/",

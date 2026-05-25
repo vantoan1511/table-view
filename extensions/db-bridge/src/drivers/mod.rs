@@ -113,6 +113,32 @@ pub struct TableColumn {
     pub default: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TableRelation {
+    #[serde(rename = "sourceTable")]
+    pub source_table: String,
+    #[serde(rename = "sourceColumn")]
+    pub source_column: String,
+    #[serde(rename = "targetTable")]
+    pub target_table: String,
+    #[serde(rename = "targetColumn")]
+    pub target_column: String,
+    #[serde(rename = "constraintName")]
+    pub constraint_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TableInfo {
+    pub name: String,
+    pub columns: Vec<TableColumn>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SchemaDetails {
+    pub tables: Vec<TableInfo>,
+    pub relations: Vec<TableRelation>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct AlterOperation {
     #[serde(rename = "type")]
@@ -182,6 +208,7 @@ pub trait DatabaseDriver: Send + Sync {
     async fn drop_database(&self, db_name: &str) -> Result<(), String>;
     async fn create_database(&self, db_name: &str) -> Result<(), String>;
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String>;
+    async fn get_schema_details(&self, schema_name: &str) -> Result<SchemaDetails, String>;
 }
 
 /// Factory function to create a driver by type name.

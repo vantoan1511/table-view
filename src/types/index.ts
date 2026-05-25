@@ -54,7 +54,8 @@ export interface Connection {
 
 export enum TabType {
   TABLE = 'table',
-  SQL = 'sql'
+  SQL = 'sql',
+  DIAGRAM = 'diagram'
 }
 
 export interface Tab {
@@ -174,4 +175,32 @@ export interface LayoutState {
   panels: Record<string, Panel>;
   sidebarWidth: number;
   isSidebarVisible: boolean;
+}
+
+// ─── Schema Diagram ─────────────────────────────────────────────────────────
+
+export interface TableRelation {
+  constraintName: string;
+  sourceTable: string;
+  sourceColumn: string;
+  targetTable: string;
+  targetColumn: string;
+}
+
+export interface TableColumnDetails {
+  name: string;
+  dataType: string;
+  nullable: boolean;
+  isPrimaryKey: boolean;
+  default?: string;
+}
+
+export interface TableDetails {
+  name: string;
+  columns: TableColumnDetails[];
+}
+
+export interface SchemaDetails {
+  tables: TableDetails[];
+  relations: TableRelation[];
 }

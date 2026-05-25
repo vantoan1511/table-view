@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, ColumnInfo, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult,
+    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation,
 };
 use async_trait::async_trait;
 use deadpool_oracle::{Pool, PoolBuilder};
@@ -646,6 +646,91 @@ impl DatabaseDriver for OracleDriver {
         let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
 
         crate::drivers::utils::export_rows_to_csv(&rows, export_path)
+    }
+
+    async fn get_schema_details(&self, schema_name: &str) -> Result<SchemaDetails, String> {
+        let pool = self.pool()?;
+        let owner = if schema_name.trim().is_empty() {
+            self.current_schema.clone()
+        } else {
+            schema_name.to_uppercase()
+        };
+
+        let column_sql = "SELECT \
+                c.TABLE_NAME as table_name, \
+                c.COLUMN_NAME as column_name, \
+                c.DATA_TYPE as data_type, \
+                CASE WHEN c.NULLABLE = 'Y' THEN 'YES' ELSE 'NO' END as is_nullable, \
+                c.DATA_DEFAULT as data_default, \
+                CASE WHEN pk.COLUMN_NAME IS NULL THEN 'NO' ELSE 'YES' END AS IS_PRIMARY_KEY \
+            FROM ALL_TAB_COLUMNS c \
+            LEFT JOIN ( \
+                SELECT cols.OWNER, cols.TABLE_NAME, cols.COLUMN_NAME \
+                FROM ALL_CONSTRAINTS cons \
+                JOIN ALL_CONS_COLUMNS cols ON cons.OWNER = cols.OWNER \
+                    AND cons.CONSTRAINT_NAME = cols.CONSTRAINT_NAME \
+                WHERE cons.CONSTRAINT_TYPE = 'P' \
+            ) pk ON pk.OWNER = c.OWNER AND pk.TABLE_NAME = c.TABLE_NAME AND pk.COLUMN_NAME = c.COLUMN_NAME \
+            WHERE c.OWNER = :1 \
+            ORDER BY c.TABLE_NAME, c.COLUMN_ID";
+
+        let relation_sql = "SELECT \
+                a.CONSTRAINT_NAME as constraint_name, \
+                a.TABLE_NAME as source_table, \
+                a_cols.COLUMN_NAME as source_column, \
+                r.TABLE_NAME as target_table, \
+                r_cols.COLUMN_NAME as target_column \
+            FROM ALL_CONSTRAINTS a \
+            JOIN ALL_CONS_COLUMNS a_cols ON a.OWNER = a_cols.OWNER AND a.CONSTRAINT_NAME = a_cols.CONSTRAINT_NAME \
+            JOIN ALL_CONSTRAINTS r ON a.R_OWNER = r.OWNER AND a.R_CONSTRAINT_NAME = r.CONSTRAINT_NAME \
+            JOIN ALL_CONS_COLUMNS r_cols ON r.OWNER = r_cols.OWNER AND r.CONSTRAINT_NAME = r_cols.CONSTRAINT_NAME AND a_cols.POSITION = r_cols.POSITION \
+            WHERE a.CONSTRAINT_TYPE = 'R' \
+              AND a.OWNER = :1";
+
+        let params = [JsonValue::String(owner)];
+
+        // Run queries sequentially for Oracle to avoid connection issues
+        let (column_rows, _, _) = Self::execute_query(pool, column_sql, &params).await?;
+        let (relation_rows, _, _) = Self::execute_query(pool, relation_sql, &params).await?;
+
+        let mut tables_map: HashMap<String, Vec<TableColumn>> = HashMap::new();
+        let mut table_order: Vec<String> = Vec::new();
+
+        for r in column_rows {
+            let table_name = r.get("TABLE_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let col = TableColumn {
+                name: r.get("COLUMN_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                data_type: r.get("DATA_TYPE").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                nullable: r.get("IS_NULLABLE").and_then(|v| v.as_str()).map(|s| s == "YES").unwrap_or(true),
+                is_primary_key: r.get("IS_PRIMARY_KEY").and_then(|v| v.as_str()).map(|s| s == "YES").unwrap_or(false),
+                default: r.get("DATA_DEFAULT").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            };
+
+            if !tables_map.contains_key(&table_name) {
+                table_order.push(table_name.clone());
+            }
+            tables_map.entry(table_name).or_insert_with(Vec::new).push(col);
+        }
+
+        let mut tables = Vec::new();
+        for name in table_order {
+            if let Some(columns) = tables_map.remove(&name) {
+                tables.push(TableInfo { name, columns });
+            }
+        }
+
+        let mut relations = Vec::new();
+        for r in relation_rows {
+            relations.push(TableRelation {
+                constraint_name: r.get("CONSTRAINT_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                source_table: r.get("SOURCE_TABLE").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                source_column: r.get("SOURCE_COLUMN").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                target_table: r.get("TARGET_TABLE").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                target_column: r.get("TARGET_COLUMN").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            });
+        }
+
+        Ok(SchemaDetails { tables, relations })
     }
 }
 

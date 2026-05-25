@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, ColumnInfo
+    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -615,6 +615,96 @@ impl DatabaseDriver for MysqlDriver {
         
         let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
         crate::drivers::utils::export_rows_to_csv(&rows, export_path)
+    }
+
+    async fn get_schema_details(&self, schema_name: &str) -> Result<SchemaDetails, String> {
+        let pool = self.pool()?;
+        
+        let column_sql = "SELECT \
+                TABLE_NAME as table_name, \
+                COLUMN_NAME as column_name, \
+                DATA_TYPE as data_type, \
+                (IS_NULLABLE = 'YES') as is_nullable, \
+                COLUMN_DEFAULT as column_default, \
+                (COLUMN_KEY = 'PRI') as is_primary_key \
+            FROM INFORMATION_SCHEMA.COLUMNS \
+            WHERE TABLE_SCHEMA = ? \
+            ORDER BY TABLE_NAME, ORDINAL_POSITION";
+
+        let relation_sql = "SELECT \
+                CONSTRAINT_NAME as constraint_name, \
+                TABLE_NAME as source_table, \
+                COLUMN_NAME as source_column, \
+                REFERENCED_TABLE_NAME as target_table, \
+                REFERENCED_COLUMN_NAME as target_column \
+            FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE \
+            WHERE TABLE_SCHEMA = ? \
+              AND REFERENCED_TABLE_NAME IS NOT NULL";
+
+        let params = [Value::String(schema_name.to_string())];
+
+        let (column_res, relation_res) = tokio::join!(
+            Self::execute_query(pool, column_sql, &params),
+            Self::execute_query(pool, relation_sql, &params)
+        );
+
+        let (column_rows, _, _) = column_res?;
+        let (relation_rows, _, _) = relation_res?;
+
+        let mut tables_map: HashMap<String, Vec<TableColumn>> = HashMap::new();
+        let mut table_order: Vec<String> = Vec::new();
+
+        for r in column_rows {
+            let table_name = r.get("table_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let col = TableColumn {
+                name: r.get("column_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                data_type: r.get("data_type").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                nullable: r.get("is_nullable").and_then(|v| {
+                    if let Value::Bool(b) = v {
+                        Some(*b)
+                    } else if let Value::Number(n) = v {
+                        Some(n.as_i64().unwrap_or(0) != 0)
+                    } else {
+                        None
+                    }
+                }).unwrap_or(true),
+                is_primary_key: r.get("is_primary_key").and_then(|v| {
+                    if let Value::Bool(b) = v {
+                        Some(*b)
+                    } else if let Value::Number(n) = v {
+                        Some(n.as_i64().unwrap_or(0) != 0)
+                    } else {
+                        None
+                    }
+                }).unwrap_or(false),
+                default: r.get("column_default").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            };
+
+            if !tables_map.contains_key(&table_name) {
+                table_order.push(table_name.clone());
+            }
+            tables_map.entry(table_name).or_insert_with(Vec::new).push(col);
+        }
+
+        let mut tables = Vec::new();
+        for name in table_order {
+            if let Some(columns) = tables_map.remove(&name) {
+                tables.push(TableInfo { name, columns });
+            }
+        }
+
+        let mut relations = Vec::new();
+        for r in relation_rows {
+            relations.push(TableRelation {
+                constraint_name: r.get("constraint_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                source_table: r.get("source_table").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                source_column: r.get("source_column").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                target_table: r.get("target_table").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                target_column: r.get("target_column").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            });
+        }
+
+        Ok(SchemaDetails { tables, relations })
     }
 }
 
