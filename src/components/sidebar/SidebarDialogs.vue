@@ -142,7 +142,10 @@ const confirmDatabaseDelete = async () => {
       confirm-label="Delete"
       variant="danger"
       @confirm="confirmDelete"
-      @cancel="emit('closeDeleteConfirm')"
+      @cancel="
+        emit('update:idToDelete', null);
+        emit('closeDeleteConfirm');
+      "
     />
 
     <ConfirmDialog
@@ -152,7 +155,10 @@ const confirmDatabaseDelete = async () => {
       confirm-label="Drop Table"
       variant="danger"
       @confirm="confirmTableDelete"
-      @cancel="emit('closeTableDeleteConfirm')"
+      @cancel="
+        emit('update:tableToDelete', null);
+        emit('closeTableDeleteConfirm');
+      "
     />
 
     <ConfirmDialog
@@ -162,7 +168,10 @@ const confirmDatabaseDelete = async () => {
       confirm-label="Drop Schema"
       variant="danger"
       @confirm="confirmSchemaDelete"
-      @cancel="emit('closeSchemaDeleteConfirm')"
+      @cancel="
+        emit('update:schemaToDelete', null);
+        emit('closeSchemaDeleteConfirm');
+      "
     />
 
     <Teleport to="body">
