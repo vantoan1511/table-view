@@ -1,10 +1,25 @@
 <script setup lang="ts">
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
+
 import { useGridStore } from '@/stores/grid';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { useToastStore } from '@/stores/toast';
+
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Plus,
+  Trash2
+} from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 const gridStore = useGridStore();
+const toastStore = useToastStore();
+
+const showDeleteConfirm = ref(false);
+const selectedCount = computed(() => gridStore.selectedRowIndices.size);
 
 const startRow = computed(() => (gridStore.currentPage - 1) * gridStore.rowsPerPage + 1);
 const endRow = computed(() =>
@@ -42,16 +57,62 @@ const rowsOptions = [25, 50, 100, 250, 500, 1000].map((value) => ({
 const setRowsPerPage = (count: DropdownValue) => {
   gridStore.setRowsPerPage(Number(count));
 };
+
+const handleInsert = async () => {
+  gridStore.createNewRow();
+};
+
+const promptDelete = () => {
+  if (selectedCount.value === 0) return;
+  showDeleteConfirm.value = true;
+};
+
+const confirmDelete = async () => {
+  showDeleteConfirm.value = false;
+  try {
+    await gridStore.deleteRows([...gridStore.selectedRowIndices]);
+  } catch (err: any) {
+    console.error('Delete failed:', err);
+    toastStore.addToast({
+      severity: 'error',
+      title: 'Delete Failed',
+      message: err.message || 'Failed to delete the selected row(s).'
+    });
+  }
+};
 </script>
 
 <template>
   <div
     class="border-border bg-surface text-text-secondary flex items-center justify-between border-t px-4 py-2 text-[12px]"
   >
-    <!-- Left: Row info -->
-    <div>
-      Showing {{ startRow.toLocaleString() }} to {{ endRow.toLocaleString() }} of
-      {{ gridStore.totalRows.toLocaleString() }} rows
+    <!-- Left: Row actions & Row info -->
+    <div class="flex items-center gap-2.5">
+      <!-- Add Row -->
+      <button
+        id="btn-add-row"
+        class="border-border text-text-secondary hover:bg-hover hover:border-border-strong group relative flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] transition-colors"
+        @click="handleInsert"
+      >
+        <Plus :size="12" class="text-success" />
+        <span>Add Row</span>
+      </button>
+
+      <!-- Delete Selected -->
+      <button
+        v-if="selectedCount > 0"
+        id="btn-delete-rows"
+        class="border-danger/40 text-danger hover:bg-danger-light hover:border-danger/60 group relative flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] transition-colors"
+        @click="promptDelete"
+      >
+        <Trash2 :size="12" />
+        <span>Delete ({{ selectedCount }})</span>
+      </button>
+
+      <span>
+        Showing {{ startRow.toLocaleString() }} to {{ endRow.toLocaleString() }} of
+        {{ gridStore.totalRows.toLocaleString() }} rows
+      </span>
     </div>
 
     <!-- Center: Page navigation -->
@@ -125,4 +186,15 @@ const setRowsPerPage = (count: DropdownValue) => {
       />
     </div>
   </div>
+
+  <!-- Delete Confirmation Dialog -->
+  <ConfirmDialog
+    v-if="showDeleteConfirm"
+    title="Delete rows"
+    :message="`Are you sure you want to permanently delete ${selectedCount} row(s)? This cannot be undone.`"
+    variant="danger"
+    confirm-label="Delete"
+    @confirm="confirmDelete"
+    @cancel="showDeleteConfirm = false"
+  />
 </template>
