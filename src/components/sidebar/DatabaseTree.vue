@@ -3,7 +3,6 @@ import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
-import { useToastStore } from '@/stores/toast';
 import type { Connection } from '@/types';
 import { Layers } from 'lucide-vue-next';
 import { provide, ref } from 'vue';
@@ -18,7 +17,6 @@ const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
 const schemaStore = useSchemaStore();
 const tabsStore = useTabsStore();
-const toastStore = useToastStore();
 
 // ─── Tree Expansion State ─────────────────────────────────────────────────────
 const expandedConnections = ref<Record<string, boolean>>({});

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import AlterTableDialog from '@/components/ui/AlterTableDialog.vue';
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
 
 import { useConnectionsStore } from '@/stores/connections';
@@ -8,26 +7,21 @@ import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
 
 import * as Neutralino from '@neutralinojs/lib';
-import { computed, ref, watch } from 'vue';
 import {
   Columns3,
   Download,
   Filter,
   LayoutGrid,
   MoreHorizontal,
-  Plus,
   RefreshCw,
-  Trash2,
   Wrench,
   X
 } from 'lucide-vue-next';
+import { watch } from 'vue';
 
 const gridStore = useGridStore();
 const toastStore = useToastStore();
 const connectionsStore = useConnectionsStore();
-
-const selectedCount = computed(() => gridStore.selectedRowIndices.size);
-const showDeleteConfirm = ref(false);
 
 const rowsOptions = [25, 50, 100, 250, 500, 1000].map((count) => ({
   label: `${count}`,
@@ -51,11 +45,6 @@ const setRowsPerPage = (count: DropdownValue) => {
   gridStore.setRowsPerPage(Number(count));
 };
 
-// ─── Add Row Inline ──────────────────────────────────────────────────────
-const handleInsert = async () => {
-  gridStore.createNewRow();
-};
-
 // ─── Refresh ──────────────────────────────────────────────────────────────────────
 const handleRefresh = () => {
   gridStore.loadTable(gridStore.activeTableName, undefined, undefined, undefined, true);
@@ -70,26 +59,6 @@ const handleFilter = () => {
 const clearFilter = () => {
   gridStore.filterText = '';
   handleFilter();
-};
-
-// ─── Delete Confirmation ──────────────────────────────────────────────────────
-const promptDelete = () => {
-  if (selectedCount.value === 0) return;
-  showDeleteConfirm.value = true;
-};
-
-const confirmDelete = async () => {
-  showDeleteConfirm.value = false;
-  try {
-    await gridStore.deleteRows([...gridStore.selectedRowIndices]);
-  } catch (err: any) {
-    console.error('Delete failed:', err);
-    toastStore.addToast({
-      severity: 'error',
-      title: 'Delete Failed',
-      message: err.message || 'Failed to delete the selected row(s).'
-    });
-  }
 };
 
 const confirmAlterTable = async (operations: any[]) => {
@@ -198,88 +167,6 @@ const vFocus = {
           {{ gridStore.activeTableName }}
         </h2>
       </div>
-
-      <!-- Add Row (Hidden at Level 3, text only at Level 1) -->
-      <button
-        id="btn-add-row"
-        class="border-border text-text-secondary hover:bg-hover hover:border-border-strong group relative hidden shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors @[500px]:flex"
-        @click="handleInsert"
-      >
-        <Plus :size="13" class="text-success" />
-        <span class="hidden @[850px]:inline">Add Row</span>
-
-        <!-- Tooltip -->
-        <div
-          class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-        >
-          Insert a new row
-          <div
-            class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-          ></div>
-        </div>
-      </button>
-
-      <!-- Selection Controls (Only visible at Level 1 & 2) -->
-      <div
-        v-if="selectedCount > 0"
-        class="bg-border hidden shrink-0 items-center gap-px rounded-lg p-px @[850px]:flex"
-      >
-        <div
-          class="bg-primary/10 text-primary flex items-center rounded-l-[7px] px-2 py-[5px] text-[11px] font-medium whitespace-nowrap"
-        >
-          {{ selectedCount }} <span class="ml-1 hidden @[900px]:inline">selected</span>
-        </div>
-        <button
-          class="bg-surface text-text-secondary hover:text-text-primary hover:bg-hover group relative flex items-center px-2 py-[5px] text-[11px] transition-colors"
-          @click="gridStore.selectAllRows"
-        >
-          <span>All</span>
-          <!-- Tooltip -->
-          <div
-            class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-          >
-            Select All
-            <div
-              class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-            ></div>
-          </div>
-        </button>
-        <button
-          class="bg-surface text-text-secondary hover:text-text-primary hover:bg-hover group relative flex items-center rounded-r-[7px] px-2 py-[5px] text-[11px] transition-colors"
-          @click="gridStore.clearSelection"
-        >
-          <span>None</span>
-          <!-- Tooltip -->
-          <div
-            class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-          >
-            Deselect All
-            <div
-              class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-            ></div>
-          </div>
-        </button>
-      </div>
-
-      <!-- Delete Selected (Icon only at Level 2, Hidden in Level 3) -->
-      <button
-        v-if="selectedCount > 0"
-        id="btn-delete-rows"
-        class="border-danger/40 text-danger hover:bg-danger-light hover:border-danger/60 group relative hidden shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors @[500px]:flex"
-        @click="promptDelete"
-      >
-        <Trash2 :size="13" />
-        <span class="hidden @[850px]:inline">Delete</span>
-        <!-- Tooltip -->
-        <div
-          class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-        >
-          Delete {{ selectedCount }} selected row(s)
-          <div
-            class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-          ></div>
-        </div>
-      </button>
     </div>
 
     <!-- Filter Query Input -->
@@ -471,15 +358,6 @@ const vFocus = {
             <button
               class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
               @click="
-                handleInsert();
-                close();
-              "
-            >
-              <Plus :size="14" class="text-success" /> <span>Add Row</span>
-            </button>
-            <button
-              class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
-              @click="
                 handleRefresh();
                 close();
               "
@@ -503,17 +381,6 @@ const vFocus = {
               "
             >
               <Download :size="14" /> <span>Export CSV</span>
-            </button>
-            <div v-if="selectedCount > 0" class="bg-border my-1 h-px"></div>
-            <button
-              v-if="selectedCount > 0"
-              class="hover:bg-hover text-danger flex w-full items-center gap-2 px-3 py-2 text-[12px]"
-              @click="
-                promptDelete();
-                close();
-              "
-            >
-              <Trash2 :size="14" /> <span>Delete Selected ({{ selectedCount }})</span>
             </button>
 
             <div class="bg-border my-1 h-px"></div>
@@ -576,17 +443,6 @@ const vFocus = {
       </div>
     </div>
   </div>
-
-  <!-- Delete Confirmation Dialog -->
-  <ConfirmDialog
-    v-if="showDeleteConfirm"
-    title="Delete rows"
-    :message="`Are you sure you want to permanently delete ${selectedCount} row(s)? This cannot be undone.`"
-    variant="danger"
-    confirm-label="Delete"
-    @confirm="confirmDelete"
-    @cancel="showDeleteConfirm = false"
-  />
 
   <!-- Alter Table Dialog -->
   <AlterTableDialog
