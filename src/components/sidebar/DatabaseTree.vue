@@ -141,7 +141,7 @@ const handleContextAction = async (action: string) => {
         connectionsStore.addConnection(newConn);
       }
     } else if (action === 'refresh') {
-      schemaStore.loadSchema(false, connId);
+      schemaStore.loadSchema(undefined, connId);
     } else if (action === 'createDatabase') {
       gridStore.createDatabaseTarget = { connectionId: connId };
       gridStore.showCreateDatabaseDialog = true;
@@ -170,7 +170,7 @@ const handleContextAction = async (action: string) => {
       if (dbName) {
         await schemaStore.loadDbSchema(connId, dbName, true);
       } else {
-        await schemaStore.loadSchema(false, connId, schemaName || undefined);
+        await schemaStore.loadSchema(undefined, connId, schemaName || undefined);
       }
     } else if (action === 'viewDiagram' && schemaName) {
       tabsStore.openDiagramTab(schemaName, connId, dbName || undefined);
@@ -207,7 +207,7 @@ const handleContextAction = async (action: string) => {
         if (dbName) {
           await schemaStore.loadDbSchema(connId, dbName, true);
         } else {
-          await schemaStore.loadSchema(false, connId);
+          await schemaStore.loadSchema(undefined, connId);
         }
       }
     } else if (action === 'alterTable' && tableName) {

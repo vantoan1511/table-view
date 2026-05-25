@@ -72,7 +72,7 @@ export const useDiagramStore = defineStore('diagram', () => {
       console.error('[diagram] Failed to load schema details:', err);
       const msg = err.message || 'Could not retrieve schema details.';
       errors.value[key] = msg;
-      
+
       toastStore.addToast({
         severity: 'error',
         title: 'Diagram Load Failed',
