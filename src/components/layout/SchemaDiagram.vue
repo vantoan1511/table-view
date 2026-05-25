@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import {
-  Table,
+  Database,
+  Download,
+  Info,
   Key,
-  ZoomIn,
-  ZoomOut,
   Maximize,
   RefreshCw,
-  Download,
   Search,
-  Database,
-  Info
+  Table,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import { useDiagramStore } from '@/stores/diagram';
-import type { Tab, TableDetails, TableColumnDetails, TableRelation } from '@/types';
+import type { Tab } from '@/types';
 
 const props = defineProps<{
   tab: Tab;

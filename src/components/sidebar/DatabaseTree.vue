@@ -61,11 +61,6 @@ const contextMenu = ref({
   tableName: null as string | null
 });
 
-const showDeleteConfirm = ref(false);
-const showTableDeleteConfirm = ref(false);
-const showSchemaDeleteConfirm = ref(false);
-const showDatabaseDeleteConfirm = ref(false);
-
 const idToDelete = ref<string | null>(null);
 const tableToDelete = ref<{
   name: string;
@@ -147,7 +142,6 @@ const handleContextAction = async (action: string) => {
       gridStore.showCreateDatabaseDialog = true;
     } else if (action === 'delete') {
       idToDelete.value = connId;
-      showDeleteConfirm.value = true;
     }
   } else if (type === 'database') {
     if (action === 'refresh' && dbName) {
@@ -163,7 +157,6 @@ const handleContextAction = async (action: string) => {
         name: dbName,
         connId
       };
-      showDatabaseDeleteConfirm.value = true;
     }
   } else if (type === 'schema') {
     if (action === 'refresh') {
@@ -193,7 +186,6 @@ const handleContextAction = async (action: string) => {
         connId,
         dbName: dbName || undefined
       };
-      showSchemaDeleteConfirm.value = true;
     }
   } else if (type === 'table') {
     if (action === 'refresh' && tableName) {
@@ -220,7 +212,6 @@ const handleContextAction = async (action: string) => {
         dbName: dbName || undefined,
         schemaName: schemaName || undefined
       };
-      showTableDeleteConfirm.value = true;
     }
   }
 };
@@ -290,10 +281,6 @@ const handleContextAction = async (action: string) => {
       v-model:table-to-delete="tableToDelete"
       v-model:schema-to-delete="schemaToDelete"
       v-model:database-to-delete="databaseToDelete"
-      @close-delete-confirm="showDeleteConfirm = false"
-      @close-table-delete-confirm="showTableDeleteConfirm = false"
-      @close-schema-delete-confirm="showSchemaDeleteConfirm = false"
-      @close-database-delete-confirm="showDatabaseDeleteConfirm = false"
     />
   </div>
 </template>

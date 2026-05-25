@@ -35,9 +35,30 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:idToDelete', value: string | null): void;
-  (e: 'update:tableToDelete', value: any | null): void;
-  (e: 'update:schemaToDelete', value: any | null): void;
-  (e: 'update:databaseToDelete', value: any | null): void;
+  (
+    e: 'update:tableToDelete',
+    value: {
+      name: string;
+      connId: string;
+      dbName?: string;
+      schemaName?: string;
+    } | null
+  ): void;
+  (
+    e: 'update:schemaToDelete',
+    value: {
+      name: string;
+      connId: string;
+      dbName?: string;
+    } | null
+  ): void;
+  (
+    e: 'update:databaseToDelete',
+    value: {
+      name: string;
+      connId: string;
+    } | null
+  ): void;
   (e: 'closeDeleteConfirm'): void;
   (e: 'closeTableDeleteConfirm'): void;
   (e: 'closeSchemaDeleteConfirm'): void;
