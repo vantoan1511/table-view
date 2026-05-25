@@ -25,7 +25,7 @@ describe('Diagram Store', () => {
 
   it('creates correct cache keys', () => {
     const store = useDiagramStore();
-    
+
     // Without dbName
     const key1 = store.getCacheKey('conn-1', 'public');
     expect(key1).toBe('conn-1-default-public');
@@ -38,7 +38,7 @@ describe('Diagram Store', () => {
   it('clears cached data correctly', () => {
     const store = useDiagramStore();
     const key = 'conn-1-default-public';
-    
+
     store.diagrams[key] = { tables: [], relations: [] };
     store.loading[key] = true;
     store.errors[key] = 'Some error';
@@ -103,13 +103,13 @@ describe('Diagram Store', () => {
 
   it('handles error response from BridgeService', async () => {
     const store = useDiagramStore();
-    
+
     vi.mocked(BridgeService.request).mockRejectedValue(new Error('Connection failure'));
 
     const result = await store.fetchSchemaDetails('conn-1', 'public');
 
     expect(result).toBeNull();
-    
+
     const key = 'conn-1-default-public';
     expect(store.diagrams[key]).toBeUndefined();
     expect(store.loading[key]).toBe(false);

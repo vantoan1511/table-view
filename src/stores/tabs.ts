@@ -105,11 +105,7 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTabId.value = tab.id;
   };
 
-  const openDiagramTab = (
-    schemaName: string,
-    connectionId?: string,
-    dbName?: string
-  ) => {
+  const openDiagramTab = (schemaName: string, connectionId?: string, dbName?: string) => {
     const targetConnectionId = connectionId ?? connectionsStore.activeConnectionId ?? undefined;
     const cached = tabs.value.find(
       (t) =>
