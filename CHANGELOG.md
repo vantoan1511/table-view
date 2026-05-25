@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-25
+
+### Added
+- **Diagram: Schema Relationship Diagram (ERD)**: Implemented an interactive database schema relationship diagram (ERD) feature to visualize tables and foreign key relationships.
+- **Grid: Footer Action Buttons**: Relocated row action buttons (Add Row, Delete Selected) to the pagination footer at the bottom-left of the data grid, clean-up of the grid toolbar.
+
+### Fixed
+- **UI: Sidebar Dialogs**: Fixed sidebar delete confirmation dialogs not closing correctly on cancel, and cleaned up unused components.
+- **Sidebar: Connection Refresh**: Ensured the "Display All Databases" preference is correctly respected during schema and connection refresh actions.
+
 ## [0.2.15] - 2026-05-24
 
 ### Added
