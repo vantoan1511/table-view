@@ -149,6 +149,40 @@ export const useConnectionsStore = defineStore('connections', () => {
     }
   };
 
+  const disconnectConnection = async (id: string) => {
+    const conn = connections.value.find((c) => c.id === id);
+    if (!conn) return;
+
+    if (window.NL_PORT) {
+      const { BridgeService } = await import('@/services/bridge');
+      try {
+        await BridgeService.request('dbBridge.disconnect', 'dbBridge.disconnectResult', {
+          connectionId: id
+        });
+      } catch (error: any) {
+        console.error('Failed to disconnect on backend:', error.message);
+      }
+    }
+
+    conn.isConnected = false;
+
+    if (activeConnectionId.value === id) {
+      const nextConnected = connections.value.find((c) => c.isConnected && c.id !== id);
+      activeConnectionId.value = nextConnected?.id ?? null;
+    }
+
+    const { useSchemaStore } = await import('./schema');
+    const schemaStore = useSchemaStore();
+    schemaStore.removeConnection(id);
+
+    const toastStore = useToastStore();
+    toastStore.addToast({
+      severity: 'success',
+      title: 'Disconnected',
+      message: `Successfully disconnected from ${conn.name}`
+    });
+  };
+
   return {
     connections,
     activeConnectionId,
@@ -159,6 +193,7 @@ export const useConnectionsStore = defineStore('connections', () => {
     loadConnections,
     saveConnections,
     setActiveConnection,
+    disconnectConnection,
     addConnection,
     removeConnection,
     updateConnection,

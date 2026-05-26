@@ -138,6 +138,9 @@ const handleContextAction = async (action: string) => {
     } else if (action === 'createDatabase') {
       gridStore.createDatabaseTarget = { connectionId: connId };
       gridStore.showCreateDatabaseDialog = true;
+    } else if (action === 'disconnect') {
+      expandedConnections.value[connId] = false;
+      await connectionsStore.disconnectConnection(connId);
     } else if (action === 'delete') {
       idToDelete.value = connId;
     }
@@ -245,6 +248,7 @@ const handleContextAction = async (action: string) => {
       :show="contextMenu.show"
       :x="contextMenu.x"
       :y="contextMenu.y"
+      :connection-id="contextMenu.connId"
       @close="closeContextMenu"
       @action="handleContextAction"
     />

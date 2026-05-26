@@ -150,6 +150,12 @@ pub async fn handle_message(
             }
         }
 
+        "disconnect" => {
+            let mut p = pool.lock().await;
+            p.remove_all_for_connection(&payload.connection_id).await;
+            broadcast(&writer, &token, "dbBridge.disconnectResult", json!({"reqId": payload.req_id, "success": true})).await;
+        }
+
         "shutdown" => {
             log::info!("Received shutdown request. Closing all connections and exiting.");
             let mut p = pool.lock().await;

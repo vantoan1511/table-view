@@ -1,18 +1,28 @@
 <script setup lang="ts">
 import ContextMenu from '../ui/ContextMenu.vue';
 
-import { Code2, Copy, Database, Pencil, RefreshCw, Trash2 } from 'lucide-vue-next';
+import { useConnectionsStore } from '@/stores/connections';
 
-defineProps<{
+import { Code2, Copy, Database, Pencil, RefreshCw, Trash2, Unplug } from 'lucide-vue-next';
+import { computed } from 'vue';
+
+const props = defineProps<{
   show: boolean;
   x: number;
   y: number;
+  connectionId: string | null;
 }>();
 
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'action', action: string): void;
 }>();
+
+const connectionsStore = useConnectionsStore();
+const connection = computed(() =>
+  props.connectionId ? connectionsStore.connections.find((c) => c.id === props.connectionId) : null
+);
+const isConnected = computed(() => connection.value?.isConnected ?? false);
 </script>
 
 <template>
@@ -23,6 +33,14 @@ const emit = defineEmits<{
     >
       <Code2 :size="13" class="text-text-secondary" />
       <span>Open SQL Editor</span>
+    </button>
+    <button
+      v-if="isConnected"
+      class="text-text-primary hover:bg-hover flex w-full items-center gap-2 px-3 py-1.5 text-[12px]"
+      @click="emit('action', 'disconnect')"
+    >
+      <Unplug :size="13" class="text-text-secondary" />
+      <span>Disconnect</span>
     </button>
     <button
       class="text-text-primary hover:bg-hover flex w-full items-center gap-2 px-3 py-1.5 text-[12px]"
