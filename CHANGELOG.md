@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-26
+
+### Added
+- **Autocomplete: Context-Aware Suggestions**: Implemented intelligent autocomplete suggestions for both the SQL Editor (fetching schema and metadata via `diagramStore`) and the Grid Filter Bar (offering column names and operators).
+- **Sidebar: Collapse All Action**: Added a global "Collapse All" button to the database tree header to reset the expansion state of all connection, database, and schema nodes.
+- **Database: Disconnection Feature**: Implemented a secure database disconnection flow that terminates active connection pools in the Rust backend and clean up frontend state/schema.
+- **UI: Button severity styles**: Enhanced the custom `Button` component with rich structural variants (filled, outline, ghost, subtle) and severity options (primary, secondary, success, danger, warning, etc.).
+- **Grid: Filter persistence**: Enhanced useTableData to preserve and restore filter and sorting states per tab when switching back and forth.
+
 ## [0.3.0] - 2026-05-25
 
 ### Added
