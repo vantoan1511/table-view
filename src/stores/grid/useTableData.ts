@@ -2,8 +2,8 @@ import { BridgeService } from '@/services/bridge';
 import type { Connection, GridColumn, GridRow } from '@/types';
 import { ref, watch } from 'vue';
 
-import { useToastStore } from '../toast';
 import { useTabsStore } from '../tabs';
+import { useToastStore } from '../toast';
 
 export interface TableCacheEntry {
   rows: GridRow[];
@@ -142,7 +142,19 @@ export function useTableData(connectionsStore: any) {
       activeTab.dbName === targetDbName;
 
     if (isNewTab) {
-      if (isSameTab && activeTab.sortColumn !== undefined) {
+      // Save state of the previous tab if it exists
+      if (currentTabId.value) {
+        const prevTab = tabsStore.getById(currentTabId.value);
+        if (prevTab && prevTab.type === 'table') {
+          prevTab.sortColumn = sortColumn.value;
+          prevTab.sortDirection = sortDirection.value;
+          prevTab.currentPage = currentPage.value;
+          prevTab.filterText = filterText.value;
+        }
+      }
+
+      // Restore state for the new tab
+      if (isSameTab) {
         sortColumn.value = activeTab.sortColumn;
         sortDirection.value = activeTab.sortDirection;
         currentPage.value = activeTab.currentPage ?? 1;

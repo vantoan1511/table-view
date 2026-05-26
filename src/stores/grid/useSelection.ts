@@ -23,12 +23,8 @@ export function useSelection(rows: Ref<GridRow[]>) {
         newSet.add(rowIdx);
       }
     } else {
-      if (newSet.has(rowIdx)) {
-        newSet.delete(rowIdx);
-      } else {
-        newSet.clear();
-        newSet.add(rowIdx);
-      }
+      newSet.clear();
+      newSet.add(rowIdx);
     }
 
     selectedRowIndices.value = newSet;

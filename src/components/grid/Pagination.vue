@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
+import Button from '../ui/Button.vue';
 
 import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
@@ -89,25 +90,27 @@ const confirmDelete = async () => {
     <!-- Left: Row actions & Row info -->
     <div class="flex items-center gap-2.5">
       <!-- Add Row -->
-      <button
+      <Button
         id="btn-add-row"
-        class="border-border text-text-secondary hover:bg-hover hover:border-border-strong group relative flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] transition-colors"
+        variant="outline"
+        severity="success"
+        size="icon"
+        :icon="Plus"
         @click="handleInsert"
-      >
-        <Plus :size="12" class="text-success" />
-        <span>Add Row</span>
-      </button>
+      />
 
       <!-- Delete Selected -->
-      <button
+      <Button
         v-if="selectedCount > 0"
         id="btn-delete-rows"
-        class="border-danger/40 text-danger hover:bg-danger-light hover:border-danger/60 group relative flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] transition-colors"
+        variant="ghost"
+        severity="danger"
+        :size="selectedCount > 0 ? 'sm' : 'icon'"
+        :icon="Trash2"
         @click="promptDelete"
       >
-        <Trash2 :size="12" />
         <span>Delete ({{ selectedCount }})</span>
-      </button>
+      </Button>
 
       <span>
         Showing {{ startRow.toLocaleString() }} to {{ endRow.toLocaleString() }} of

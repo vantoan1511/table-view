@@ -14,7 +14,7 @@ import { useTabsStore } from '@/stores/tabs';
 
 import type { Connection } from '@/types';
 
-import { FolderMinus, Layers } from 'lucide-vue-next';
+import { ChevronsDownUpIcon, Layers } from 'lucide-vue-next';
 import { provide, ref } from 'vue';
 
 const connectionsStore = useConnectionsStore();
@@ -250,7 +250,7 @@ const handleContextAction = async (action: string) => {
         id="btn-collapse-all"
         variant="ghost"
         size="icon"
-        :icon="FolderMinus"
+        :icon="ChevronsDownUpIcon"
         title="Collapse All"
         class="h-6 w-6"
         @click="collapseAll"

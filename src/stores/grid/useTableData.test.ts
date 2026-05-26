@@ -265,5 +265,63 @@ describe('useTableData', () => {
       expect(tableData.currentPage.value).toBe(3);
       expect(tableData.filterText.value).toBe('active');
     });
+
+    it('persists and restores filter state without sort column when switching tabs', async () => {
+      const tableData = useTableData(connectionsStore);
+      const tabsStore = useTabsStore();
+      vi.mocked(BridgeService.request).mockResolvedValue({ rows: [], fields: [], totalCount: 0 });
+
+      const usersTab = {
+        id: 'tab-users',
+        type: TabType.TABLE,
+        title: 'users',
+        tableName: 'users',
+        connectionId: 'conn-1',
+        schema: undefined,
+        dbName: undefined,
+        sortColumn: undefined,
+        sortDirection: undefined,
+        currentPage: undefined,
+        filterText: undefined
+      };
+
+      const productsTab = {
+        id: 'tab-products',
+        type: TabType.TABLE,
+        title: 'products',
+        tableName: 'products',
+        connectionId: 'conn-1',
+        schema: undefined,
+        dbName: undefined,
+        sortColumn: undefined,
+        sortDirection: undefined,
+        currentPage: undefined,
+        filterText: undefined
+      };
+
+      tabsStore.tabs = [usersTab, productsTab];
+
+      // 1. Switch to usersTab and load
+      tabsStore.activeTabId = usersTab.id;
+      await tableData.loadTable('users', isLoading, 'conn-1');
+
+      // User types a filter condition but DOES NOT load table/press enter
+      tableData.filterText.value = 'age > 18';
+
+      // 2. Switch to productsTab (this should save the state of usersTab)
+      tabsStore.activeTabId = productsTab.id;
+      await tableData.loadTable('products', isLoading, 'conn-1');
+
+      // Check usersTab state got saved automatically on switch
+      expect(usersTab.filterText).toBe('age > 18');
+
+      // 3. Switch back to usersTab
+      tabsStore.activeTabId = usersTab.id;
+      await tableData.loadTable('users', isLoading, 'conn-1');
+
+      // State should be restored, even though sortColumn is undefined
+      expect(tableData.filterText.value).toBe('age > 18');
+      expect(tableData.sortColumn.value).toBeUndefined();
+    });
   });
 });
