@@ -48,6 +48,12 @@ export function useTreeState() {
     delete selectedSchemaByConnection.value[connectionId];
   };
 
+  const collapseAll = () => {
+    expandedDbsByConnection.value = {};
+    expandedSchemasByConnection.value = {};
+    expandedGroups.value = {};
+  };
+
   return {
     expandedDbsByConnection,
     expandedSchemasByConnection,
@@ -59,6 +65,7 @@ export function useTreeState() {
     isSchemaExpanded,
     isDbExpanded,
     setDbExpanded,
-    removeConnection
+    removeConnection,
+    collapseAll
   };
 }

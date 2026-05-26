@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { useConnectionsStore } from '@/stores/connections';
-import { useGridStore } from '@/stores/grid';
-import { useSchemaStore } from '@/stores/schema';
-import { useTabsStore } from '@/stores/tabs';
-import type { Connection } from '@/types';
-import { Layers } from 'lucide-vue-next';
-import { provide, ref } from 'vue';
+import Button from '@/components/ui/Button.vue';
 import ConnectionContextMenu from './ConnectionContextMenu.vue';
 import ConnectionNode from './ConnectionNode.vue';
 import DatabaseContextMenu from './DatabaseContextMenu.vue';
 import SchemaContextMenu from './SchemaContextMenu.vue';
 import SidebarDialogs from './SidebarDialogs.vue';
 import TableContextMenu from './TableContextMenu.vue';
+
+import { useConnectionsStore } from '@/stores/connections';
+import { useGridStore } from '@/stores/grid';
+import { useSchemaStore } from '@/stores/schema';
+import { useTabsStore } from '@/stores/tabs';
+
+import type { Connection } from '@/types';
+
+import { FolderMinus, Layers } from 'lucide-vue-next';
+import { provide, ref } from 'vue';
 
 const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
@@ -21,26 +25,34 @@ const tabsStore = useTabsStore();
 // ─── Tree Expansion State ─────────────────────────────────────────────────────
 const expandedConnections = ref<Record<string, boolean>>({});
 
+const collapseAll = () => {
+  expandedConnections.value = {};
+  schemaStore.collapseAll();
+};
+
 const toggleConnection = async (conn: Connection) => {
   const wasExpanded = expandedConnections.value[conn.id];
   expandedConnections.value[conn.id] = !wasExpanded;
 
-  if (!wasExpanded) {
-    if (!conn.isConnected) {
-      try {
-        await connectionsStore.setActiveConnection(conn.id);
-      } catch {
-        // setActiveConnection already shows a toast — just collapse the node
-        expandedConnections.value[conn.id] = false;
-      }
-    } else {
-      if (connectionsStore.activeConnectionId !== conn.id) {
-        await connectionsStore.setActiveConnection(conn.id);
-      }
+  if (!wasExpanded && conn.isConnected) {
+    if (connectionsStore.activeConnectionId !== conn.id) {
+      await connectionsStore.setActiveConnection(conn.id);
+    }
 
-      if (!schemaStore.hasSchemaLoaded(conn.id)) {
-        schemaStore.loadSchema(conn.displayAllDatabases, conn.id);
-      }
+    if (!schemaStore.hasSchemaLoaded(conn.id)) {
+      schemaStore.loadSchema(conn.displayAllDatabases, conn.id);
+    }
+  }
+};
+
+const connectConnection = async (conn: Connection) => {
+  if (!conn.isConnected) {
+    try {
+      await connectionsStore.setActiveConnection(conn.id);
+      expandedConnections.value[conn.id] = true;
+    } catch (err) {
+      console.error('Failed to connect via double click:', err);
+      expandedConnections.value[conn.id] = false;
     }
   }
 };
@@ -138,6 +150,13 @@ const handleContextAction = async (action: string) => {
     } else if (action === 'createDatabase') {
       gridStore.createDatabaseTarget = { connectionId: connId };
       gridStore.showCreateDatabaseDialog = true;
+    } else if (action === 'connect') {
+      try {
+        await connectionsStore.setActiveConnection(connId);
+        expandedConnections.value[connId] = true;
+      } catch (err) {
+        console.error('Failed to connect via context menu:', err);
+      }
     } else if (action === 'disconnect') {
       expandedConnections.value[connId] = false;
       await connectionsStore.disconnectConnection(connId);
@@ -220,6 +239,24 @@ const handleContextAction = async (action: string) => {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col select-none">
+    <!-- Tree Header/Toolbar -->
+    <div
+      class="border-border bg-sidebar/50 flex h-9 shrink-0 items-center justify-between border-b px-3"
+    >
+      <span class="text-text-secondary text-[11px] font-semibold tracking-wider uppercase"
+        >Connections</span
+      >
+      <Button
+        id="btn-collapse-all"
+        variant="ghost"
+        size="icon"
+        :icon="FolderMinus"
+        title="Collapse All"
+        class="h-6 w-6"
+        @click="collapseAll"
+      />
+    </div>
+
     <div class="flex-1 overflow-y-auto py-1">
       <ConnectionNode
         v-for="conn in connectionsStore.connections"
@@ -227,6 +264,7 @@ const handleContextAction = async (action: string) => {
         :connection="conn"
         :is-expanded="!!expandedConnections[conn.id]"
         @toggle="toggleConnection(conn)"
+        @dblclick="connectConnection(conn)"
         @contextmenu="onContextMenu($event, conn.id)"
       />
 

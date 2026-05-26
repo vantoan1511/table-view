@@ -129,6 +129,7 @@ export const useSchemaStore = defineStore('schema', () => {
     isSchemaExpanded: treeState.isSchemaExpanded,
     isDbExpanded: treeState.isDbExpanded,
     setDbExpanded: treeState.setDbExpanded,
+    collapseAll: treeState.collapseAll,
 
     // Actions
     loadSchema: actions.loadSchema,

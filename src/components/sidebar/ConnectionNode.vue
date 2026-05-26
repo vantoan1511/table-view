@@ -18,6 +18,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'toggle'): void;
+  (e: 'dblclick'): void;
   (e: 'contextmenu', event: MouseEvent): void;
 }>();
 
@@ -50,6 +51,7 @@ const connectionDatabases = computed(
       class="group hover:bg-hover relative flex w-full cursor-pointer items-center gap-1.5 overflow-hidden px-2 py-1.5 transition-colors duration-100"
       :class="connectionsStore.activeConnectionId === connection.id ? 'bg-active' : ''"
       @click="emit('toggle')"
+      @dblclick="emit('dblclick')"
       @contextmenu.prevent.stop="emit('contextmenu', $event)"
     >
       <!-- Connection Color Flag -->

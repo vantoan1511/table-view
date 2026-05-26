@@ -3,7 +3,7 @@ import ContextMenu from '../ui/ContextMenu.vue';
 
 import { useConnectionsStore } from '@/stores/connections';
 
-import { Code2, Copy, Database, Pencil, RefreshCw, Trash2, Unplug } from 'lucide-vue-next';
+import { Code2, Copy, Database, Pencil, Plug, RefreshCw, Trash2, Unplug } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -33,6 +33,14 @@ const isConnected = computed(() => connection.value?.isConnected ?? false);
     >
       <Code2 :size="13" class="text-text-secondary" />
       <span>Open SQL Editor</span>
+    </button>
+    <button
+      v-if="!isConnected"
+      class="text-text-primary hover:bg-hover flex w-full items-center gap-2 px-3 py-1.5 text-[12px]"
+      @click="emit('action', 'connect')"
+    >
+      <Plug :size="13" class="text-text-secondary" />
+      <span>Connect</span>
     </button>
     <button
       v-if="isConnected"
