@@ -51,6 +51,50 @@ export const editorTheme = EditorView.theme(
     },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
       backgroundColor: 'var(--color-primary-light)'
+    },
+    '.cm-tooltip.cm-tooltip-autocomplete': {
+      backgroundColor: 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
+      borderRadius: '8px',
+      boxShadow: 'var(--shadow-lg)'
+    },
+    '.cm-completionList': {
+      fontFamily: 'var(--font-mono)',
+      fontSize: '11.5px'
+    },
+    '.cm-completionList::-webkit-scrollbar': {
+      width: '4px',
+      height: '4px'
+    },
+    '.cm-completionList::-webkit-scrollbar-thumb': {
+      backgroundColor: 'var(--color-border)',
+      borderRadius: '4px'
+    },
+    '.cm-completionList .cm-completionLabel': {
+      color: 'var(--color-text-primary)'
+    },
+    '.cm-completionList .cm-completionDetail': {
+      color: 'var(--color-text-tertiary)',
+      fontStyle: 'italic',
+      marginLeft: '8px'
+    },
+    '.cm-completionList [aria-selected="true"]': {
+      backgroundColor: 'var(--color-primary)',
+      color: 'white'
+    },
+    '.cm-completionList [aria-selected="true"] .cm-completionLabel': {
+      color: 'white'
+    },
+    '.cm-completionList [aria-selected="true"] .cm-completionDetail': {
+      color: 'rgba(255, 255, 255, 0.7)'
+    },
+    '.cm-completionMatched': {
+      textDecoration: 'none',
+      fontWeight: 'bold',
+      color: 'var(--color-primary)'
+    },
+    '.cm-completionList [aria-selected="true"] .cm-completionMatched': {
+      color: 'white'
     }
   },
   { dark: true }

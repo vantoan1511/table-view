@@ -8,7 +8,8 @@ import ResultsGrid from './ResultsGrid.vue';
 import { useDebounce } from '@/composables/useDebounce';
 import { useSqlEditor } from '@/composables/useSqlEditor';
 
-// Pinia stores
+import { useConnectionsStore } from '@/stores/connections';
+import { useDiagramStore } from '@/stores/diagram';
 import { useGridStore } from '@/stores/grid';
 import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
@@ -32,9 +33,11 @@ const props = defineProps<{
   tab: Tab;
 }>();
 
+const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
 const schemaStore = useSchemaStore();
 const tabsStore = useTabsStore();
+const diagramStore = useDiagramStore();
 
 const { activeResultTab, executeRun, saveQuery, exportQuery } = useSqlEditor(props);
 
@@ -46,14 +49,28 @@ const sqlCompartment = new Compartment();
 
 const buildSqlExtension = () => {
   const schemaMap: Record<string, string[]> = {};
-  const connId = props.tab.connectionId;
-  const connSchema = connId ? schemaStore.schemasByConnection[connId] : undefined;
-  const source = connSchema ?? schemaStore.schema;
-  for (const table of source.tables) {
-    schemaMap[table.name] = [];
-  }
-  for (const view of source.views) {
-    schemaMap[view.name] = [];
+  const connId = props.tab.connectionId || connectionsStore.activeConnectionId;
+  const dbName = props.tab.dbName;
+  const schemaName = props.tab.schema || schemaStore.selectedSchema;
+  const source =
+    (connId ? schemaStore.schemasByConnection[connId] : undefined) ?? schemaStore.schema;
+
+  const cachedDetails =
+    connId && schemaName
+      ? diagramStore.diagrams[diagramStore.getCacheKey(connId, schemaName, dbName)]
+      : undefined;
+
+  if (cachedDetails) {
+    for (const table of cachedDetails.tables) {
+      schemaMap[table.name] = table.columns.map((c) => c.name);
+    }
+  } else {
+    for (const table of source.tables) {
+      schemaMap[table.name] = [];
+    }
+    for (const view of source.views) {
+      schemaMap[view.name] = [];
+    }
   }
   return sql({ dialect: PostgreSQL, schema: schemaMap });
 };
@@ -113,8 +130,23 @@ const initEditor = () => {
   });
 };
 
+const loadDetails = async () => {
+  const connId = props.tab.connectionId || connectionsStore.activeConnectionId;
+  const dbName = props.tab.dbName;
+  const schemaName = props.tab.schema || schemaStore.selectedSchema;
+  if (connId && schemaName) {
+    await diagramStore.fetchSchemaDetails(connId, schemaName, dbName);
+    if (editorView) {
+      editorView.dispatch({
+        effects: sqlCompartment.reconfigure(buildSqlExtension())
+      });
+    }
+  }
+};
+
 onMounted(() => {
   initEditor();
+  loadDetails();
 
   watch(
     () =>
@@ -126,6 +158,7 @@ onMounted(() => {
       editorView.dispatch({
         effects: sqlCompartment.reconfigure(buildSqlExtension())
       });
+      loadDetails();
     },
     { deep: true }
   );

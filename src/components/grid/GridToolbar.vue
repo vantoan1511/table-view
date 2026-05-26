@@ -17,7 +17,7 @@ import {
   Wrench,
   X
 } from 'lucide-vue-next';
-import { watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 const gridStore = useGridStore();
 const toastStore = useToastStore();
@@ -59,6 +59,170 @@ const handleFilter = () => {
 const clearFilter = () => {
   gridStore.filterText = '';
   handleFilter();
+};
+
+// ─── Filter Autocomplete ────────────────────────────────────────────────────────
+const filterInputRef = ref<HTMLInputElement | null>(null);
+const showSuggestions = ref(false);
+const activeSuggestionIndex = ref(0);
+const activeToken = ref('');
+
+const getActiveToken = (text: string, cursorOffset: number) => {
+  const textBeforeCursor = text.slice(0, cursorOffset);
+  const words = textBeforeCursor.split(/[\s(),;=!><]+/);
+  return words[words.length - 1] || '';
+};
+
+const updateCursorOffset = () => {
+  const inputEl = filterInputRef.value;
+  if (!inputEl) return;
+  const cursorOffset = inputEl.selectionStart || 0;
+  activeToken.value = getActiveToken(gridStore.filterText || '', cursorOffset);
+};
+
+const handleInput = () => {
+  showSuggestions.value = true;
+  activeSuggestionIndex.value = 0;
+  updateCursorOffset();
+};
+
+const handleBlur = () => {
+  setTimeout(() => {
+    showSuggestions.value = false;
+  }, 200);
+};
+
+const filteredSuggestions = computed(() => {
+  const token = activeToken.value.toLowerCase();
+
+  const cols = gridStore.columns.map((c) => ({
+    label: c.name,
+    value: c.name,
+    type: 'column' as const,
+    dataType: c.dataType,
+    description: 'Column'
+  }));
+
+  const ops = [
+    {
+      label: 'AND',
+      value: 'AND ',
+      type: 'operator' as const,
+      description: 'Logical AND',
+      dataType: undefined
+    },
+    {
+      label: 'OR',
+      value: 'OR ',
+      type: 'operator' as const,
+      description: 'Logical OR',
+      dataType: undefined
+    },
+    {
+      label: 'LIKE',
+      value: 'LIKE ',
+      type: 'operator' as const,
+      description: 'Pattern matching',
+      dataType: undefined
+    },
+    {
+      label: 'ILIKE',
+      value: 'ILIKE ',
+      type: 'operator' as const,
+      description: 'Case-insensitive LIKE',
+      dataType: undefined
+    },
+    {
+      label: 'IN',
+      value: 'IN ',
+      type: 'operator' as const,
+      description: 'In list',
+      dataType: undefined
+    },
+    {
+      label: 'IS NULL',
+      value: 'IS NULL ',
+      type: 'operator' as const,
+      description: 'Null check',
+      dataType: undefined
+    },
+    {
+      label: 'IS NOT NULL',
+      value: 'IS NOT NULL ',
+      type: 'operator' as const,
+      description: 'Not null check',
+      dataType: undefined
+    }
+  ];
+
+  const all = [...cols, ...ops];
+
+  if (!token) return cols;
+
+  return all.filter(
+    (item) => item.label.toLowerCase().includes(token) && item.label.toLowerCase() !== token
+  );
+});
+
+const selectSuggestion = (item: { label: string; value: string }) => {
+  const inputEl = filterInputRef.value;
+  if (!inputEl) return;
+
+  const text = gridStore.filterText || '';
+  const cursorOffset = inputEl.selectionStart || 0;
+
+  const textBeforeCursor = text.slice(0, cursorOffset);
+  const lastTokenStart = textBeforeCursor.search(/[a-zA-Z0-9_]*$/);
+
+  if (lastTokenStart !== -1) {
+    const before = text.slice(0, lastTokenStart);
+    const after = text.slice(cursorOffset);
+    gridStore.filterText = before + item.value + after;
+
+    const newCursorPos = lastTokenStart + item.value.length;
+    nextTick(() => {
+      inputEl.focus();
+      inputEl.setSelectionRange(newCursorPos, newCursorPos);
+      updateCursorOffset();
+    });
+  }
+
+  showSuggestions.value = false;
+};
+
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (!showSuggestions.value || filteredSuggestions.value.length === 0) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      showSuggestions.value = true;
+      activeSuggestionIndex.value = 0;
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      handleFilter();
+    }
+    return;
+  }
+
+  if (e.key === 'ArrowDown') {
+    activeSuggestionIndex.value =
+      (activeSuggestionIndex.value + 1) % filteredSuggestions.value.length;
+    e.preventDefault();
+  } else if (e.key === 'ArrowUp') {
+    activeSuggestionIndex.value =
+      (activeSuggestionIndex.value - 1 + filteredSuggestions.value.length) %
+      filteredSuggestions.value.length;
+    e.preventDefault();
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
+    const index = Math.min(activeSuggestionIndex.value, filteredSuggestions.value.length - 1);
+    const item = filteredSuggestions.value[index];
+    if (item) {
+      selectSuggestion(item);
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  } else if (e.key === 'Escape') {
+    showSuggestions.value = false;
+    e.preventDefault();
+  }
 };
 
 const confirmAlterTable = async (operations: any[]) => {
@@ -170,20 +334,21 @@ const vFocus = {
     </div>
 
     <!-- Filter Query Input -->
-    <div
-      v-if="gridStore.activeTableName"
-      class="max-w-[200px] flex-1 shrink-0 @[750px]:max-w-[320px]"
-    >
+    <div v-if="gridStore.activeTableName" class="relative min-w-0 flex-1">
       <div
         class="bg-surface border-border focus-within:border-primary/50 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors"
       >
         <Filter :size="12" class="text-text-tertiary shrink-0" />
         <input
+          ref="filterInputRef"
           type="text"
           placeholder="Filter condition (e.g. id > 10)..."
           class="text-text-primary placeholder-text-tertiary flex-1 border-none bg-transparent text-[12px] outline-none"
           v-model="gridStore.filterText"
-          @keydown.enter="handleFilter"
+          @input="handleInput"
+          @keydown="handleKeyDown"
+          @click="handleInput"
+          @blur="handleBlur"
         />
         <button
           v-if="gridStore.filterText"
@@ -192,6 +357,44 @@ const vFocus = {
         >
           <X :size="12" />
         </button>
+      </div>
+
+      <!-- Autocomplete Dropdown -->
+      <div
+        v-if="showSuggestions && filteredSuggestions.length > 0"
+        class="border-border bg-surface absolute top-full left-0 z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border shadow-xl"
+      >
+        <div class="p-1">
+          <button
+            v-for="(item, index) in filteredSuggestions"
+            :key="item.value"
+            class="hover:bg-hover flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-1.5 text-left text-[12px]"
+            :class="{ 'bg-hover': index === activeSuggestionIndex }"
+            @click="selectSuggestion(item)"
+          >
+            <div class="flex items-center gap-2">
+              <span class="text-text-tertiary text-[10px]">
+                <span
+                  v-if="item.type === 'column'"
+                  class="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase"
+                >
+                  Col
+                </span>
+                <span
+                  v-else
+                  class="bg-accent/10 text-accent rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase"
+                >
+                  Op
+                </span>
+              </span>
+              <span class="text-text-primary font-medium">{{ item.label }}</span>
+              <span v-if="item.dataType" class="text-text-tertiary text-[10px]">
+                ({{ item.dataType }})
+              </span>
+            </div>
+            <span class="text-text-tertiary text-[10px]">{{ item.description }}</span>
+          </button>
+        </div>
       </div>
     </div>
 
