@@ -16,6 +16,7 @@ import type { Connection } from '@/types';
 
 import { ChevronsDownUpIcon, Layers } from 'lucide-vue-next';
 import { provide, ref } from 'vue';
+import Tooltip from '../ui/Tooltip.vue';
 
 const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
@@ -246,15 +247,16 @@ const handleContextAction = async (action: string) => {
       <span class="text-text-secondary text-[11px] font-semibold tracking-wider uppercase"
         >Connections</span
       >
-      <Button
-        id="btn-collapse-all"
-        variant="ghost"
-        size="icon"
-        :icon="ChevronsDownUpIcon"
-        title="Collapse All"
-        class="h-6 w-6"
-        @click="collapseAll"
-      />
+      <Tooltip text="Collapse All" position="bottom">
+        <Button
+          id="btn-collapse-all"
+          variant="ghost"
+          size="icon"
+          :icon="ChevronsDownUpIcon"
+          class="h-6 w-6"
+          @click="collapseAll"
+        />
+      </Tooltip>
     </div>
 
     <div class="flex-1 overflow-y-auto py-1">

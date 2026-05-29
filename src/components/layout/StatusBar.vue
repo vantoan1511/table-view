@@ -18,6 +18,7 @@ import {
   Sun
 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
+import Tooltip from '../ui/Tooltip.vue';
 
 const aboutStore = useAboutStore();
 const layoutStore = useLayoutStore();
@@ -245,30 +246,32 @@ const openSettings = () => {
 
     <!-- Right: Panel Toggles -->
     <div class="border-border ml-3 flex shrink-0 items-center gap-1.5 border-l pl-3">
-      <button
-        class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
-        :class="
-          layoutStore.isBottomVisible
-            ? 'text-primary bg-primary/10'
-            : 'text-text-tertiary hover:text-text-secondary'
-        "
-        @click="layoutStore.togglePanel('console')"
-        title="Toggle Console (Ctrl+J)"
-      >
-        <PanelBottom :size="14" />
-      </button>
-      <button
-        class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
-        :class="
-          layoutStore.isRightVisible
-            ? 'text-primary bg-primary/10'
-            : 'text-text-tertiary hover:text-text-secondary'
-        "
-        @click="layoutStore.togglePanel('inspector')"
-        title="Toggle Inspector (Ctrl+I)"
-      >
-        <PanelRight :size="14" />
-      </button>
+      <Tooltip text="Toggle Console (Ctrl+J)" preferred-position="left">
+        <button
+          class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
+          :class="
+            layoutStore.isBottomVisible
+              ? 'text-primary bg-primary/10'
+              : 'text-text-tertiary hover:text-text-secondary'
+          "
+          @click="layoutStore.togglePanel('console')"
+        >
+          <PanelBottom :size="14" />
+        </button>
+      </Tooltip>
+      <Tooltip text="Toggle Inspector (Ctrl+I)" preferred-position="top">
+        <button
+          class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
+          :class="
+            layoutStore.isRightVisible
+              ? 'text-primary bg-primary/10'
+              : 'text-text-tertiary hover:text-text-secondary'
+          "
+          @click="layoutStore.togglePanel('inspector')"
+        >
+          <PanelRight :size="14" />
+        </button>
+      </Tooltip>
     </div>
   </footer>
 </template>

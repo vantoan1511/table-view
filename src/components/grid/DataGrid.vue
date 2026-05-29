@@ -5,6 +5,7 @@ import GridCell from './GridCell.vue';
 import GridHeaderCell from './GridHeaderCell.vue';
 import GridToolbar from './GridToolbar.vue';
 import Pagination from './Pagination.vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 
 import { useClickOutside } from '@/composables/useClickOutside';
 import { useContextMenu } from '@/composables/useContextMenu';
@@ -55,6 +56,10 @@ const onCellClick = (rowIdx: number, col: GridColumn) => {
 
 const startEdit = (rowIdx: number, col: GridColumn) => {
   if (col.isPrimaryKey) return;
+  const type = col.dataType.trim().toLowerCase();
+  if (['bool', 'boolean', '16'].includes(type)) {
+    return; // Prevent entering textual edit state for boolean columns
+  }
   gridStore.startEditCell(rowIdx, col);
 };
 
@@ -343,7 +348,7 @@ onUnmounted(() => {
                         gridStore.validateNewRowCell(col.name, $event))
                       : gridStore.editingCell
                         ? (gridStore.editingCell.currentValue = $event)
-                        : null
+                        : gridStore.updateCell(startIndex + i, col, $event)
                   "
                   @save="
                     gridStore.newRowIdx === startIndex + i
@@ -368,18 +373,18 @@ onUnmounted(() => {
                     <button
                       @click.stop="gridStore.saveNewRow"
                       class="text-success hover:bg-success/10 flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium"
-                      title="Save row"
                     >
                       <Check :size="12" />
                       <span>Save</span>
+                      <Tooltip text="Save row" position="top" />
                     </button>
                     <button
                       @click.stop="gridStore.cancelNewRow"
                       class="text-danger hover:bg-danger/10 flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium"
-                      title="Discard"
                     >
                       <X :size="12" />
                       <span>Discard</span>
+                      <Tooltip text="Discard" position="top" />
                     </button>
                   </div>
                 </td>

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import Checkbox from './Checkbox.vue';
 import DropdownMenu from './DropdownMenu.vue';
+import Tooltip from './Tooltip.vue';
 
 import { DbType } from '@/types';
+
 import { Check, Edit2, Plus, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -74,8 +76,79 @@ const getSupportedDataTypes = (type: DbType) => {
 };
 
 const typeOptions = computed(() =>
-  getSupportedDataTypes(props.dbType).map((t) => ({ label: t, value: t }))
+  getSupportedDataTypes(props.dbType).map((t) => {
+    const base = t.split('(')[0] || t;
+    return { label: base, value: base };
+  })
 );
+
+const isVarcharType = (dataTypeStr: string): boolean => {
+  const lower = dataTypeStr.toLowerCase();
+  return ['varchar', 'varchar2', 'nvarchar', 'char', 'nchar'].some((t) => lower.includes(t));
+};
+
+const isNumericType = (dataTypeStr: string): boolean => {
+  const lower = dataTypeStr.toLowerCase();
+  return ['numeric', 'decimal', 'number'].some((t) => lower.includes(t));
+};
+
+const parseDataType = (dataTypeStr: string) => {
+  const normalized = dataTypeStr.trim();
+  const match = normalized.match(/^([a-zA-Z0-9_\s]+)\s*(?:\(\s*(\d+)\s*(?:,\s*(\d+)\s*)?\))?$/i);
+  if (!match) {
+    return { baseType: normalized, length: '', precision: '', scale: '' };
+  }
+  const baseType = (match[1] || '').trim();
+  const param1 = match[2] || '';
+  const param2 = match[3] || '';
+
+  const isVarchar = isVarcharType(baseType);
+  const isNumeric = isNumericType(baseType);
+
+  return {
+    baseType,
+    length: isVarchar ? param1 : '',
+    precision: isNumeric ? param1 : '',
+    scale: isNumeric ? param2 : ''
+  };
+};
+
+const updateDataType = (
+  col: ColumnDef,
+  parts: {
+    baseType?: string;
+    length?: string | number;
+    precision?: string | number;
+    scale?: string | number;
+  }
+) => {
+  const current = parseDataType(col.dataType);
+  const baseType = parts.baseType !== undefined ? parts.baseType : current.baseType;
+
+  if (isVarcharType(baseType)) {
+    let length = parts.length !== undefined ? parts.length : current.length;
+    if (!length && parts.baseType !== undefined) {
+      length = '255';
+    }
+    col.dataType = length ? `${baseType}(${length})` : baseType;
+  } else if (isNumericType(baseType)) {
+    let precision = parts.precision !== undefined ? parts.precision : current.precision;
+    let scale = parts.scale !== undefined ? parts.scale : current.scale;
+    if (!precision && !scale && parts.baseType !== undefined) {
+      precision = '10';
+      scale = '2';
+    }
+    if (precision && scale) {
+      col.dataType = `${baseType}(${precision},${scale})`;
+    } else if (precision) {
+      col.dataType = `${baseType}(${precision})`;
+    } else {
+      col.dataType = baseType;
+    }
+  } else {
+    col.dataType = baseType;
+  }
+};
 
 const visibleColumns = computed(() => props.modelValue.filter((c) => !c._deleted));
 
@@ -172,13 +245,72 @@ const togglePrimaryKey = (col: ColumnDef) => {
 
             <!-- Data Type -->
             <td class="px-4 py-2">
-              <div v-if="col._editing && (mode === 'create' || col._isNew)" class="w-full">
+              <div
+                v-if="col._editing && (mode === 'create' || col._isNew)"
+                class="flex flex-col gap-2"
+              >
                 <DropdownMenu
-                  v-model="col.dataType"
+                  :model-value="parseDataType(col.dataType).baseType"
+                  @update:model-value="
+                    (val) => updateDataType(col, { baseType: val ? String(val) : '' })
+                  "
                   :options="typeOptions"
                   class="w-full"
-                  button-class="w-full justify-between !bg-surface text-text-primary"
+                  button-class="w-full justify-between !bg-surface text-text-primary text-[13px]"
                 />
+
+                <!-- Additional constraints based on datatype -->
+                <div v-if="isVarcharType(col.dataType)" class="flex items-center gap-2">
+                  <span class="text-text-secondary text-[11px] font-medium whitespace-nowrap"
+                    >Length:</span
+                  >
+                  <input
+                    type="number"
+                    min="1"
+                    :value="parseDataType(col.dataType).length"
+                    @input="
+                      (e) => updateDataType(col, { length: (e.target as HTMLInputElement).value })
+                    "
+                    class="bg-surface border-border focus:border-primary text-text-primary w-full rounded border px-2 py-0.5 text-center text-[12px] outline-none"
+                  />
+                </div>
+
+                <div v-else-if="isNumericType(col.dataType)" class="flex flex-col gap-1">
+                  <span class="text-text-secondary text-[11px] font-medium whitespace-nowrap"
+                    >Precision, Scale:</span
+                  >
+                  <div class="flex w-full items-center gap-1">
+                    <span class="relative flex-1">
+                      <input
+                        type="number"
+                        min="1"
+                        :value="parseDataType(col.dataType).precision"
+                        @input="
+                          (e) =>
+                            updateDataType(col, { precision: (e.target as HTMLInputElement).value })
+                        "
+                        placeholder="10"
+                        class="bg-surface border-border focus:border-primary text-text-primary w-full rounded border px-1 py-0.5 text-center text-[12px] outline-none"
+                      />
+                      <Tooltip text="Precision (total digits)" position="top" />
+                    </span>
+                    <span class="text-text-tertiary">,</span>
+                    <span class="relative flex-1">
+                      <input
+                        type="number"
+                        min="0"
+                        :value="parseDataType(col.dataType).scale"
+                        @input="
+                          (e) =>
+                            updateDataType(col, { scale: (e.target as HTMLInputElement).value })
+                        "
+                        placeholder="2"
+                        class="bg-surface border-border focus:border-primary text-text-primary w-full rounded border px-1 py-0.5 text-center text-[12px] outline-none"
+                      />
+                      <Tooltip text="Scale (decimal digits)" position="top" />
+                    </span>
+                  </div>
+                </div>
               </div>
               <span v-else class="text-text-secondary">{{ col.dataType }}</span>
             </td>
@@ -218,26 +350,26 @@ const togglePrimaryKey = (col: ColumnDef) => {
                   v-if="col._editing"
                   @click="saveColumn(col)"
                   class="text-success hover:text-success/80 cursor-pointer transition-colors"
-                  title="Save"
                   :disabled="!col.name.trim()"
                 >
                   <Check :size="14" />
+                  <Tooltip text="Save" position="top" />
                 </button>
                 <button
                   v-else
                   @click="editColumn(col)"
                   class="text-text-tertiary hover:text-primary cursor-pointer transition-colors"
-                  title="Edit"
                 >
                   <Edit2 :size="14" />
+                  <Tooltip text="Edit" position="top" />
                 </button>
 
                 <button
                   @click="removeColumn(col.id)"
                   class="text-text-tertiary hover:text-danger cursor-pointer transition-colors"
-                  title="Delete"
                 >
                   <Trash2 :size="14" />
+                  <Tooltip text="Delete" position="top" />
                 </button>
               </div>
             </td>

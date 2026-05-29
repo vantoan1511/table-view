@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AlterTableDialog from '@/components/ui/AlterTableDialog.vue';
 import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
@@ -319,17 +320,18 @@ const vFocus = {
 
 <template>
   <div
-    class="border-border bg-surface @container flex min-h-[48px] items-center justify-between gap-2 border-b px-4 py-2"
+    class="border-border bg-surface @container flex min-h-12 items-center justify-between gap-2 border-b px-4 py-2"
   >
     <!-- Left: Table name + row actions -->
     <div class="flex min-w-0 items-center gap-2">
       <div class="mr-1 flex shrink-0 items-center gap-2">
-        <h2
-          class="text-text-primary max-w-[80px] truncate text-[14px] font-semibold @[400px]:max-w-[150px] @[850px]:max-w-none"
-          :title="gridStore.activeTableName"
-        >
-          {{ gridStore.activeTableName }}
-        </h2>
+        <Tooltip :text="gridStore.activeTableName" position="bottom">
+          <h2
+            class="text-text-primary max-w-20 cursor-help truncate text-[14px] font-semibold @[400px]:max-w-37.5 @[850px]:max-w-none"
+          >
+            {{ gridStore.activeTableName }}
+          </h2>
+        </Tooltip>
       </div>
     </div>
 
@@ -413,15 +415,7 @@ const vFocus = {
           <template #trigger>
             <Columns3 :size="13" />
             <span class="hidden @[850px]:inline">Columns</span>
-            <!-- Tooltip -->
-            <div
-              class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-            >
-              Configure Columns
-              <div
-                class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-              ></div>
-            </div>
+            <Tooltip text="Configure Columns" position="bottom" />
           </template>
           <div
             class="text-text-tertiary px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
@@ -470,15 +464,7 @@ const vFocus = {
         >
           <Download :size="13" />
           <span class="hidden @[850px]:inline">Export</span>
-          <!-- Tooltip -->
-          <div
-            class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-          >
-            Export Data
-            <div
-              class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-            ></div>
-          </div>
+          <Tooltip text="Export Data" position="bottom" />
         </button>
 
         <!-- Row Count -->
@@ -505,15 +491,7 @@ const vFocus = {
           @click="gridStore.showAlterTableDialog = true"
         >
           <Wrench :size="14" />
-          <!-- Tooltip -->
-          <div
-            class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-          >
-            Alter Table Structure
-            <div
-              class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-            ></div>
-          </div>
+          <Tooltip text="Alter Table Structure" position="bottom" />
         </button>
 
         <!-- Refresh -->
@@ -522,15 +500,7 @@ const vFocus = {
           @click="handleRefresh"
         >
           <RefreshCw :size="14" />
-          <!-- Tooltip -->
-          <div
-            class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-          >
-            Refresh Table
-            <div
-              class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-            ></div>
-          </div>
+          <Tooltip text="Refresh Table" position="bottom" />
         </button>
       </div>
 
@@ -547,15 +517,7 @@ const vFocus = {
         >
           <template #trigger>
             <MoreHorizontal :size="16" />
-            <!-- Tooltip -->
-            <div
-              class="bg-surface border-border text-text-primary pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 -translate-y-1 rounded border px-2 py-1 text-[11px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
-            >
-              More Actions
-              <div
-                class="bg-surface border-border absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-t border-l"
-              ></div>
-            </div>
+            <Tooltip text="More Actions" position="bottom" />
           </template>
           <template #default="{ close }">
             <button

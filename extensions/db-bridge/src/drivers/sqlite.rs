@@ -46,22 +46,31 @@ impl SqliteDriver {
             return Ok((vec![], vec![], elapsed));
         }
 
+        let orig_names: Vec<String> = rows[0].columns().iter().map(|c| c.name().to_string()).collect();
+        let unique_names = crate::drivers::utils::make_unique_column_names(&orig_names);
+
         let mut fields = Vec::new();
-        for col in rows[0].columns() {
+        for (col, unique_name) in rows[0].columns().iter().zip(unique_names.iter()) {
+            let display_name = if unique_name != col.name() {
+                Some(col.name().to_string())
+            } else {
+                None
+            };
             fields.push(ColumnInfo {
-                name: col.name().to_string(),
+                name: unique_name.clone(),
                 data_type: col.type_info().name().to_string(),
                 is_primary_key: false,
                 is_nullable: true,
+                display_name,
             });
         }
 
         let mut data = Vec::new();
         for row in rows {
             let mut map = HashMap::new();
-            for (i, col) in row.columns().iter().enumerate() {
+            for (i, unique_name) in unique_names.iter().enumerate() {
                 let val = Self::get_column_value(&row, i);
-                map.insert(col.name().to_string(), val);
+                map.insert(unique_name.clone(), val);
             }
             data.push(map);
         }
@@ -433,7 +442,7 @@ impl DatabaseDriver for SqliteDriver {
         Ok(())
     }
 
-    async fn drop_table(&self, table_name: &str) -> Result<(), String> {
+    async fn drop_table(&self, table_name: &str, _cascade: bool) -> Result<(), String> {
         let pool = self.pool()?;
         let sql = Self::build_drop_table_sql(table_name);
         sqlx::query(&sql)

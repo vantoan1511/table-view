@@ -13,6 +13,7 @@ import {
 } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
+import Tooltip from '@/components/ui/Tooltip.vue';
 import { useDiagramStore } from '@/stores/diagram';
 import type { Tab } from '@/types';
 
@@ -552,10 +553,10 @@ const exportToSvg = () => {
 
         <button
           @click="zoomOut"
-          title="Zoom Out"
           class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
         >
           <ZoomOut class="h-4 w-4" />
+          <Tooltip text="Zoom Out" position="bottom" />
         </button>
 
         <span class="text-text-secondary w-12 text-center font-mono text-xs select-none">
@@ -564,54 +565,54 @@ const exportToSvg = () => {
 
         <button
           @click="zoomIn"
-          title="Zoom In"
           class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
         >
           <ZoomIn class="h-4 w-4" />
+          <Tooltip text="Zoom In" position="bottom" />
         </button>
 
         <button
           @click="zoomToFit"
-          title="Zoom to Fit"
           class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
         >
           <Maximize class="h-4 w-4" />
+          <Tooltip text="Zoom to Fit" position="bottom" />
         </button>
 
         <button
           @click="resetZoom"
-          title="Reset Viewport"
           class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
         >
           <RefreshCw class="h-4 w-4" />
+          <Tooltip text="Reset Viewport" position="bottom" />
         </button>
 
         <div class="bg-border/40 mx-1 h-4 w-px"></div>
 
         <button
           @click="performAutoLayout(true)"
-          title="Regrid Auto Layout"
           class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors"
         >
           <Maximize class="h-3.5 w-3.5 rotate-45" />
           <span>Auto Layout</span>
+          <Tooltip text="Regrid Auto Layout" position="bottom" />
         </button>
 
         <button
           @click="exportToSvg"
-          title="Export diagram to SVG image"
           class="flex h-8 items-center gap-1.5 rounded-md border border-indigo-500/30 bg-indigo-500/10 px-3 text-xs font-medium text-indigo-400 transition-colors hover:bg-indigo-500/20"
         >
           <Download class="h-3.5 w-3.5" />
           <span>Export SVG</span>
+          <Tooltip text="Export diagram to SVG image" position="bottom" />
         </button>
 
         <button
           @click="loadData(true)"
-          title="Refresh Metadata"
           class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
         >
           <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
+          <Tooltip text="Refresh Metadata" position="bottom" />
         </button>
       </div>
     </div>
@@ -749,8 +750,9 @@ const exportToSvg = () => {
                 <Table
                   class="text-text-tertiary h-3.5 w-3.5 shrink-0 transition-colors group-hover:text-indigo-400"
                 />
-                <span class="text-text-primary truncate text-xs font-semibold" :title="table.name">
+                <span class="text-text-primary truncate text-xs font-semibold">
                   {{ table.name }}
+                  <Tooltip :text="table.name" position="top" />
                 </span>
               </div>
               <span
@@ -793,11 +795,9 @@ const exportToSvg = () => {
                 </div>
 
                 <!-- Data type -->
-                <span
-                  class="text-text-tertiary max-w-[90px] truncate font-mono text-[9px]"
-                  :title="col.dataType"
-                >
+                <span class="text-text-tertiary max-w-[90px] truncate font-mono text-[9px]">
                   {{ col.dataType.toLowerCase() }}
+                  <Tooltip :text="col.dataType" position="left" />
                 </span>
               </div>
             </div>

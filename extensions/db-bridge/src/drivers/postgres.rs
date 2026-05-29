@@ -58,22 +58,31 @@ impl PostgresDriver {
             return Ok((vec![], vec![], elapsed));
         }
 
+        let orig_names: Vec<String> = rows[0].columns().iter().map(|c| c.name().to_string()).collect();
+        let unique_names = crate::drivers::utils::make_unique_column_names(&orig_names);
+
         let mut fields = Vec::new();
-        for col in rows[0].columns() {
+        for (col, unique_name) in rows[0].columns().iter().zip(unique_names.iter()) {
+            let display_name = if unique_name != col.name() {
+                Some(col.name().to_string())
+            } else {
+                None
+            };
             fields.push(ColumnInfo {
-                name: col.name().to_string(),
+                name: unique_name.clone(),
                 data_type: col.type_info().name().to_string(),
                 is_primary_key: false,
                 is_nullable: true,
+                display_name,
             });
         }
 
         let mut data = Vec::new();
         for row in rows {
             let mut map = HashMap::new();
-            for (i, col) in row.columns().iter().enumerate() {
+            for (i, unique_name) in unique_names.iter().enumerate() {
                 let val = Self::get_column_value(&row, i);
-                map.insert(col.name().to_string(), val);
+                map.insert(unique_name.clone(), val);
             }
             data.push(map);
         }
@@ -175,9 +184,13 @@ impl PostgresDriver {
     }
 
 
-    fn build_drop_table_sql(table_name: &str) -> String {
+    fn build_drop_table_sql(table_name: &str, cascade: bool) -> String {
         let safe_table = Self::qualified_table_name(table_name);
-        format!("DROP TABLE {}", safe_table)
+        if cascade {
+            format!("DROP TABLE {} CASCADE", safe_table)
+        } else {
+            format!("DROP TABLE {}", safe_table)
+        }
     }
 }
 
@@ -473,6 +486,7 @@ impl DatabaseDriver for PostgresDriver {
                     .get("is_nullable")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(true),
+                display_name: None,
             })
             .collect();
 
@@ -542,22 +556,31 @@ impl DatabaseDriver for PostgresDriver {
             });
         }
 
+        let orig_names: Vec<String> = rows[0].columns().iter().map(|c| c.name().to_string()).collect();
+        let unique_names = crate::drivers::utils::make_unique_column_names(&orig_names);
+
         let mut fields = Vec::new();
-        for col in rows[0].columns() {
+        for (col, unique_name) in rows[0].columns().iter().zip(unique_names.iter()) {
+            let display_name = if unique_name != col.name() {
+                Some(col.name().to_string())
+            } else {
+                None
+            };
             fields.push(ColumnInfo {
-                name: col.name().to_string(),
+                name: unique_name.clone(),
                 data_type: col.type_info().name().to_string(),
                 is_primary_key: false,
                 is_nullable: true,
+                display_name,
             });
         }
 
         let mut data = Vec::new();
         for row in &rows {
             let mut map = std::collections::HashMap::new();
-            for (i, col) in row.columns().iter().enumerate() {
+            for (i, unique_name) in unique_names.iter().enumerate() {
                 let val = Self::get_column_value(row, i);
-                map.insert(col.name().to_string(), val);
+                map.insert(unique_name.clone(), val);
             }
             data.push(map);
         }
@@ -758,9 +781,9 @@ impl DatabaseDriver for PostgresDriver {
         Ok(())
     }
 
-    async fn drop_table(&self, table_name: &str) -> Result<(), String> {
+    async fn drop_table(&self, table_name: &str, cascade: bool) -> Result<(), String> {
         let pool = self.pool()?;
-        let sql = Self::build_drop_table_sql(table_name);
+        let sql = Self::build_drop_table_sql(table_name, cascade);
         sqlx::query(&sql)
             .execute(pool)
             .await
@@ -945,8 +968,10 @@ mod tests {
 
     #[test]
     fn test_build_drop_table_sql() {
-        let sql = PostgresDriver::build_drop_table_sql("public.users");
+        let sql = PostgresDriver::build_drop_table_sql("public.users", false);
         assert_eq!(sql, "DROP TABLE \"public\".\"users\"");
+        let sql_cascade = PostgresDriver::build_drop_table_sql("public.users", true);
+        assert_eq!(sql_cascade, "DROP TABLE \"public\".\"users\" CASCADE");
     }
 
     #[test]

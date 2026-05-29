@@ -60,6 +60,8 @@ pub struct ColumnInfo {
     pub is_primary_key: bool,
     #[serde(rename = "isNullable")]
     pub is_nullable: bool,
+    #[serde(rename = "displayName", skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -202,7 +204,7 @@ pub trait DatabaseDriver: Send + Sync {
         operations: &[AlterOperation],
     ) -> Result<(), String>;
     async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String>;
-    async fn drop_table(&self, table_name: &str) -> Result<(), String>;
+    async fn drop_table(&self, table_name: &str, cascade: bool) -> Result<(), String>;
     async fn create_schema(&self, schema_name: &str) -> Result<(), String>;
     async fn drop_schema(&self, schema_name: &str) -> Result<(), String>;
     async fn drop_database(&self, db_name: &str) -> Result<(), String>;

@@ -166,7 +166,7 @@ onUnmounted(() => {
       <div
         v-if="isOpen"
         ref="menuRef"
-        class="bg-surface border-border fixed z-[9999] min-w-20 rounded-lg border py-1 shadow-lg"
+        class="bg-surface border-border fixed z-9999 min-w-20 rounded-lg border py-1 shadow-lg"
         :style="menuStyle"
         :class="menuClass"
         role="listbox"

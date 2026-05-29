@@ -2,7 +2,8 @@
 import type { GridColumn } from '@/types';
 
 import { Check, X } from 'lucide-vue-next';
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 
 import { formatGridCellValue } from '@/stores/grid/valueConversion';
 
@@ -62,6 +63,24 @@ const getCellClass = (colName: string, value: unknown): string => {
   }
   return '';
 };
+
+const booleanTypes = new Set(['bool', 'boolean', '16']);
+const isBooleanType = computed(() => {
+  if (!props.column?.dataType) return false;
+  return booleanTypes.has(props.column.dataType.trim().toLowerCase());
+});
+
+const toggleBooleanValue = () => {
+  if (props.column.isPrimaryKey) return;
+  const nextVal = props.value === true ? false : true;
+  emit('update:value', nextVal);
+};
+
+const toggleNewRowBooleanValue = () => {
+  const nextVal = localValue.value === true ? false : true;
+  localValue.value = nextVal;
+  emit('update:value', nextVal);
+};
 </script>
 
 <template>
@@ -89,19 +108,13 @@ const getCellClass = (colName: string, value: unknown): string => {
         <div
           class="edit-actions-floating bg-surface border-primary absolute -top-0.5 left-full z-20 flex h-[calc(100%+4px)] items-center gap-1 rounded-r border-2 border-l-0 px-1.5 shadow-2xl"
         >
-          <button
-            @mousedown.prevent="onEnter"
-            class="text-success hover:bg-success/10 rounded p-1"
-            title="Save"
-          >
+          <button @mousedown.prevent="onEnter" class="text-success hover:bg-success/10 rounded p-1">
             <Check :size="12" />
+            <Tooltip text="Save" position="top" />
           </button>
-          <button
-            @mousedown.prevent="onEsc"
-            class="text-danger hover:bg-danger/10 rounded p-1"
-            title="Discard"
-          >
+          <button @mousedown.prevent="onEsc" class="text-danger hover:bg-danger/10 rounded p-1">
             <X :size="12" />
+            <Tooltip text="Discard" position="top" />
           </button>
         </div>
       </div>
@@ -109,7 +122,27 @@ const getCellClass = (colName: string, value: unknown): string => {
 
     <!-- New Row State -->
     <template v-else-if="isNewRow">
-      <div class="relative w-full">
+      <div v-if="isBooleanType" class="flex w-full items-center justify-center py-0.5">
+        <button
+          type="button"
+          class="flex h-4 w-4 items-center justify-center rounded border transition-all duration-200"
+          :class="[
+            localValue === true
+              ? 'bg-primary border-primary hover:bg-primary/90 text-white'
+              : localValue === false
+                ? 'bg-surface border-border hover:border-primary'
+                : 'bg-surface/30 border-border hover:border-primary text-text-tertiary border-dashed'
+          ]"
+          @click.stop="toggleNewRowBooleanValue"
+        >
+          <Check v-if="localValue === true" :size="10" stroke-width="3" />
+          <div
+            v-else-if="localValue === null || localValue === undefined"
+            class="bg-text-tertiary h-0.5 w-1.5 rounded-full"
+          ></div>
+        </button>
+      </div>
+      <div v-else class="relative w-full">
         <input
           v-model="localValue"
           :placeholder="column.isPrimaryKey ? '*Req' : 'NULL'"
@@ -145,6 +178,27 @@ const getCellClass = (colName: string, value: unknown): string => {
       >
         {{ value }}
       </span>
+
+      <!-- Boolean Tri-state Checkbox -->
+      <div v-else-if="isBooleanType" class="flex w-full items-center justify-center py-0.5">
+        <button
+          type="button"
+          :disabled="column.isPrimaryKey"
+          class="flex h-4 w-4 items-center justify-center rounded border transition-all duration-200"
+          :class="[
+            value === true
+              ? 'bg-primary border-primary hover:bg-primary/90 text-white'
+              : value === false
+                ? 'bg-surface border-border hover:border-primary'
+                : 'bg-surface/30 border-border hover:border-primary text-text-tertiary border-dashed',
+            column.isPrimaryKey ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+          ]"
+          @click.stop="toggleBooleanValue"
+        >
+          <Check v-if="value === true" :size="10" stroke-width="3" />
+          <div v-else-if="value === null" class="bg-text-tertiary h-0.5 w-1.5 rounded-full"></div>
+        </button>
+      </div>
 
       <span
         v-else

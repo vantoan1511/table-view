@@ -3,6 +3,7 @@ import DbIcon from '@/components/icons/DbIcon.vue';
 import Button from '@/components/ui/Button.vue';
 import ColorPicker from '@/components/ui/ColorPicker.vue';
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 import { DB_TYPES } from '@/lib/dbTypes';
 import { useConnectionsStore } from '@/stores/connections';
 import { useErrorStore } from '@/stores/error';
@@ -418,11 +419,13 @@ const handleClose = () => {
                   <div class="mt-2 flex items-center gap-1.5">
                     <ToggleSwitch v-model="form.displayAllDatabases" />
                     <span class="text-text-secondary text-[12px]">Display all databases</span>
-                    <CircleHelp
-                      :size="13"
-                      class="text-text-tertiary"
-                      title="If enabled, loads all databases from the server. Otherwise, only loads the configured database. Schemas are always fully loaded."
-                    />
+                    <span class="inline-flex shrink-0">
+                      <CircleHelp :size="13" class="text-text-tertiary" />
+                      <Tooltip
+                        text="If enabled, loads all databases from the server. Otherwise, only loads the configured database. Schemas are always fully loaded."
+                        position="top"
+                      />
+                    </span>
                   </div>
                 </div>
               </div>

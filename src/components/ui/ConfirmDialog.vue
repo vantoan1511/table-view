@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { AlertTriangle, Info, Trash2, X } from 'lucide-vue-next';
+import Checkbox from './Checkbox.vue';
 import Button from './Button.vue';
+
+import { AlertTriangle, Info, Trash2, X } from 'lucide-vue-next';
 
 interface Props {
   title: string;
@@ -8,17 +10,24 @@ interface Props {
   variant?: 'danger' | 'warning' | 'info';
   confirmLabel?: string;
   cancelLabel?: string;
+  showCheckbox?: boolean;
+  checkboxLabel?: string;
+  checkboxValue?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'danger',
   confirmLabel: 'Confirm',
-  cancelLabel: 'Cancel'
+  cancelLabel: 'Cancel',
+  showCheckbox: false,
+  checkboxLabel: '',
+  checkboxValue: false
 });
 
 const emit = defineEmits<{
   confirm: [];
   cancel: [];
+  'update:checkboxValue': [value: boolean];
 }>();
 
 const iconMap = {
@@ -67,6 +76,13 @@ const colorMap = {
           <div class="min-w-0 flex-1 pt-0.5">
             <h3 class="text-text-primary text-[14px] leading-tight font-semibold">{{ title }}</h3>
             <p class="text-text-secondary mt-1 text-[13px] leading-relaxed">{{ message }}</p>
+            <div v-if="showCheckbox" class="mt-3">
+              <Checkbox
+                :model-value="checkboxValue"
+                :label="checkboxLabel"
+                @update:model-value="(val) => emit('update:checkboxValue', val)"
+              />
+            </div>
           </div>
           <Button variant="ghost" size="icon" @click="emit('cancel')">
             <X :size="16" />

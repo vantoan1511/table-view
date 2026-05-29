@@ -59,6 +59,8 @@ struct Payload {
     message: String,
     #[serde(default)]
     level: String,
+    #[serde(default)]
+    cascade: bool,
 }
 
 pub async fn handle_message(
@@ -413,7 +415,7 @@ pub async fn handle_message(
                     handle_result_void(&writer, &token, "dbBridge.alterTableResult", &payload.req_id, result).await;
                 }
                 "dropTable" => {
-                    let result = driver.drop_table(&payload.table_name).await;
+                    let result = driver.drop_table(&payload.table_name, payload.cascade).await;
                     handle_result_void(&writer, &token, "dbBridge.dropTableResult", &payload.req_id, result).await;
                 }
                 "createTable" => {

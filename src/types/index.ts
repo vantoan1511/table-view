@@ -115,6 +115,7 @@ export interface GridColumn {
   dataType: string;
   isPrimaryKey?: boolean;
   isNullable?: boolean;
+  displayName?: string;
 }
 
 export type CellValue = string | number | boolean | null | Record<string, unknown> | unknown[];

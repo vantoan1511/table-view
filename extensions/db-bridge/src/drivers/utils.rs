@@ -64,6 +64,27 @@ pub fn is_safe_default(s: &str) -> bool {
     allowed_funcs.contains(&s.to_uppercase().as_str())
 }
 
+pub fn make_unique_column_names<I, S>(names: I) -> Vec<String>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let mut unique_names: Vec<String> = Vec::new();
+    let mut seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for name in names {
+        let base = name.as_ref().to_string();
+        let count = seen.entry(base.clone()).or_insert(0);
+        let unique = if *count == 0 {
+            base.clone()
+        } else {
+            format!("{}_{}", base, count)
+        };
+        *count += 1;
+        unique_names.push(unique);
+    }
+    unique_names
+}
+
 pub fn export_rows_to_csv(
     rows: &[std::collections::HashMap<String, serde_json::Value>],
     export_path: &str,
@@ -132,4 +153,16 @@ where
         qualified_table_name,
         column_defs.join(", ")
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_make_unique_column_names() {
+        let input = vec!["id", "name", "id", "created_at", "id", "name"];
+        let expected = vec!["id", "name", "id_1", "created_at", "id_2", "name_1"];
+        assert_eq!(make_unique_column_names(&input), expected);
+    }
 }

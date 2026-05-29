@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ConnectionColor } from '@/types';
+import Tooltip from '@/components/ui/Tooltip.vue';
 
 const props = defineProps<{
   modelValue: ConnectionColor;
@@ -32,9 +33,9 @@ const colors: { key: ConnectionColor; value: string }[] = [
         modelValue === color.key ? 'scale-110 border-current shadow-md' : 'border-transparent'
       "
       :style="{ backgroundColor: color.value, color: color.value }"
-      :title="color.key"
       @click="emit('update:modelValue', color.key)"
     >
+      <Tooltip :text="color.key" position="top" />
       <!-- Checkmark -->
       <svg
         v-if="modelValue === color.key"

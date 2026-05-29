@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { ArrowDown, ArrowUp } from 'lucide-vue-next';
 import { computed } from 'vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 
 import type { GridColumn } from '@/types';
 
@@ -47,13 +48,14 @@ const formatDataType = (dt: string): string => {
     @click="$emit('sort')"
   >
     <div class="flex items-center gap-1.5 overflow-hidden">
-      <span class="truncate text-[12px]">{{ column.name }}</span>
+      <span class="truncate text-[12px]">{{ column.displayName || column.name }}</span>
       <span
         v-if="column.isPrimaryKey"
-        class="shrink-0 text-[10px] font-bold text-amber-500"
-        title="Primary Key"
-        >PK</span
+        class="relative shrink-0 text-[10px] font-bold text-amber-500"
       >
+        PK
+        <Tooltip text="Primary Key" position="top" />
+      </span>
       <ArrowUp
         v-if="isSorted && sortDirection === 'asc'"
         :size="12"

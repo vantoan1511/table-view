@@ -2,6 +2,7 @@
 // Components
 import Button from '@/components/ui/Button.vue';
 import ResizeHandle from '@/components/ui/ResizeHandle.vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 import ResultsGrid from './ResultsGrid.vue';
 
 // Composables
@@ -189,23 +190,17 @@ onMounted(() => {
             {{ gridStore.isLoading ? 'Running...' : 'Run' }}
           </Button>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            :icon="Save"
-            @click="saveQuery"
-            title="Save (Ctrl+S)"
-          />
+          <span class="relative">
+            <Button variant="secondary" size="sm" :icon="Save" @click="saveQuery" />
+            <Tooltip text="Save (Ctrl+S)" position="top" />
+          </span>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            :icon="Download"
-            @click="exportQuery"
-            title="Export to .sql file"
-          >
-            Export
-          </Button>
+          <span class="relative">
+            <Button variant="secondary" size="sm" :icon="Download" @click="exportQuery">
+              Export
+            </Button>
+            <Tooltip text="Export to .sql file" position="top" />
+          </span>
 
           <div class="text-text-secondary ml-auto flex items-center gap-1 text-[11px]">
             <Clock :size="12" class="text-success" />

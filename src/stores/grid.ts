@@ -184,7 +184,8 @@ export const useGridStore = defineStore('grid', () => {
     tableName: string,
     connectionId?: string,
     schemaName?: string,
-    dbName?: string
+    dbName?: string,
+    cascade?: boolean
   ): Promise<void> => {
     if (!window.NL_PORT) return;
     const targetConnectionId = connectionId || connectionsStore.activeConnectionId;
@@ -198,7 +199,8 @@ export const useGridStore = defineStore('grid', () => {
           targetConnectionId!,
           schemaName || undefined
         ),
-        targetDatabase: dbName
+        targetDatabase: dbName,
+        cascade: !!cascade
       });
 
       // Close associated tabs

@@ -96,6 +96,22 @@ watch(
   }
 );
 
+const cascadeDelete = ref(false);
+
+const isCascadeSupported = computed(() => {
+  if (!props.tableToDelete) return false;
+  const conn = connectionsStore.connections.find((c) => c.id === props.tableToDelete?.connId);
+  return conn ? ['postgres', 'postgresql', 'oracle'].includes(conn.type.toLowerCase()) : false;
+});
+
+// Reset cascade state when tableToDelete changes
+watch(
+  () => props.tableToDelete,
+  () => {
+    cascadeDelete.value = false;
+  }
+);
+
 const confirmDelete = async () => {
   if (!props.idToDelete) return;
   const id = props.idToDelete;
@@ -116,7 +132,7 @@ const confirmTableDelete = async () => {
   if (!props.tableToDelete) return;
   const { name, connId, dbName, schemaName } = props.tableToDelete;
   try {
-    await gridStore.dropTable(name, connId, schemaName, dbName);
+    await gridStore.dropTable(name, connId, schemaName, dbName, cascadeDelete.value);
   } finally {
     emit('update:tableToDelete', null);
     emit('closeTableDeleteConfirm');
@@ -175,6 +191,9 @@ const confirmDatabaseDelete = async () => {
       :message="`Are you sure you want to drop table '${tableToDelete?.name}'? This action cannot be undone.`"
       confirm-label="Drop Table"
       variant="danger"
+      :show-checkbox="isCascadeSupported"
+      checkbox-label="Cascade delete (drop dependent objects)"
+      v-model:checkbox-value="cascadeDelete"
       @confirm="confirmTableDelete"
       @cancel="
         emit('update:tableToDelete', null);

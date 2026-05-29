@@ -3,6 +3,7 @@ import { useSchemaStore } from '@/stores/schema';
 import { AlertCircle, ChevronRight, Database, Loader2, Lock } from 'lucide-vue-next';
 import { computed, inject } from 'vue';
 import SchemaNode from './SchemaNode.vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 
 const props = defineProps<{
   connectionId: string;
@@ -52,7 +53,10 @@ const schemas = computed(() => dbSchema.value?.schemas ?? []);
       />
 
       <Loader2 v-if="isLoading" :size="13" class="text-text-tertiary shrink-0 animate-spin" />
-      <AlertCircle v-else-if="error" :size="13" class="text-danger shrink-0" :title="error" />
+      <span v-else-if="error" class="inline-flex shrink-0">
+        <AlertCircle :size="13" class="text-danger" />
+        <Tooltip :text="error" position="right" />
+      </span>
       <Database
         v-else
         :size="13"
@@ -78,12 +82,12 @@ const schemas = computed(() => dbSchema.value?.schemas ?? []);
     <div
       v-else
       class="flex cursor-default items-center gap-1.5 py-1 pr-2 pl-7 opacity-50 select-none"
-      :title="`Not accessible via this connection`"
     >
       <span class="w-3 shrink-0" />
       <Lock :size="11" class="text-text-tertiary shrink-0" />
       <Database :size="13" class="text-text-tertiary shrink-0" />
       <span class="text-text-tertiary flex-1 truncate text-[12px]">{{ dbName }}</span>
+      <Tooltip text="Not accessible via this connection" position="right" />
     </div>
 
     <!-- Children (Schemas) -->

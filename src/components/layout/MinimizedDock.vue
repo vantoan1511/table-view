@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Docker from '@/components/ui/Docker.vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 import { useTabsStore } from '@/stores/tabs';
 import { LayoutGrid, X } from 'lucide-vue-next';
 
@@ -31,16 +32,16 @@ const closeTab = (id: string) => {
       :key="tab.id"
       class="group bg-muted border-border text-text-secondary hover:bg-hover hover:text-text-primary hover:border-border-strong flex max-w-[200px] shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] transition-colors"
       @click="restoreTab(tab.id)"
-      title="Click to restore"
     >
       <LayoutGrid :size="12" class="text-primary opacity-70 group-hover:opacity-100" />
       <span class="flex-1 truncate text-left">{{ tab.title }}</span>
+      <Tooltip text="Click to restore" position="top" />
       <span
         class="text-text-tertiary hover:bg-border hover:text-text-primary ml-1 flex h-4 w-4 items-center justify-center rounded opacity-0 transition-all group-hover:opacity-100"
         @click.stop="closeTab(tab.id)"
-        title="Close tab"
       >
         <X :size="12" />
+        <Tooltip text="Close tab" position="top" />
       </span>
     </button>
   </Docker>

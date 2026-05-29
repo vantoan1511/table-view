@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import Tooltip from '@/components/ui/Tooltip.vue';
+
 import type { Panel } from '@/types';
+
 import { Minus } from 'lucide-vue-next';
 
 const props = defineProps<{
@@ -36,21 +39,14 @@ const emit = defineEmits<{
 
     <div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
       <!-- Minimize (Hide) -->
-      <button
-        class="text-text-tertiary hover:text-text-primary group/tooltip relative rounded p-1 hover:bg-white/10"
-        @click="emit('minimize')"
-      >
-        <Minus :size="14" />
-        <!-- Tooltip -->
-        <div
-          class="bg-surface border-border text-text-primary pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 translate-y-1 rounded border px-2 py-1 text-[10px] font-medium whitespace-nowrap opacity-0 shadow-xl transition-all group-hover/tooltip:translate-y-0 group-hover/tooltip:opacity-100"
+      <Tooltip text="Hide Panel" position="top">
+        <button
+          class="text-text-tertiary hover:text-text-primary rounded p-1 hover:bg-white/10"
+          @click="emit('minimize')"
         >
-          Hide Panel
-          <div
-            class="bg-surface border-border absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-r border-b"
-          ></div>
-        </div>
-      </button>
+          <Minus :size="14" />
+        </button>
+      </Tooltip>
     </div>
   </div>
 </template>

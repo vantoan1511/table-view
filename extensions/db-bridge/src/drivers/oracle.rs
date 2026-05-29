@@ -81,14 +81,26 @@ impl OracleDriver {
     fn rows_to_maps(
         result: &oracle_rs::QueryResult,
     ) -> (Vec<HashMap<String, JsonValue>>, Vec<ColumnInfo>) {
+        let orig_names: Vec<String> = result.columns.iter().map(|col| col.name.clone()).collect();
+        let unique_names = crate::drivers::utils::make_unique_column_names(&orig_names);
+
         let fields: Vec<ColumnInfo> = result
             .columns
             .iter()
-            .map(|col| ColumnInfo {
-                name: col.name.clone(),
-                data_type: format!("{:?}", col.oracle_type),
-                is_primary_key: false,
-                is_nullable: true,
+            .zip(unique_names.iter())
+            .map(|(col, unique_name)| {
+                let display_name = if unique_name != &col.name {
+                    Some(col.name.clone())
+                } else {
+                    None
+                };
+                ColumnInfo {
+                    name: unique_name.clone(),
+                    data_type: format!("{:?}", col.oracle_type),
+                    is_primary_key: false,
+                    is_nullable: true,
+                    display_name,
+                }
             })
             .collect();
 
@@ -97,9 +109,9 @@ impl OracleDriver {
             .iter()
             .map(|row| {
                 let mut map = HashMap::new();
-                for (i, col) in result.columns.iter().enumerate() {
+                for (i, unique_name) in unique_names.iter().enumerate() {
                     let value = row.get(i).unwrap_or(&OracleValue::Null);
-                    map.insert(col.name.clone(), Self::oracle_value_to_json(value));
+                    map.insert(unique_name.clone(), Self::oracle_value_to_json(value));
                 }
                 map
             })
@@ -605,10 +617,14 @@ impl DatabaseDriver for OracleDriver {
         Ok(())
     }
 
-    async fn drop_table(&self, table_name: &str) -> Result<(), String> {
+    async fn drop_table(&self, table_name: &str, cascade: bool) -> Result<(), String> {
         let pool = self.pool()?;
         let (owner, table) = self.split_table_name(table_name);
-        let sql = format!("DROP TABLE {}", Self::qualify_table(owner, table));
+        let sql = if cascade {
+            format!("DROP TABLE {} CASCADE CONSTRAINTS", Self::qualify_table(owner, table))
+        } else {
+            format!("DROP TABLE {}", Self::qualify_table(owner, table))
+        };
         Self::execute_dml(pool, &sql, &[]).await?;
         Ok(())
     }
