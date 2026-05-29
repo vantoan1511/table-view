@@ -121,6 +121,8 @@ const updatePosition = () => {
   coords.value = { top: y, left: x };
 };
 
+let animationFrameId: number | null = null;
+
 const handleMouseEnter = () => {
   show.value = true;
   updatePosition();
@@ -131,11 +133,18 @@ const handleMouseEnter = () => {
 
 const handleMouseLeave = () => {
   show.value = false;
+  if (animationFrameId !== null) {
+    window.cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
 };
 
 const handleScrollOrResize = () => {
-  if (show.value) {
-    updatePosition();
+  if (show.value && animationFrameId === null) {
+    animationFrameId = window.requestAnimationFrame(() => {
+      updatePosition();
+      animationFrameId = null;
+    });
   }
 };
 
@@ -161,6 +170,11 @@ onUnmounted(() => {
 
   window.removeEventListener('scroll', handleScrollOrResize, true);
   window.removeEventListener('resize', handleScrollOrResize);
+
+  if (animationFrameId !== null) {
+    window.cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
 });
 
 const tooltipStyle = computed(() => {
@@ -189,7 +203,7 @@ const tooltipStyle = computed(() => {
 });
 
 const arrowClasses = computed(() => {
-  const base = 'bg-surface border-border absolute h-2 w-2 rotate-45';
+  const base = 'bg-surface border-border absolute h-2 w-2 rotate-45 border-solid';
 
   let arrowPosClasses = '';
   switch (currentActivePosition.value) {
