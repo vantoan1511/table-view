@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-05-29
+
+### Added
+- **Database: Join Query Column Deduplication**: Implemented a unique column name generation utility in the Rust backend and updated `ColumnInfo` to include `displayName` across all drivers (PostgreSQL, MySQL, SQLite, Oracle). The Vue frontend now renders columns using `displayName`, resolving database driver crashes and rendering errors caused by duplicate column names in JOIN queries.
+- **UI: Tooltip Preferred Position**: Enhanced the custom `Tooltip.vue` component with dynamic preferred position capabilities (`preferredPosition` and `prefered_position` alias), while maintaining strict backwards compatibility by letting the static `position` property override dynamic placement.
+
+### Fixed
+- **UI: Tooltip Border and Visual Alignment**: Restructured the tooltip arrow borders to align seamlessly with the container border.
+
+### Performance
+- **UI: Tooltip Optimization**: Wrapped window scroll and resize event listener callbacks in a `requestAnimationFrame` tick to prevent layout thrashing and eliminate memory issues.
+
 ## [0.4.0] - 2026-05-26
 
 ### Added
