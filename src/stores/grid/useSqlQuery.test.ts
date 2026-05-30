@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ref } from 'vue';
 import { useSqlQuery } from './useSqlQuery';
 import { BridgeService } from '@/services/bridge';
+import { setActivePinia, createPinia } from 'pinia';
 
 // Mock BridgeService
 vi.mock('@/services/bridge', () => ({
@@ -15,9 +16,10 @@ describe('useSqlQuery', () => {
   let isLoading: any;
 
   beforeEach(() => {
+    setActivePinia(createPinia());
     vi.clearAllMocks();
     window.NL_PORT = 1234;
-    connectionsStore = { activeConnectionId: 'conn-1' };
+    connectionsStore = { activeConnectionId: 'conn-1', connections: [] };
     isLoading = ref(false);
   });
 

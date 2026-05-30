@@ -205,3 +205,24 @@ export interface SchemaDetails {
   tables: TableDetails[];
   relations: TableRelation[];
 }
+
+// ─── History ───
+
+export interface HistoryEntry {
+  id: string;
+  type: 'sql' | 'table';
+  timestamp: string;
+  connectionId?: string;
+  connectionName?: string;
+  connectionColor?: string;
+  dbName?: string;
+  schema?: string;
+  // SQL properties
+  query?: string;
+  success?: boolean;
+  executionTime?: number;
+  rowCount?: number;
+  error?: string;
+  // Table properties
+  tableName?: string;
+}

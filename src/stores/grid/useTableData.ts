@@ -2,6 +2,7 @@ import { BridgeService } from '@/services/bridge';
 import type { Connection, GridColumn, GridRow } from '@/types';
 import { ref, watch } from 'vue';
 
+import { useHistoryStore } from '../history';
 import { useTabsStore } from '../tabs';
 import { useToastStore } from '../toast';
 
@@ -249,6 +250,14 @@ export function useTableData(connectionsStore: any) {
           executionTime: executionTime.value
         });
       }
+
+      const historyStore = useHistoryStore();
+      historyStore.addTableEntry({
+        tableName,
+        schema: schemaName,
+        connectionId: targetConnectionId,
+        dbName: targetDbName
+      });
 
       if (activeTab && !activeTab.columnWidths) {
         autoDistributeColumnWidths(columns.value);

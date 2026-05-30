@@ -38,6 +38,7 @@
 - **Props and emits**: Components should use props to receive data from the parent component and emit events to communicate with the parent component.
 - **Testability**: Components should be testable. Do not create components that are hard to test.
 - **Performance**: Components should be performant. Do not create components that are slow to render.
+- **Confirmation Dialog**: Use the existing `ConfirmDialog` component for all confirmation dialogs. Never use browser alerts or native confirmation dialogs.
 
 ## Codebase Architecture & Directory Map
 

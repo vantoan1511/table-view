@@ -1,3 +1,4 @@
+import { useHistoryStore } from '../history';
 import { BridgeService } from '@/services/bridge';
 import type { GridColumn, GridRow } from '@/types';
 import { ref } from 'vue';
@@ -49,12 +50,32 @@ export function useSqlQuery(connectionsStore: any) {
         text: `Query executed successfully. ${sqlRowCount.value} rows affected.`,
         timestamp: new Date().toISOString()
       });
+
+      const historyStore = useHistoryStore();
+      historyStore.addSqlEntry({
+        query: sql,
+        connectionId: connectionId || connectionsStore.activeConnectionId,
+        dbName,
+        success: true,
+        executionTime: sqlExecutionTime.value,
+        rowCount: sqlRowCount.value
+      });
     } catch (error: any) {
       sqlExecutionTime.value = Math.round(performance.now() - startTime);
       sqlMessages.value.push({
         type: 'error',
         text: `Error: ${error.message}`,
         timestamp: new Date().toISOString()
+      });
+
+      const historyStore = useHistoryStore();
+      historyStore.addSqlEntry({
+        query: sql,
+        connectionId: connectionId || connectionsStore.activeConnectionId,
+        dbName,
+        success: false,
+        executionTime: sqlExecutionTime.value,
+        error: error.message || String(error)
       });
     } finally {
       isLoading.value = false;
