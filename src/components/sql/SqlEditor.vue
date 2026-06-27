@@ -29,6 +29,7 @@ import { onMounted, ref, watch } from 'vue';
 
 // Other imports
 import { editorTheme, sqlHighlightStyle } from '@/lib/editorConfig';
+import { formatSql } from '@/utils/sqlFormatter';
 
 const props = defineProps<{
   tab: Tab;
@@ -84,6 +85,32 @@ const handleRun = useDebounce(
   { delay: 300 }
 );
 
+const handleFormat = () => {
+  if (!editorView) return;
+  const { from, to } = editorView.state.selection.main;
+  const hasSelection = from !== to;
+
+  const textToFormat = hasSelection
+    ? editorView.state.sliceDoc(from, to)
+    : editorView.state.doc.toString();
+
+  if (!textToFormat || textToFormat.trim() === '') return;
+
+  const connId = props.tab.connectionId || connectionsStore.activeConnectionId;
+  const connection = connId ? connectionsStore.connections.find((c) => c.id === connId) : undefined;
+  const dbType = connection?.type;
+
+  const formatted = formatSql(textToFormat, dbType);
+
+  if (formatted && formatted !== textToFormat) {
+    editorView.dispatch({
+      changes: hasSelection
+        ? { from, to, insert: formatted }
+        : { from: 0, to: editorView.state.doc.length, insert: formatted }
+    });
+  }
+};
+
 const initEditor = () => {
   if (editorView) {
     editorView.destroy();
@@ -115,6 +142,13 @@ const initEditor = () => {
             key: 'Mod-s',
             run: () => {
               saveQuery();
+              return true;
+            }
+          },
+          {
+            key: 'Mod-Shift-f',
+            run: () => {
+              handleFormat();
               return true;
             }
           }
