@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-06-27
+
+### Added
+- **History: Dynamic Query & Action History Tracking**: Implemented a Pinia `history` store to track SQL query executions and table data load actions.
+- **UI: Dynamic History Timeline**: Redesigned `TimelinePanel` to list, copy, rerun, and inspect historical SQL queries and table actions.
+- **UI: Clear History Confirmation**: Integrated the custom `ConfirmDialog` to confirm history clearing actions in accordance with the project's coding conventions.
+- **Testing: Robust Coverage**: Added comprehensive unit tests for the history store and updated the main test configurations.
+- **Documentation**: Formally documented the ConfirmDialog usage rule in `GEMINI.md`.
+
 ## [0.4.1] - 2026-05-29
 
 ### Added
