@@ -29,8 +29,9 @@
 - **Icons**: Use Lucide Vue Next. Always import icons explicitly in the `<script setup>` block.
 - **Feedback**: Use the existing `toast` and `error` stores to provide immediate user feedback for all background operations.
 
-## Frontend Coding Conventions
+## Coding Conventions
 
+- **Branches** always checkout to new branch before starting new feature or bug fix
 - **Use arrow function** syntax for all functions.
 - **Imports order**: components, composables, Pinia stores, Pinia actions, types, external libraries, other imports, each group separated by a blank line.
 - **Component reuse**: Always reference to existing component at `/components` as the base for creating new components. Do not reinvent the wheel. Try to reuse when possible.
