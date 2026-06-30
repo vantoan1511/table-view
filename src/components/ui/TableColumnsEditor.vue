@@ -352,7 +352,8 @@ const togglePrimaryKey = (col: ColumnDef) => {
                 v-if="col._editing && (mode === 'create' || col._isNew)"
                 v-model="col._fkStr"
                 type="text"
-                placeholder="table.col"
+                placeholder="[schema.]table.col"
+                title="Format: table.column or schema.table.column"
                 class="bg-surface border-primary/50 focus:border-primary text-text-primary w-full rounded border px-2 py-1 outline-none text-[12px]"
               />
               <span v-else class="text-text-secondary text-[12px]">{{ col._fkStr || '—' }}</span>

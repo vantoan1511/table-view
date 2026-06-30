@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, ColumnInfo, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation,
+    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef,
 };
 use async_trait::async_trait;
 use deadpool_oracle::{Pool, PoolBuilder};
@@ -517,6 +517,44 @@ impl DatabaseDriver for OracleDriver {
     async fn get_table_columns(&self, table_name: &str) -> Result<Vec<TableColumn>, String> {
         let pool = self.pool()?;
         let (owner, table) = self.split_table_name(table_name);
+        
+        let params = [
+            JsonValue::String(owner.to_string()),
+            JsonValue::String(table.to_string()),
+        ];
+
+        let fk_sql = "SELECT \
+            a.COLUMN_NAME AS SOURCE_COLUMN, \
+            CASE \
+                WHEN c_pk.OWNER = c.OWNER THEN c_pk.TABLE_NAME \
+                ELSE c_pk.OWNER || '.' || c_pk.TABLE_NAME \
+            END AS TARGET_TABLE, \
+            b.COLUMN_NAME AS TARGET_COLUMN \
+        FROM ALL_CONS_COLUMNS a \
+        JOIN ALL_CONSTRAINTS c ON a.CONSTRAINT_NAME = c.CONSTRAINT_NAME AND a.OWNER = c.OWNER \
+        JOIN ALL_CONSTRAINTS c_pk ON c.R_CONSTRAINT_NAME = c_pk.CONSTRAINT_NAME AND c.R_OWNER = c_pk.OWNER \
+        JOIN ALL_CONS_COLUMNS b ON c_pk.CONSTRAINT_NAME = b.CONSTRAINT_NAME AND c_pk.OWNER = b.OWNER AND a.POSITION = b.POSITION \
+        WHERE c.CONSTRAINT_TYPE = 'R' \
+            AND c.OWNER = :1 \
+            AND c.TABLE_NAME = :2";
+
+        let (fk_rows, _, _) = Self::execute_query(pool, fk_sql, &params)
+            .await.unwrap_or((vec![], vec![], 0));
+
+        let mut fk_map = HashMap::new();
+        for r in fk_rows {
+            if let (Some(col), Some(ref_tbl), Some(ref_col)) = (
+                r.get("SOURCE_COLUMN").and_then(|v| v.as_str()),
+                r.get("TARGET_TABLE").and_then(|v| v.as_str()),
+                r.get("TARGET_COLUMN").and_then(|v| v.as_str()),
+            ) {
+                fk_map.insert(col.to_string(), ForeignKeyDef {
+                    target_table: ref_tbl.to_string(),
+                    target_column: ref_col.to_string(),
+                });
+            }
+        }
+
         let sql = "SELECT c.COLUMN_NAME, c.DATA_TYPE, c.NULLABLE, c.DATA_DEFAULT, \
             CASE WHEN pk.COLUMN_NAME IS NULL THEN 'NO' ELSE 'YES' END AS IS_PRIMARY_KEY \
             FROM ALL_TAB_COLUMNS c \
@@ -529,29 +567,30 @@ impl DatabaseDriver for OracleDriver {
             ) pk ON pk.OWNER = c.OWNER AND pk.TABLE_NAME = c.TABLE_NAME AND pk.COLUMN_NAME = c.COLUMN_NAME \
             WHERE c.OWNER = :1 AND c.TABLE_NAME = :2 \
             ORDER BY c.COLUMN_ID";
-        let params = [
-            JsonValue::String(owner.to_string()),
-            JsonValue::String(table.to_string()),
-        ];
+
         let (rows, _, _) = Self::execute_query(pool, sql, &params).await?;
 
         Ok(rows
             .iter()
-            .map(|r| TableColumn {
-                name: r.get("COLUMN_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                data_type: r.get("DATA_TYPE").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                nullable: r
-                    .get("NULLABLE")
-                    .and_then(|v| v.as_str())
-                    .map(|v| v == "Y")
-                    .unwrap_or(true),
-                is_primary_key: r
-                    .get("IS_PRIMARY_KEY")
-                    .and_then(|v| v.as_str())
-                    .map(|v| v == "YES")
-                    .unwrap_or(false),
-                default: r.get("DATA_DEFAULT").and_then(|v| v.as_str()).map(str::to_string),
-                foreign_key: None,
+            .map(|r| {
+                let col_name = r.get("COLUMN_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let foreign_key = fk_map.get(&col_name).cloned();
+                TableColumn {
+                    name: col_name,
+                    data_type: r.get("DATA_TYPE").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    nullable: r
+                        .get("NULLABLE")
+                        .and_then(|v| v.as_str())
+                        .map(|v| v == "Y")
+                        .unwrap_or(true),
+                    is_primary_key: r
+                        .get("IS_PRIMARY_KEY")
+                        .and_then(|v| v.as_str())
+                        .map(|v| v == "YES")
+                        .unwrap_or(false),
+                    default: r.get("DATA_DEFAULT").and_then(|v| v.as_str()).map(str::to_string),
+                    foreign_key,
+                }
             })
             .collect())
     }
@@ -742,15 +781,32 @@ impl DatabaseDriver for OracleDriver {
         let mut tables_map: HashMap<String, Vec<TableColumn>> = HashMap::new();
         let mut table_order: Vec<String> = Vec::new();
 
+        let mut fk_map: HashMap<(String, String), ForeignKeyDef> = HashMap::new();
+        for r in &relation_rows {
+            if let (Some(src_tbl), Some(src_col), Some(tgt_tbl), Some(tgt_col)) = (
+                r.get("SOURCE_TABLE").and_then(|v| v.as_str()),
+                r.get("SOURCE_COLUMN").and_then(|v| v.as_str()),
+                r.get("TARGET_TABLE").and_then(|v| v.as_str()),
+                r.get("TARGET_COLUMN").and_then(|v| v.as_str()),
+            ) {
+                fk_map.insert((src_tbl.to_string(), src_col.to_string()), ForeignKeyDef {
+                    target_table: tgt_tbl.to_string(),
+                    target_column: tgt_col.to_string(),
+                });
+            }
+        }
+
         for r in column_rows {
             let table_name = r.get("TABLE_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let col_name = r.get("COLUMN_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let foreign_key = fk_map.get(&(table_name.clone(), col_name.clone())).cloned();
             let col = TableColumn {
-                name: r.get("COLUMN_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                name: col_name,
                 data_type: r.get("DATA_TYPE").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                 nullable: r.get("IS_NULLABLE").and_then(|v| v.as_str()).map(|s| s == "YES").unwrap_or(true),
                 is_primary_key: r.get("IS_PRIMARY_KEY").and_then(|v| v.as_str()).map(|s| s == "YES").unwrap_or(false),
                 default: r.get("DATA_DEFAULT").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                foreign_key: None,
+                foreign_key,
             };
 
             if !tables_map.contains_key(&table_name) {

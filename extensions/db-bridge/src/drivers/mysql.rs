@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation
+    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -482,6 +482,38 @@ impl DatabaseDriver for MysqlDriver {
 
     async fn get_table_columns(&self, table_name: &str) -> Result<Vec<TableColumn>, String> {
         let pool = self.pool()?;
+        
+        let fk_sql = "SELECT \
+            COLUMN_NAME, \
+            CASE \
+                WHEN REFERENCED_TABLE_SCHEMA = TABLE_SCHEMA THEN REFERENCED_TABLE_NAME \
+                ELSE CONCAT(REFERENCED_TABLE_SCHEMA, '.', REFERENCED_TABLE_NAME) \
+            END AS REFERENCED_TABLE, \
+            REFERENCED_COLUMN_NAME \
+        FROM \
+            INFORMATION_SCHEMA.KEY_COLUMN_USAGE \
+        WHERE \
+            TABLE_SCHEMA = DATABASE() \
+            AND TABLE_NAME = ? \
+            AND REFERENCED_TABLE_NAME IS NOT NULL";
+
+        let (fk_rows, _, _) = Self::execute_query(pool, fk_sql, &[Value::String(table_name.to_string())])
+            .await.unwrap_or((vec![], vec![], 0));
+
+        let mut fk_map = HashMap::new();
+        for r in fk_rows {
+            if let (Some(col), Some(ref_tbl), Some(ref_col)) = (
+                r.get("COLUMN_NAME").and_then(|v| v.as_str()),
+                r.get("REFERENCED_TABLE").and_then(|v| v.as_str()),
+                r.get("REFERENCED_COLUMN_NAME").and_then(|v| v.as_str()),
+            ) {
+                fk_map.insert(col.to_string(), ForeignKeyDef {
+                    target_table: ref_tbl.to_string(),
+                    target_column: ref_col.to_string(),
+                });
+            }
+        }
+
         let sql = "SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT \
              FROM INFORMATION_SCHEMA.COLUMNS \
              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? \
@@ -491,13 +523,15 @@ impl DatabaseDriver for MysqlDriver {
         
         let mut columns = Vec::new();
         for r in rows {
+            let col_name = r.get("COLUMN_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let foreign_key = fk_map.get(&col_name).cloned();
             columns.push(TableColumn {
-                name: r.get("COLUMN_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                name: col_name,
                 data_type: r.get("DATA_TYPE").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                 nullable: r.get("IS_NULLABLE").and_then(|v| v.as_str()).map(|s| s == "YES").unwrap_or(true),
                 is_primary_key: false, 
                 default: r.get("COLUMN_DEFAULT").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                foreign_key: None,
+                foreign_key,
             });
         }
         Ok(columns)
@@ -698,10 +732,27 @@ impl DatabaseDriver for MysqlDriver {
         let mut tables_map: HashMap<String, Vec<TableColumn>> = HashMap::new();
         let mut table_order: Vec<String> = Vec::new();
 
+        let mut fk_map: HashMap<(String, String), ForeignKeyDef> = HashMap::new();
+        for r in &relation_rows {
+            if let (Some(src_tbl), Some(src_col), Some(tgt_tbl), Some(tgt_col)) = (
+                r.get("source_table").and_then(|v| v.as_str()),
+                r.get("source_column").and_then(|v| v.as_str()),
+                r.get("target_table").and_then(|v| v.as_str()),
+                r.get("target_column").and_then(|v| v.as_str()),
+            ) {
+                fk_map.insert((src_tbl.to_string(), src_col.to_string()), ForeignKeyDef {
+                    target_table: tgt_tbl.to_string(),
+                    target_column: tgt_col.to_string(),
+                });
+            }
+        }
+
         for r in column_rows {
             let table_name = r.get("table_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let col_name = r.get("column_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let foreign_key = fk_map.get(&(table_name.clone(), col_name.clone())).cloned();
             let col = TableColumn {
-                name: r.get("column_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                name: col_name,
                 data_type: r.get("data_type").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                 nullable: r.get("is_nullable").and_then(|v| {
                     if let Value::Bool(b) = v {
@@ -722,7 +773,7 @@ impl DatabaseDriver for MysqlDriver {
                     }
                 }).unwrap_or(false),
                 default: r.get("column_default").and_then(|v| v.as_str()).map(str::to_string),
-                foreign_key: None,
+                foreign_key,
             };
 
             if !tables_map.contains_key(&table_name) {
