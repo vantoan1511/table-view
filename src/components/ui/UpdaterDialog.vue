@@ -105,9 +105,16 @@ const close = () => {
                 <p class="text-text-primary font-medium">Update Check Failed</p>
                 <p class="text-text-tertiary text-sm">{{ updaterStore.error }}</p>
               </div>
-              <Button variant="primary" @click="updaterStore.checkForUpdates(true)">
-                Try Again
-              </Button>
+              <div class="flex w-full max-w-xs justify-center gap-3">
+                <Button variant="secondary" class="flex-1" @click="close"> Close </Button>
+                <Button
+                  variant="primary"
+                  class="flex-1"
+                  @click="updaterStore.checkForUpdates(true)"
+                >
+                  Try Again
+                </Button>
+              </div>
             </div>
 
             <div v-else-if="updaterStore.isUpdating" class="space-y-6">
