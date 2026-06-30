@@ -354,7 +354,7 @@ const togglePrimaryKey = (col: ColumnDef) => {
                 type="text"
                 placeholder="[schema.]table.col"
                 title="Format: table.column or schema.table.column"
-                class="bg-surface border-primary/50 focus:border-primary text-text-primary w-full rounded border px-2 py-1 outline-none text-[12px]"
+                class="bg-surface border-primary/50 focus:border-primary text-text-primary w-full rounded border px-2 py-1 text-[12px] outline-none"
               />
               <span v-else class="text-text-secondary text-[12px]">{{ col._fkStr || '—' }}</span>
             </td>

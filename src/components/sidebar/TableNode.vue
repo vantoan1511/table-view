@@ -40,7 +40,13 @@ const toggleIndexes = () => {
 };
 
 const openIndex = (indexName: string) => {
-  tabsStore.openIndexTab(indexName, props.tableName, props.schemaName, props.connectionId, props.dbName);
+  tabsStore.openIndexTab(
+    indexName,
+    props.tableName,
+    props.schemaName,
+    props.connectionId,
+    props.dbName
+  );
 };
 
 const isIndexActive = (indexName: string) =>

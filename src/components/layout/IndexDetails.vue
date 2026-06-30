@@ -40,7 +40,9 @@ const indexInfo = computed<DbIndex | undefined>(() => {
         <div class="flex flex-col gap-3 p-4">
           <div class="flex items-center">
             <span class="text-text-tertiary w-32 text-sm">Primary Key:</span>
-            <span class="text-text-primary text-sm">{{ indexInfo.isPrimaryKey ? 'Yes' : 'No' }}</span>
+            <span class="text-text-primary text-sm">{{
+              indexInfo.isPrimaryKey ? 'Yes' : 'No'
+            }}</span>
           </div>
           <div class="flex items-center">
             <span class="text-text-tertiary w-32 text-sm">Unique:</span>
@@ -70,16 +72,21 @@ const indexInfo = computed<DbIndex | undefined>(() => {
       </div>
 
       <!-- DDL -->
-      <div v-if="indexInfo.ddl" class="border-border bg-surface-elevated flex flex-col rounded-md border">
+      <div
+        v-if="indexInfo.ddl"
+        class="border-border bg-surface-elevated flex flex-col rounded-md border"
+      >
         <div class="border-border text-text-secondary border-b px-4 py-2.5 text-sm font-medium">
           DDL
         </div>
         <div class="p-4">
-          <pre class="text-text-primary whitespace-pre-wrap font-mono text-sm">{{ indexInfo.ddl }}</pre>
+          <pre class="text-text-primary font-mono text-sm whitespace-pre-wrap">{{
+            indexInfo.ddl
+          }}</pre>
         </div>
       </div>
     </div>
-    
+
     <div v-else class="text-text-tertiary flex h-full flex-col items-center justify-center">
       <p>Index information not found</p>
     </div>
