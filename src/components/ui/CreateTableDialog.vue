@@ -35,6 +35,15 @@ const columns = ref<ColumnDef[]>([
   }
 ]);
 
+const parseFkStr = (fkStr?: string) => {
+  if (!fkStr || !fkStr.trim()) return undefined;
+  const parts = fkStr.split('.');
+  if (parts.length >= 2) {
+    return { targetTable: parts[0].trim(), targetColumn: parts[1].trim() };
+  }
+  return undefined;
+};
+
 const handleCreate = async () => {
   if (!tableName.value.trim()) return;
   if (columns.value.length === 0) return;
@@ -48,7 +57,8 @@ const handleCreate = async () => {
           dataType: c.dataType,
           nullable: c.nullable,
           isPrimaryKey: c.isPrimaryKey,
-          default: c.default || undefined
+          default: c.default || undefined,
+          foreignKey: parseFkStr(c._fkStr)
         })
       ),
       props.connectionId,

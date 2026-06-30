@@ -372,6 +372,7 @@ impl DatabaseDriver for SqliteDriver {
                 nullable: r.get("notnull").and_then(|v| v.as_i64()).map(|i| i == 0).unwrap_or(true),
                 is_primary_key: r.get("pk").and_then(|v| v.as_i64()).map(|i| i > 0).unwrap_or(false),
                 default: r.get("dflt_value").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                foreign_key: None,
             });
         }
         Ok(columns)
@@ -407,6 +408,14 @@ impl DatabaseDriver for SqliteDriver {
                         }
                         q.push_str(&format!(" DEFAULT {}", d_str));
                     }
+                    if let Some(ref fk) = op.foreign_key {
+                        let quoted_target_table = if fk.target_table.contains('.') {
+                            fk.target_table.split('.').map(|p| Self::quote(p)).collect::<Vec<String>>().join(".")
+                        } else {
+                            Self::quote(&fk.target_table)
+                        };
+                        q.push_str(&format!(" REFERENCES {} ({})", quoted_target_table, Self::quote(&fk.target_column)));
+                    }
                     q
                 }
                 "DROP_COLUMN" => format!(
@@ -420,6 +429,9 @@ impl DatabaseDriver for SqliteDriver {
                     Self::quote(&op.old_name),
                     Self::quote(&op.new_name)
                 ),
+                "DROP_CONSTRAINT" | "ADD_FOREIGN_KEY" => {
+                    return Err("SQLite does not support altering constraints on existing tables".into());
+                }
                 _ => continue,
             };
 
@@ -539,6 +551,7 @@ mod tests {
                 nullable: false,
                 is_primary_key: true,
                 default: None,
+                foreign_key: None,
             },
             TableColumn {
                 name: "name".to_string(),
@@ -546,6 +559,7 @@ mod tests {
                 nullable: true,
                 is_primary_key: false,
                 default: Some("'Guest'".to_string()),
+                foreign_key: None,
             },
         ];
 

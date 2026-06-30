@@ -105,6 +105,14 @@ pub struct SchemaResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ForeignKeyDef {
+    #[serde(rename = "targetTable")]
+    pub target_table: String,
+    #[serde(rename = "targetColumn")]
+    pub target_column: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableColumn {
     pub name: String,
     #[serde(rename = "dataType")]
@@ -113,6 +121,8 @@ pub struct TableColumn {
     #[serde(rename = "isPrimaryKey")]
     pub is_primary_key: bool,
     pub default: Option<String>,
+    #[serde(rename = "foreignKey", default)]
+    pub foreign_key: Option<ForeignKeyDef>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -155,6 +165,10 @@ pub struct AlterOperation {
     pub data_type: String,
     pub nullable: Option<bool>,
     pub default: Option<Value>,
+    #[serde(rename = "foreignKey", default)]
+    pub foreign_key: Option<ForeignKeyDef>,
+    #[serde(rename = "constraintName", default)]
+    pub constraint_name: Option<String>,
 }
 
 // ─── Driver Trait ───────────────────────────────────────────────────────────

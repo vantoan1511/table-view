@@ -200,6 +200,10 @@ export interface TableColumnDetails {
   nullable: boolean;
   isPrimaryKey: boolean;
   default?: string;
+  foreignKey?: {
+    targetTable: string;
+    targetColumn: string;
+  };
 }
 
 export interface TableDetails {

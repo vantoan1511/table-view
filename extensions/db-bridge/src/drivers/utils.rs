@@ -145,6 +145,22 @@ where
         if col.is_primary_key {
             def.push_str(" PRIMARY KEY");
         }
+        if let Some(ref fk) = col.foreign_key {
+            let quoted_target_table = if fk.target_table.contains('.') {
+                fk.target_table
+                    .split('.')
+                    .map(|part| quote_ident(part))
+                    .collect::<Vec<String>>()
+                    .join(".")
+            } else {
+                quote_ident(&fk.target_table)
+            };
+            let quoted_target_column = quote_ident(&fk.target_column);
+            def.push_str(&format!(
+                " REFERENCES {} ({})",
+                quoted_target_table, quoted_target_column
+            ));
+        }
         column_defs.push(def);
     }
 
