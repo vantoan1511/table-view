@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, ColumnInfo, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef,
+    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -1024,6 +1024,63 @@ impl DatabaseDriver for PostgresDriver {
         }
 
         Ok(SchemaDetails { tables, relations })
+    }
+
+    async fn get_table_indexes(&self, table_name: &str) -> Result<Vec<DbIndex>, String> {
+        let pool = self.pool()?;
+        let (schema_name, bare_table_name) = Self::split_table_name(table_name);
+        let sql = r#"
+            SELECT
+                i.relname as index_name,
+                ix.indisunique as is_unique,
+                ix.indisprimary as is_primary,
+                am.amname as index_type,
+                pg_get_indexdef(i.oid) as ddl,
+                array_to_json(array_agg(a.attname ORDER BY c.ord)) as columns
+            FROM pg_class t
+            JOIN pg_index ix ON t.oid = ix.indrelid
+            JOIN pg_class i ON i.oid = ix.indexrelid
+            JOIN pg_am am ON i.relam = am.oid
+            JOIN pg_namespace n ON n.oid = t.relnamespace
+            CROSS JOIN LATERAL unnest(ix.indkey) WITH ORDINALITY AS c(colnum, ord)
+            LEFT JOIN pg_attribute a ON t.oid = a.attrelid AND a.attnum = c.colnum
+            WHERE t.relname = $2 AND n.nspname = $1
+            GROUP BY i.relname, ix.indisunique, ix.indisprimary, am.amname, i.oid, pg_get_indexdef(i.oid)
+            ORDER BY i.relname
+        "#;
+        
+        let (rows, _, _) = Self::execute_query(
+            pool,
+            sql,
+            &[
+                Value::String(schema_name.to_string()),
+                Value::String(bare_table_name.to_string()),
+            ],
+        ).await?;
+
+        let mut indexes = Vec::new();
+        for r in rows {
+            let mut cols = vec![];
+            if let Some(val) = r.get("columns") {
+                if let Value::Array(arr) = val {
+                    cols = arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect();
+                } else if let Value::String(s) = val {
+                    if let Ok(Value::Array(arr)) = serde_json::from_str(s) {
+                        cols = arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect();
+                    }
+                }
+            }
+
+            indexes.push(DbIndex {
+                name: r.get("index_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                is_unique: r.get("is_unique").and_then(|v| v.as_bool()).unwrap_or(false),
+                is_primary_key: r.get("is_primary").and_then(|v| v.as_bool()).unwrap_or(false),
+                index_type: r.get("index_type").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                ddl: r.get("ddl").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                columns: cols,
+            });
+        }
+        Ok(indexes)
     }
 }
 

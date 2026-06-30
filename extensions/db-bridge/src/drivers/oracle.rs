@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, ColumnInfo, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef,
+    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex
 };
 use async_trait::async_trait;
 use deadpool_oracle::{Pool, PoolBuilder};
@@ -834,6 +834,81 @@ impl DatabaseDriver for OracleDriver {
         }
 
         Ok(SchemaDetails { tables, relations })
+    }
+
+    async fn get_table_indexes(&self, table_name: &str) -> Result<Vec<DbIndex>, String> {
+        let pool = self.pool()?;
+        let (owner, table) = self.split_table_name(table_name);
+        
+        let sql = r#"
+            SELECT 
+                i.INDEX_NAME as index_name,
+                i.UNIQUENESS as uniqueness,
+                i.INDEX_TYPE as index_type,
+                (SELECT COUNT(*) FROM ALL_CONSTRAINTS c WHERE c.OWNER = i.TABLE_OWNER AND c.TABLE_NAME = i.TABLE_NAME AND c.INDEX_NAME = i.INDEX_NAME AND c.CONSTRAINT_TYPE = 'P') as is_primary,
+                (
+                    SELECT JSON_ARRAYAGG(ic.COLUMN_NAME ORDER BY ic.COLUMN_POSITION)
+                    FROM ALL_IND_COLUMNS ic
+                    WHERE ic.INDEX_OWNER = i.OWNER AND ic.INDEX_NAME = i.INDEX_NAME
+                ) as columns
+            FROM ALL_INDEXES i
+            WHERE i.TABLE_OWNER = :1 AND i.TABLE_NAME = :2
+            ORDER BY i.INDEX_NAME
+        "#;
+        
+        let (rows, _, _) = Self::execute_query(
+            pool,
+            sql,
+            &[
+                JsonValue::String(owner.to_string()),
+                JsonValue::String(table.to_string()),
+            ],
+        ).await?;
+
+        let mut indexes = Vec::new();
+        for r in rows {
+            let mut cols = vec![];
+            if let Some(val) = r.get("COLUMNS") {
+                if let JsonValue::Array(arr) = val {
+                    cols = arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect();
+                } else if let JsonValue::String(s) = val {
+                    if let Ok(JsonValue::Array(arr)) = serde_json::from_str(s) {
+                        cols = arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect();
+                    }
+                }
+            }
+
+            let name = r.get("INDEX_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let uniqueness = r.get("UNIQUENESS").and_then(|v| v.as_str()).unwrap_or("");
+            let is_unique = uniqueness == "UNIQUE";
+            let is_primary_key = r.get("IS_PRIMARY").and_then(|v| {
+                if let JsonValue::Number(n) = v {
+                    Some(n.as_i64().unwrap_or(0) > 0)
+                } else if let JsonValue::String(s) = v {
+                    s.parse::<i64>().ok().map(|n| n > 0)
+                } else {
+                    None
+                }
+            }).unwrap_or(false);
+
+            let ddl = if is_primary_key {
+                format!("PRIMARY KEY ({})", cols.join(", "))
+            } else if is_unique {
+                format!("CREATE UNIQUE INDEX {} ON {} ({})", Self::quote(&name), Self::qualify_table(&owner, &table), cols.join(", "))
+            } else {
+                format!("CREATE INDEX {} ON {} ({})", Self::quote(&name), Self::qualify_table(&owner, &table), cols.join(", "))
+            };
+
+            indexes.push(DbIndex {
+                name,
+                is_unique,
+                is_primary_key,
+                index_type: r.get("INDEX_TYPE").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                ddl: Some(ddl),
+                columns: cols,
+            });
+        }
+        Ok(indexes)
     }
 }
 

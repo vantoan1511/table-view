@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import type { SchemaInfo } from '@/types';
+import type { SchemaInfo, DbIndex } from '@/types';
 
 export function useSchemaCache() {
   // Per-connection schema cache: connectionId -> SchemaInfo
@@ -17,6 +17,9 @@ export function useSchemaCache() {
 
   // Error state per (connectionId, dbName)
   const errorDbByConnection = ref<Record<string, Record<string, string>>>({});
+
+  // Per-connection table indexes: connectionId -> tableName -> DbIndex[]
+  const tableIndexes = ref<Record<string, Record<string, DbIndex[]>>>({});
 
   function emptySchema(): SchemaInfo {
     return { tables: [], views: [], functions: [], schemas: [], databases: undefined };
@@ -40,6 +43,7 @@ export function useSchemaCache() {
     delete perDbSchemas.value[connectionId];
     delete loadingDbByConnection.value[connectionId];
     delete errorDbByConnection.value[connectionId];
+    delete tableIndexes.value[connectionId];
   };
 
   return {
@@ -52,6 +56,7 @@ export function useSchemaCache() {
     hasSchemaLoaded,
     getDbSchema,
     getDbError,
+    tableIndexes,
     removeConnection
   };
 }

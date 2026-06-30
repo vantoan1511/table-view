@@ -132,6 +132,44 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTabId.value = tab.id;
   };
 
+  const openIndexTab = (
+    indexName: string,
+    tableName: string,
+    schemaName?: string,
+    connectionId?: string,
+    dbName?: string
+  ) => {
+    const targetSchema = schemaName || schemaStore.selectedSchema;
+    const targetConnectionId = connectionId ?? connectionsStore.activeConnectionId ?? undefined;
+    const cached = tabs.value.find(
+      (t) =>
+        t.type === TabType.INDEX &&
+        t.indexName === indexName &&
+        t.tableName === tableName &&
+        t.schema === schemaName &&
+        t.connectionId === connectionId &&
+        t.dbName === dbName
+    );
+    if (cached) {
+      cached.closed = false;
+      cached.minimized = false;
+      activeTabId.value = cached.id;
+      return;
+    }
+    const tab: Tab = {
+      id: `tab-index-${targetSchema}-${tableName}-${indexName}-${Date.now()}`,
+      type: TabType.INDEX,
+      title: `${tableName}: ${indexName}`,
+      indexName,
+      tableName,
+      connectionId: targetConnectionId,
+      schema: targetSchema,
+      dbName
+    };
+    tabs.value.push(tab);
+    activeTabId.value = tab.id;
+  };
+
   const getNextEditorNumber = (connectionName: string) => {
     const prefix = `${connectionName}-`;
     const existingNumbers = tabs.value
@@ -273,6 +311,7 @@ export const useTabsStore = defineStore('tabs', () => {
     reorderTab,
     openTableTab,
     openDiagramTab,
+    openIndexTab,
     openSqlEditor,
     updateTabQuery,
     saveSqlTab,

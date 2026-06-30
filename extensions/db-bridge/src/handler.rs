@@ -452,6 +452,13 @@ pub async fn handle_message(
                         Err(e) => broadcast(&writer, &token, "dbBridge.getSchemaDetailsResult", json!({"reqId": payload.req_id, "success": false, "error": e})).await,
                     }
                 }
+                "getTableIndexes" => {
+                    let result = driver.get_table_indexes(&payload.table_name).await;
+                    match result {
+                        Ok(indexes) => broadcast(&writer, &token, "dbBridge.getTableIndexesResult", json!({"reqId": payload.req_id, "success": true, "indexes": indexes})).await,
+                        Err(e) => broadcast(&writer, &token, "dbBridge.getTableIndexesResult", json!({"reqId": payload.req_id, "success": false, "error": e})).await,
+                    }
+                }
                 _ => log::warn!("Unknown action: {}", action),
             }
         }

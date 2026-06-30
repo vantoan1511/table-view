@@ -61,7 +61,8 @@ export interface Connection {
 export enum TabType {
   TABLE = 'table',
   SQL = 'sql',
-  DIAGRAM = 'diagram'
+  DIAGRAM = 'diagram',
+  INDEX = 'index'
 }
 
 export interface Tab {
@@ -84,6 +85,7 @@ export interface Tab {
   currentPage?: number;
   filterText?: string;
   columnWidths?: Record<string, number>;
+  indexName?: string;
 }
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
@@ -214,6 +216,15 @@ export interface TableDetails {
 export interface SchemaDetails {
   tables: TableDetails[];
   relations: TableRelation[];
+}
+
+export interface DbIndex {
+  name: string;
+  isUnique: boolean;
+  isPrimaryKey: boolean;
+  indexType?: string;
+  ddl?: string;
+  columns: string[];
 }
 
 // ─── History ───

@@ -198,12 +198,39 @@ export function useSchemaActions(
     await loadDbSchema(connectionId, dbName);
   };
 
+  const loadTableIndexes = async (connectionId: string, tableName: string) => {
+    try {
+      const payload = await BridgeService.request(
+        'dbBridge.getTableIndexes',
+        'dbBridge.getTableIndexesResult',
+        {
+          connectionId,
+          tableName
+        }
+      );
+      if (payload && payload.indexes) {
+         if (!cache.tableIndexes.value[connectionId]) {
+           cache.tableIndexes.value[connectionId] = {};
+         }
+         cache.tableIndexes.value[connectionId][tableName] = payload.indexes;
+      }
+    } catch (error: any) {
+      console.error(`[schema] Failed to load indexes for ${tableName}:`, error.message);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Indexes Load Failed',
+        message: error.message || 'Could not retrieve table indexes.'
+      });
+    }
+  };
+
   return {
     sameSchema,
     resolveFallbackSchema,
     loadSchema,
     loadDbSchema,
     clearDbSchema,
-    refreshDbSchema
+    refreshDbSchema,
+    loadTableIndexes
   };
 }

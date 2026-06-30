@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef
+    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -553,6 +553,43 @@ impl DatabaseDriver for SqliteDriver {
         }
 
         Ok(SchemaDetails { tables, relations })
+    }
+
+    async fn get_table_indexes(&self, table_name: &str) -> Result<Vec<DbIndex>, String> {
+        let pool = self.pool()?;
+        
+        let sql = format!("PRAGMA index_list({})", Self::quote(table_name));
+        let (index_rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
+
+        let mut indexes = Vec::new();
+        for r in index_rows {
+            let name = r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let is_unique = r.get("unique").and_then(|v| v.as_i64()).unwrap_or(0) == 1;
+            let is_primary_key = r.get("origin").and_then(|v| v.as_str()).unwrap_or("") == "pk";
+            
+            let col_sql = format!("PRAGMA index_info({})", Self::quote(&name));
+            let (col_rows, _, _) = Self::execute_query(pool, &col_sql, &[]).await?;
+            let mut cols = Vec::new();
+            for cr in col_rows {
+                if let Some(cname) = cr.get("name").and_then(|v| v.as_str()) {
+                    cols.push(cname.to_string());
+                }
+            }
+            
+            let ddl_sql = "SELECT sql FROM sqlite_master WHERE type='index' AND name = ?";
+            let (ddl_rows, _, _) = Self::execute_query(pool, ddl_sql, &[Value::String(name.clone())]).await?;
+            let ddl = ddl_rows.first().and_then(|r| r.get("sql")).and_then(|v| v.as_str()).map(|s| s.to_string());
+
+            indexes.push(DbIndex {
+                name,
+                is_unique,
+                is_primary_key,
+                index_type: None,
+                ddl,
+                columns: cols,
+            });
+        }
+        Ok(indexes)
     }
 }
 
