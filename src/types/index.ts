@@ -29,7 +29,13 @@ export enum ConnectionColor {
   AMBER = 'amber',
   ORANGE = 'orange',
   PINK = 'pink',
-  GRAY = 'gray'
+  GRAY = 'gray',
+  PURPLE = 'purple',
+  ROSE = 'rose',
+  EMERALD = 'emerald',
+  CYAN = 'cyan',
+  VIOLET = 'violet',
+  RED = 'red'
 }
 
 export interface Connection {

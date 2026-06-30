@@ -18,12 +18,18 @@ const colors: { key: ConnectionColor; value: string }[] = [
   { key: ConnectionColor.AMBER, value: '#F59E0B' },
   { key: ConnectionColor.ORANGE, value: '#F97316' },
   { key: ConnectionColor.PINK, value: '#EC4899' },
-  { key: ConnectionColor.GRAY, value: '#9CA3AF' }
+  { key: ConnectionColor.GRAY, value: '#9CA3AF' },
+  { key: ConnectionColor.PURPLE, value: '#A855F7' },
+  { key: ConnectionColor.ROSE, value: '#F43F5E' },
+  { key: ConnectionColor.EMERALD, value: '#10B981' },
+  { key: ConnectionColor.CYAN, value: '#06B6D4' },
+  { key: ConnectionColor.VIOLET, value: '#7C3AED' },
+  { key: ConnectionColor.RED, value: '#EF4444' }
 ];
 </script>
 
 <template>
-  <div class="flex items-center gap-2.5">
+  <div class="flex flex-wrap items-center gap-2.5">
     <button
       v-for="color in colors"
       :key="color.key"

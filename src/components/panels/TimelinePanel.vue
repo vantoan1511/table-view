@@ -133,7 +133,13 @@ const colorMap: Record<string, string> = {
   amber: 'bg-conn-amber',
   orange: 'bg-conn-orange',
   pink: 'bg-conn-pink',
-  gray: 'bg-conn-gray'
+  gray: 'bg-conn-gray',
+  purple: 'bg-conn-purple',
+  rose: 'bg-conn-rose',
+  emerald: 'bg-conn-emerald',
+  cyan: 'bg-conn-cyan',
+  violet: 'bg-conn-violet',
+  red: 'bg-conn-red'
 };
 
 const getFlagColorClass = (colorName?: string) => {

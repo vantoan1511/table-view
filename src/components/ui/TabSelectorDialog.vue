@@ -61,7 +61,10 @@ const deleteTab = (id: string) => {
       <!-- Header -->
       <div class="border-border bg-muted flex items-center justify-between border-b p-4">
         <div class="flex items-center gap-2">
-          <div class="h-2 w-2 rounded-full" :class="'bg-' + (connection?.color || 'primary')"></div>
+          <div
+            class="h-2 w-2 rounded-full"
+            :class="connection?.color ? 'bg-conn-' + connection.color : 'bg-primary'"
+          ></div>
           <h3 class="text-text-primary text-[15px] font-semibold">
             Open Editor: {{ connection?.name }}
           </h3>

@@ -43,6 +43,12 @@
   --color-conn-orange: #f97316;
   --color-conn-pink: #ec4899;
   --color-conn-gray: #9ca3af;
+  --color-conn-purple: #a855f7;
+  --color-conn-rose: #f43f5e;
+  --color-conn-emerald: #10b981;
+  --color-conn-cyan: #06b6d4;
+  --color-conn-violet: #7c3aed;
+  --color-conn-red: #ef4444;
 
   /* Typography */
   --font-ui: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
