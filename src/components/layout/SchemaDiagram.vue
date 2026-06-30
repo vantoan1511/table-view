@@ -4,6 +4,7 @@ import {
   Download,
   Info,
   Key,
+  Link,
   Maximize,
   RefreshCw,
   Search,
@@ -15,6 +16,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import Tooltip from '@/components/ui/Tooltip.vue';
 import { useDiagramStore } from '@/stores/diagram';
+import { useTabsStore } from '@/stores/tabs';
 import type { Tab } from '@/types';
 
 const props = defineProps<{
@@ -22,6 +24,7 @@ const props = defineProps<{
 }>();
 
 const diagramStore = useDiagramStore();
+const tabsStore = useTabsStore();
 
 // Viewport layout states
 const zoom = ref(1.0);
@@ -137,6 +140,19 @@ const loadData = async (force = false) => {
 
   const hasSavedPositions = loadPositions();
   performAutoLayout(!hasSavedPositions);
+};
+
+const getForeignKeyReference = (tableName: string, columnName: string) => {
+  if (!schemaDetails.value) return null;
+  return (
+    schemaDetails.value.relations.find(
+      (r) => r.sourceTable === tableName && r.sourceColumn === columnName
+    ) || null
+  );
+};
+
+const handleTableDoubleClick = (tableName: string) => {
+  tabsStore.openTableTab(tableName, props.tab.schema, props.tab.connectionId, props.tab.dbName);
 };
 
 // Fetch on mount
@@ -741,6 +757,7 @@ const exportToSvg = () => {
             @mousedown="handleCardMouseDown($event, table.name)"
             @mouseenter="hoveredTable = table.name"
             @mouseleave="hoveredTable = null"
+            @dblclick="handleTableDoubleClick(table.name)"
           >
             <!-- Card Header -->
             <div
@@ -779,19 +796,38 @@ const exportToSvg = () => {
                 @mouseleave="hoveredColumn = null"
               >
                 <!-- Name & Key Indicators -->
-                <div class="flex min-w-0 items-center gap-1.5">
+                <div class="group/col relative flex min-w-0 items-center gap-1.5">
                   <Key
                     v-if="col.isPrimaryKey"
                     class="h-3 w-3 shrink-0 text-amber-500 drop-shadow-[0_0_2px_rgba(245,158,11,0.3)] filter"
                   />
+                  <Link
+                    v-else-if="getForeignKeyReference(table.name, col.name)"
+                    class="h-2.5 w-2.5 shrink-0 cursor-pointer text-indigo-400 drop-shadow-[0_0_2px_rgba(99,102,241,0.3)] filter"
+                    @click.stop="
+                      handleTableDoubleClick(
+                        getForeignKeyReference(table.name, col.name)!.targetTable
+                      )
+                    "
+                  />
                   <span
                     class="truncate"
                     :class="
-                      col.isPrimaryKey ? 'font-semibold text-amber-500' : 'text-text-secondary'
+                      col.isPrimaryKey
+                        ? 'font-semibold text-amber-500'
+                        : getForeignKeyReference(table.name, col.name)
+                          ? 'font-medium text-indigo-400'
+                          : 'text-text-secondary'
                     "
                   >
                     {{ col.name }}
                   </span>
+                  <!-- Tooltip for FK column -->
+                  <Tooltip
+                    v-if="getForeignKeyReference(table.name, col.name)"
+                    :text="`References ${getForeignKeyReference(table.name, col.name)!.targetTable}.${getForeignKeyReference(table.name, col.name)!.targetColumn}`"
+                    position="top"
+                  />
                 </div>
 
                 <!-- Data type -->
