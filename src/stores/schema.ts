@@ -136,8 +136,10 @@ export const useSchemaStore = defineStore('schema', () => {
     loadDbSchema: actions.loadDbSchema,
     clearDbSchema: actions.clearDbSchema,
     refreshDbSchema: actions.refreshDbSchema,
+    loadTableIndexes: actions.loadTableIndexes,
 
     // Store logic
+    tableIndexes: cache.tableIndexes,
     getFilteredTables,
     getFilteredViews,
     getFilteredFunctions,

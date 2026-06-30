@@ -140,6 +140,20 @@ pub struct TableRelation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbIndex {
+    pub name: String,
+    pub columns: Vec<String>,
+    #[serde(rename = "isUnique")]
+    pub is_unique: bool,
+    #[serde(rename = "isPrimaryKey")]
+    pub is_primary_key: bool,
+    #[serde(rename = "indexType", skip_serializing_if = "Option::is_none")]
+    pub index_type: Option<String>,
+    #[serde(rename = "ddl", skip_serializing_if = "Option::is_none")]
+    pub ddl: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableInfo {
     pub name: String,
     pub columns: Vec<TableColumn>,
@@ -227,6 +241,7 @@ pub trait DatabaseDriver: Send + Sync {
     async fn create_database(&self, db_name: &str) -> Result<(), String>;
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String>;
     async fn get_schema_details(&self, schema_name: &str) -> Result<SchemaDetails, String>;
+    async fn get_table_indexes(&self, table_name: &str) -> Result<Vec<DbIndex>, String>;
 }
 
 /// Factory function to create a driver by type name.

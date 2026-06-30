@@ -2,6 +2,7 @@
 import DataGrid from '@/components/grid/DataGrid.vue';
 import SqlEditor from '@/components/sql/SqlEditor.vue';
 import SchemaDiagram from '@/components/layout/SchemaDiagram.vue';
+import IndexDetails from '@/components/layout/IndexDetails.vue';
 import type { Tab } from '@/types';
 
 defineProps<{
@@ -24,6 +25,11 @@ defineProps<{
     <!-- Schema Diagram -->
     <template v-else-if="tab?.type === 'diagram'">
       <SchemaDiagram v-if="tab" :tab="tab" />
+    </template>
+
+    <!-- Index Details -->
+    <template v-else-if="tab?.type === 'index'">
+      <IndexDetails v-if="tab" :tab="tab" />
     </template>
 
     <!-- No tab: empty state -->

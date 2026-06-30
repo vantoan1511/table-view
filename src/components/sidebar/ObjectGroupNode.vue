@@ -3,6 +3,7 @@ import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
 import { ChevronRight, Eye, FunctionSquare, Table2 } from 'lucide-vue-next';
 import { computed, inject } from 'vue';
+import TableNode from './TableNode.vue';
 
 const props = defineProps<{
   connectionId: string;
@@ -91,30 +92,34 @@ const openObject = (name: string) => {
         No {{ label.toLowerCase() }} found
       </div>
       <div class="flex flex-col gap-1 py-1 pr-2 pl-7">
-        <button
-          v-for="obj in objects"
-          :key="obj.name"
-          class="flex w-full items-center gap-2 rounded-sm py-0.75 pr-2 pl-14 text-[12px] transition-colors"
-          :class="
-            isActive(obj.name)
-              ? 'bg-active text-primary font-medium'
-              : 'text-text-primary hover:bg-hover'
-          "
-          @click="openObject(obj.name)"
-          @contextmenu.prevent.stop="
-            groupType === 'tables'
-              ? onEntityContextMenu?.($event, 'table', {
-                  connId: connectionId,
-                  schemaName,
-                  dbName,
-                  tableName: obj.name
-                })
-              : null
-          "
-        >
-          <component :is="icon" :size="12" class="shrink-0 opacity-60" />
-          <span class="truncate">{{ obj.name }}</span>
-        </button>
+        <template v-if="groupType === 'tables'">
+          <TableNode
+            v-for="obj in objects"
+            :key="obj.name"
+            :connection-id="connectionId"
+            :schema-name="schemaName"
+            :db-name="dbName"
+            :table-name="obj.name"
+            :is-active="isActive(obj.name)"
+            @open="openObject(obj.name)"
+          />
+        </template>
+        <template v-else>
+          <button
+            v-for="obj in objects"
+            :key="obj.name"
+            class="flex w-full items-center gap-2 rounded-sm py-0.75 pr-2 pl-14 text-[12px] transition-colors"
+            :class="
+              isActive(obj.name)
+                ? 'bg-active text-primary font-medium'
+                : 'text-text-primary hover:bg-hover'
+            "
+            @click="openObject(obj.name)"
+          >
+            <component :is="icon" :size="12" class="shrink-0 opacity-60" />
+            <span class="truncate">{{ obj.name }}</span>
+          </button>
+        </template>
       </div>
     </div>
   </div>

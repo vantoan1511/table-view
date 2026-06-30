@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef
+    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -801,6 +801,64 @@ impl DatabaseDriver for MysqlDriver {
         }
 
         Ok(SchemaDetails { tables, relations })
+    }
+
+    async fn get_table_indexes(&self, table_name: &str) -> Result<Vec<DbIndex>, String> {
+        let pool = self.pool()?;
+        
+        let sql = r#"
+            SELECT 
+                INDEX_NAME as index_name,
+                NON_UNIQUE as non_unique,
+                INDEX_TYPE as index_type,
+                JSON_ARRAYAGG(COLUMN_NAME) as columns
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+            GROUP BY INDEX_NAME, NON_UNIQUE, INDEX_TYPE
+            ORDER BY INDEX_NAME
+        "#;
+        
+        let (rows, _, _) = Self::execute_query(
+            pool,
+            sql,
+            &[Value::String(table_name.to_string())],
+        ).await?;
+
+        let mut indexes = Vec::new();
+        for r in rows {
+            let mut cols = vec![];
+            if let Some(val) = r.get("columns") {
+                if let Value::Array(arr) = val {
+                    cols = arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect();
+                } else if let Value::String(s) = val {
+                    if let Ok(Value::Array(arr)) = serde_json::from_str(s) {
+                        cols = arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect();
+                    }
+                }
+            }
+
+            let name = r.get("index_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let is_unique = r.get("non_unique").and_then(|v| v.as_i64()).unwrap_or(1) == 0;
+            let is_primary_key = name == "PRIMARY";
+
+            let ddl = if is_primary_key {
+                format!("PRIMARY KEY ({})", cols.join(", "))
+            } else if is_unique {
+                format!("UNIQUE KEY {} ({})", Self::quote(&name), cols.join(", "))
+            } else {
+                format!("KEY {} ({})", Self::quote(&name), cols.join(", "))
+            };
+
+            indexes.push(DbIndex {
+                name,
+                is_unique,
+                is_primary_key,
+                index_type: r.get("index_type").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                ddl: Some(ddl),
+                columns: cols,
+            });
+        }
+        Ok(indexes)
     }
 }
 
