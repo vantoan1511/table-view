@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation
+    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -364,15 +364,34 @@ impl DatabaseDriver for SqliteDriver {
         let sql = format!("PRAGMA table_info({})", Self::quote(table_name));
         let (rows, _, _) = Self::execute_query(pool, &sql, &[]).await?;
         
+        let fk_sql = format!("PRAGMA foreign_key_list({})", Self::quote(table_name));
+        let (fk_rows, _, _) = Self::execute_query(pool, &fk_sql, &[]).await.unwrap_or((vec![], vec![], 0));
+        
+        let mut fk_map = HashMap::new();
+        for r in fk_rows {
+            if let (Some(from_col), Some(to_table), Some(to_col)) = (
+                r.get("from").and_then(|v| v.as_str()),
+                r.get("table").and_then(|v| v.as_str()),
+                r.get("to").and_then(|v| v.as_str()),
+            ) {
+                fk_map.insert(from_col.to_string(), ForeignKeyDef {
+                    target_table: to_table.to_string(),
+                    target_column: to_col.to_string(),
+                });
+            }
+        }
+
         let mut columns = Vec::new();
         for r in rows {
+            let col_name = r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let foreign_key = fk_map.get(&col_name).cloned();
             columns.push(TableColumn {
-                name: r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                name: col_name,
                 data_type: r.get("type").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                 nullable: r.get("notnull").and_then(|v| v.as_i64()).map(|i| i == 0).unwrap_or(true),
                 is_primary_key: r.get("pk").and_then(|v| v.as_i64()).map(|i| i > 0).unwrap_or(false),
                 default: r.get("dflt_value").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                foreign_key: None,
+                foreign_key,
             });
         }
         Ok(columns)

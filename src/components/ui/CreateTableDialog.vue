@@ -37,9 +37,13 @@ const columns = ref<ColumnDef[]>([
 
 const parseFkStr = (fkStr?: string) => {
   if (!fkStr || !fkStr.trim()) return undefined;
-  const parts = fkStr.split('.');
-  if (parts.length >= 2) {
-    return { targetTable: parts[0].trim(), targetColumn: parts[1].trim() };
+  const lastDot = fkStr.lastIndexOf('.');
+  if (lastDot !== -1) {
+    const targetTable = fkStr.substring(0, lastDot).trim();
+    const targetColumn = fkStr.substring(lastDot + 1).trim();
+    if (targetTable && targetColumn) {
+      return { targetTable, targetColumn };
+    }
   }
   return undefined;
 };

@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, ColumnInfo, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation,
+    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef,
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -672,6 +672,49 @@ impl DatabaseDriver for PostgresDriver {
     async fn get_table_columns(&self, table_name: &str) -> Result<Vec<TableColumn>, String> {
         let pool = self.pool()?;
         let (schema_name, bare_table_name) = Self::split_table_name(table_name);
+        
+        let fk_sql = "SELECT \
+            kcu.column_name::text as source_column, \
+            CASE \
+                WHEN ccu.table_schema::text = tc.table_schema::text THEN ccu.table_name::text \
+                ELSE (ccu.table_schema::text || '.' || ccu.table_name::text) \
+            END as target_table, \
+            ccu.column_name::text as target_column \
+        FROM information_schema.table_constraints tc \
+        JOIN information_schema.key_column_usage kcu \
+            ON tc.constraint_name = kcu.constraint_name \
+            AND tc.table_schema = kcu.table_schema \
+        JOIN information_schema.constraint_column_usage ccu \
+            ON ccu.constraint_name = tc.constraint_name \
+            AND ccu.table_schema = tc.table_schema \
+        WHERE tc.constraint_type = 'FOREIGN KEY' \
+          AND tc.table_schema::text = $1::text \
+          AND tc.table_name::text = $2::text";
+
+        let (fk_rows, _, _) = Self::execute_query(
+            pool,
+            fk_sql,
+            &[
+                Value::String(schema_name.to_string()),
+                Value::String(bare_table_name.to_string()),
+            ],
+        )
+        .await.unwrap_or((vec![], vec![], 0));
+
+        let mut fk_map = HashMap::new();
+        for r in fk_rows {
+            if let (Some(src_col), Some(tgt_tbl), Some(tgt_col)) = (
+                r.get("source_column").and_then(|v| v.as_str()),
+                r.get("target_table").and_then(|v| v.as_str()),
+                r.get("target_column").and_then(|v| v.as_str()),
+            ) {
+                fk_map.insert(src_col.to_string(), ForeignKeyDef {
+                    target_table: tgt_tbl.to_string(),
+                    target_column: tgt_col.to_string(),
+                });
+            }
+        }
+
         let sql =
             "SELECT column_name::text, data_type::text, is_nullable::text, column_default::text \
              FROM information_schema.columns \
@@ -690,12 +733,14 @@ impl DatabaseDriver for PostgresDriver {
 
         let mut columns = Vec::new();
         for r in rows {
+            let col_name = r
+                .get("column_name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let foreign_key = fk_map.get(&col_name).cloned();
             columns.push(TableColumn {
-                name: r
-                    .get("column_name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string(),
+                name: col_name,
                 data_type: r
                     .get("data_type")
                     .and_then(|v| v.as_str())
@@ -711,7 +756,7 @@ impl DatabaseDriver for PostgresDriver {
                     .get("column_default")
                     .and_then(|v| v.as_str())
                     .map(|s| s.to_string()),
-                foreign_key: None,
+                foreign_key,
             });
         }
         Ok(columns)
@@ -926,15 +971,32 @@ impl DatabaseDriver for PostgresDriver {
         let mut tables_map: HashMap<String, Vec<TableColumn>> = HashMap::new();
         let mut table_order: Vec<String> = Vec::new();
 
+        let mut fk_map: HashMap<(String, String), ForeignKeyDef> = HashMap::new();
+        for r in &relation_rows {
+            if let (Some(src_tbl), Some(src_col), Some(tgt_tbl), Some(tgt_col)) = (
+                r.get("source_table").and_then(|v| v.as_str()),
+                r.get("source_column").and_then(|v| v.as_str()),
+                r.get("target_table").and_then(|v| v.as_str()),
+                r.get("target_column").and_then(|v| v.as_str()),
+            ) {
+                fk_map.insert((src_tbl.to_string(), src_col.to_string()), ForeignKeyDef {
+                    target_table: tgt_tbl.to_string(),
+                    target_column: tgt_col.to_string(),
+                });
+            }
+        }
+
         for r in column_rows {
             let table_name = r.get("table_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let col_name = r.get("column_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let foreign_key = fk_map.get(&(table_name.clone(), col_name.clone())).cloned();
             let col = TableColumn {
-                name: r.get("column_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                name: col_name,
                 data_type: r.get("data_type").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                 nullable: r.get("is_nullable").and_then(|v| v.as_bool()).unwrap_or(true),
                 is_primary_key: r.get("is_primary_key").and_then(|v| v.as_bool()).unwrap_or(false),
                 default: r.get("column_default").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                foreign_key: None,
+                foreign_key,
             };
 
             if !tables_map.contains_key(&table_name) {

@@ -154,7 +154,7 @@ pub struct SchemaDetails {
 #[derive(Debug, Clone, Deserialize)]
 pub struct AlterOperation {
     #[serde(rename = "type")]
-    pub op_type: String,
+    pub op_type: String, // e.g. "ADD_COLUMN", "DROP_COLUMN", "RENAME_COLUMN", "DROP_CONSTRAINT", "ADD_FOREIGN_KEY"
     #[serde(default)]
     pub name: String,
     #[serde(rename = "oldName", default)]
@@ -167,6 +167,8 @@ pub struct AlterOperation {
     pub default: Option<Value>,
     #[serde(rename = "foreignKey", default)]
     pub foreign_key: Option<ForeignKeyDef>,
+    // Note: constraint_name and these fields are kept for future extensions where existing constraints
+    // (such as foreign keys and primary keys) can be altered or dropped directly from the UI.
     #[serde(rename = "constraintName", default)]
     pub constraint_name: Option<String>,
 }
