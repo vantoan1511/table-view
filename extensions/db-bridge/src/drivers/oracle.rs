@@ -551,6 +551,7 @@ impl DatabaseDriver for OracleDriver {
                     .map(|v| v == "YES")
                     .unwrap_or(false),
                 default: r.get("DATA_DEFAULT").and_then(|v| v.as_str()).map(str::to_string),
+                foreign_key: None,
             })
             .collect())
     }
@@ -596,6 +597,14 @@ impl DatabaseDriver for OracleDriver {
                     if op.nullable == Some(false) {
                         q.push_str(" NOT NULL");
                     }
+                    if let Some(ref fk) = op.foreign_key {
+                        let quoted_target_table = if fk.target_table.contains('.') {
+                            fk.target_table.split('.').map(|p| Self::quote(p)).collect::<Vec<String>>().join(".")
+                        } else {
+                            Self::quote(&fk.target_table)
+                        };
+                        q.push_str(&format!(" REFERENCES {} ({})", quoted_target_table, Self::quote(&fk.target_column)));
+                    }
                     q
                 }
                 "DROP_COLUMN" => format!(
@@ -609,6 +618,27 @@ impl DatabaseDriver for OracleDriver {
                     Self::quote(&op.old_name),
                     Self::quote(&op.new_name)
                 ),
+                "DROP_CONSTRAINT" => {
+                    let constraint = op.constraint_name.as_ref().ok_or("constraint_name is required")?;
+                    format!("ALTER TABLE {} DROP CONSTRAINT {}", safe_table, Self::quote(constraint))
+                }
+                "ADD_FOREIGN_KEY" => {
+                    let fk = op.foreign_key.as_ref().ok_or("foreignKey is required")?;
+                    let fk_name = format!("fk_{}_{}", table_name, op.name);
+                    let quoted_target_table = if fk.target_table.contains('.') {
+                        fk.target_table.split('.').map(|p| Self::quote(p)).collect::<Vec<String>>().join(".")
+                    } else {
+                        Self::quote(&fk.target_table)
+                    };
+                    format!(
+                        "ALTER TABLE {} ADD CONSTRAINT {} FOREIGN KEY ({}) REFERENCES {} ({})",
+                        safe_table,
+                        Self::quote(&fk_name),
+                        Self::quote(&op.name),
+                        quoted_target_table,
+                        Self::quote(&fk.target_column)
+                    )
+                }
                 _ => continue,
             };
 
@@ -720,6 +750,7 @@ impl DatabaseDriver for OracleDriver {
                 nullable: r.get("IS_NULLABLE").and_then(|v| v.as_str()).map(|s| s == "YES").unwrap_or(true),
                 is_primary_key: r.get("IS_PRIMARY_KEY").and_then(|v| v.as_str()).map(|s| s == "YES").unwrap_or(false),
                 default: r.get("DATA_DEFAULT").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                foreign_key: None,
             };
 
             if !tables_map.contains_key(&table_name) {

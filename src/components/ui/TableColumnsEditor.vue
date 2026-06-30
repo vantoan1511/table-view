@@ -15,6 +15,7 @@ export interface ColumnDef {
   nullable: boolean;
   isPrimaryKey: boolean;
   default: string | null;
+  _fkStr?: string;
   _originalName?: string;
   _isNew?: boolean;
   _deleted?: boolean;
@@ -172,6 +173,7 @@ const addColumn = () => {
     nullable: true,
     isPrimaryKey: false,
     default: null,
+    _fkStr: '',
     _isNew: isAlter,
     _editing: true
   };
@@ -218,10 +220,11 @@ const togglePrimaryKey = (col: ColumnDef) => {
         <thead>
           <tr class="bg-muted border-border text-text-secondary border-b text-[12px] font-medium">
             <th class="w-[30%] px-4 py-2">Column Name</th>
-            <th class="w-[25%] px-4 py-2">Data Type</th>
-            <th v-if="mode === 'create'" class="w-[10%] px-4 py-2 text-center">PK</th>
-            <th class="w-[15%] px-4 py-2 text-center">Nullable</th>
-            <th class="w-[20%] px-4 py-2">Default</th>
+            <th class="w-[20%] px-4 py-2">Data Type</th>
+            <th v-if="mode === 'create'" class="w-[8%] px-4 py-2 text-center">PK</th>
+            <th class="w-[12%] px-4 py-2 text-center">Nullable</th>
+            <th class="w-[15%] px-4 py-2">Default</th>
+            <th class="w-[15%] px-4 py-2">FK (table.col)</th>
             <th class="w-[10%] px-4 py-2 text-right">Actions</th>
           </tr>
         </thead>
@@ -341,6 +344,18 @@ const togglePrimaryKey = (col: ColumnDef) => {
                 class="bg-surface border-primary/50 focus:border-primary text-text-primary w-full rounded border px-2 py-1 outline-none"
               />
               <span v-else class="text-text-secondary">{{ col.default || '—' }}</span>
+            </td>
+
+            <!-- Foreign Key -->
+            <td class="px-4 py-2">
+              <input
+                v-if="col._editing && (mode === 'create' || col._isNew)"
+                v-model="col._fkStr"
+                type="text"
+                placeholder="table.col"
+                class="bg-surface border-primary/50 focus:border-primary text-text-primary w-full rounded border px-2 py-1 outline-none text-[12px]"
+              />
+              <span v-else class="text-text-secondary text-[12px]">{{ col._fkStr || '—' }}</span>
             </td>
 
             <!-- Actions -->

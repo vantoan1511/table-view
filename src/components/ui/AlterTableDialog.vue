@@ -39,6 +39,7 @@ onMounted(async () => {
       isPrimaryKey: c.isPrimaryKey || false,
       default: c.default,
       _originalName: c.name,
+      _fkStr: c.foreignKey ? `${c.foreignKey.targetTable}.${c.foreignKey.targetColumn}` : '',
       _isNew: false,
       _deleted: false,
       _editing: false
@@ -54,6 +55,15 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+const parseFkStr = (fkStr?: string) => {
+  if (!fkStr || !fkStr.trim()) return undefined;
+  const parts = fkStr.split('.');
+  if (parts.length >= 2) {
+    return { targetTable: parts[0].trim(), targetColumn: parts[1].trim() };
+  }
+  return undefined;
+};
 
 const applyChanges = async () => {
   const operations: any[] = [];
@@ -72,7 +82,8 @@ const applyChanges = async () => {
         name: col.name,
         dataType: col.dataType,
         nullable: col.nullable,
-        default: col.default
+        default: col.default,
+        foreignKey: parseFkStr(col._fkStr)
       });
     } else if (col.name !== col._originalName) {
       operations.push({

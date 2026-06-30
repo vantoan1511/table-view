@@ -20,6 +20,10 @@ export interface TableColumn {
   nullable: boolean;
   isPrimaryKey: boolean;
   default?: string;
+  foreignKey?: {
+    targetTable: string;
+    targetColumn: string;
+  };
 }
 
 export const useGridStore = defineStore('grid', () => {
