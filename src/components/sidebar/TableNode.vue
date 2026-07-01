@@ -59,7 +59,10 @@ const isIndexActive = (indexName: string) =>
 </script>
 
 <template>
-  <div class="table-node">
+  <div
+    class="table-node"
+    :data-table-id="`${connectionId}_${dbName || ''}_${schemaName}_${tableName}`"
+  >
     <div
       class="flex w-full cursor-pointer items-center gap-1.5 rounded-sm py-0.75 pr-2 pl-9 text-[12px] transition-colors"
       :class="isActive ? 'bg-active text-primary font-medium' : 'text-text-primary hover:bg-hover'"
