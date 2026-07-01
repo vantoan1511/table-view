@@ -14,7 +14,7 @@ import { useTabsStore } from '@/stores/tabs';
 
 import type { Connection } from '@/types';
 
-import { ChevronsDownUpIcon, Layers } from 'lucide-vue-next';
+import { ChevronsDownUpIcon, Download, Layers, Upload } from 'lucide-vue-next';
 import { provide, ref } from 'vue';
 import Tooltip from '../ui/Tooltip.vue';
 
@@ -247,16 +247,36 @@ const handleContextAction = async (action: string) => {
       <span class="text-text-secondary text-[11px] font-semibold tracking-wider uppercase"
         >Connections</span
       >
-      <Tooltip text="Collapse All" position="bottom">
-        <Button
-          id="btn-collapse-all"
-          variant="ghost"
-          size="icon"
-          :icon="ChevronsDownUpIcon"
-          class="h-6 w-6"
-          @click="collapseAll"
-        />
-      </Tooltip>
+      <div class="flex items-center gap-0.5">
+        <Tooltip text="Import Connections" position="bottom">
+          <Button
+            variant="ghost"
+            size="icon"
+            :icon="Download"
+            class="h-6 w-6"
+            @click="connectionsStore.selectImportFile()"
+          />
+        </Tooltip>
+        <Tooltip text="Export Connections" position="bottom">
+          <Button
+            variant="ghost"
+            size="icon"
+            :icon="Upload"
+            class="h-6 w-6"
+            @click="connectionsStore.toggleExportModal(true)"
+          />
+        </Tooltip>
+        <Tooltip text="Collapse All" position="bottom">
+          <Button
+            id="btn-collapse-all"
+            variant="ghost"
+            size="icon"
+            :icon="ChevronsDownUpIcon"
+            class="h-6 w-6"
+            @click="collapseAll"
+          />
+        </Tooltip>
+      </div>
     </div>
 
     <div class="flex-1 overflow-y-auto py-1">
