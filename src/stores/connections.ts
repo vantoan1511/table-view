@@ -175,7 +175,7 @@ export const useConnectionsStore = defineStore('connections', () => {
       const content = await NativeService.fs.readFile(filePaths[0]);
       if (!content) return;
 
-      const parsed = JSON.parse(content) as any[];
+      const parsed = JSON.parse(content) as Partial<Connection>[];
       if (!Array.isArray(parsed)) {
         throw new Error('Invalid JSON format: Expected an array of connections.');
       }
