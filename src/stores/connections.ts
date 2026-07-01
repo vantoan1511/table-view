@@ -3,15 +3,16 @@ import * as Neutralino from '@neutralinojs/lib';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-import { useToastStore } from './toast';
-import { decryptPassword, encryptPassword } from '@/utils/crypto';
 import { NativeService } from '@/services/native';
+import { decryptPassword, encryptPassword } from '@/utils/crypto';
+import { useToastStore } from './toast';
 
 export const useConnectionsStore = defineStore('connections', () => {
   const connections = ref<Connection[]>([]);
   const activeConnectionId = ref<string | null>(null);
   const showNewConnectionModal = ref(false);
   const showExportModal = ref(false);
+  const preSelectedExportId = ref<string | null>(null);
   const showImportModal = ref(false);
   const importedConnections = ref<Connection[]>([]);
 
@@ -115,8 +116,9 @@ export const useConnectionsStore = defineStore('connections', () => {
     return `conn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   };
 
-  const toggleExportModal = (show?: boolean) => {
+  const toggleExportModal = (show?: boolean, connId?: string) => {
     showExportModal.value = show ?? !showExportModal.value;
+    preSelectedExportId.value = connId ?? null;
   };
 
   const toggleImportModal = (show?: boolean) => {
@@ -227,23 +229,30 @@ export const useConnectionsStore = defineStore('connections', () => {
         }
       } else {
         // copy resolution
-        incoming.id = generateId();
+        const nameExists = connections.value.some((c) => c.name === incoming.name);
+        const idExists = connections.value.some((c) => c.id === incoming.id);
 
-        // Find a unique name
-        let nameSuffix = 1;
-        let originalName = incoming.name;
-        // Remove existing copy suffix if present
-        const copyMatch = originalName.match(/ \(Copy(?: \d+)?\)$/);
-        if (copyMatch) {
-          originalName = originalName.substring(0, originalName.length - copyMatch[0].length);
-        }
+        if (nameExists || idExists) {
+          incoming.id = generateId();
 
-        let newName = `${originalName} (Copy)`;
-        while (connections.value.some((c) => c.name === newName)) {
-          nameSuffix++;
-          newName = `${originalName} (Copy ${nameSuffix})`;
+          if (nameExists) {
+            // Find a unique name
+            let nameSuffix = 1;
+            let originalName = incoming.name;
+            // Remove existing copy suffix if present
+            const copyMatch = originalName.match(/ \(Copy(?: \d+)?\)$/);
+            if (copyMatch) {
+              originalName = originalName.substring(0, originalName.length - copyMatch[0].length);
+            }
+
+            let newName = `${originalName} (Copy)`;
+            while (connections.value.some((c) => c.name === newName)) {
+              nameSuffix++;
+              newName = `${originalName} (Copy ${nameSuffix})`;
+            }
+            incoming.name = newName;
+          }
         }
-        incoming.name = newName;
 
         connections.value.push(incoming);
       }
@@ -339,6 +348,7 @@ export const useConnectionsStore = defineStore('connections', () => {
     connectedConnections,
     showNewConnectionModal,
     showExportModal,
+    preSelectedExportId,
     showImportModal,
     importedConnections,
     connectionToEdit,

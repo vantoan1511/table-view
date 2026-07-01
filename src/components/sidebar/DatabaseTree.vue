@@ -163,6 +163,8 @@ const handleContextAction = async (action: string) => {
       await connectionsStore.disconnectConnection(connId);
     } else if (action === 'delete') {
       idToDelete.value = connId;
+    } else if (action === 'export') {
+      connectionsStore.toggleExportModal(true, connId);
     }
   } else if (type === 'database') {
     if (action === 'refresh' && dbName) {
