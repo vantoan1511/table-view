@@ -20,6 +20,12 @@ import { defineAsyncComponent, onMounted } from 'vue';
 const NewConnectionModal = defineAsyncComponent(
   () => import('@/components/modals/NewConnectionModal.vue')
 );
+const ExportConnectionsModal = defineAsyncComponent(
+  () => import('@/components/modals/ExportConnectionsModal.vue')
+);
+const ImportConnectionsModal = defineAsyncComponent(
+  () => import('@/components/modals/ImportConnectionsModal.vue')
+);
 const GlobalErrorDialog = defineAsyncComponent(
   () => import('@/components/ui/GlobalErrorDialog.vue')
 );
@@ -130,6 +136,8 @@ const exitApp = async () => {
 
     <!-- Modals -->
     <NewConnectionModal />
+    <ExportConnectionsModal />
+    <ImportConnectionsModal />
     <GlobalErrorDialog />
     <ToastContainer />
     <UpdaterDialog />
