@@ -14,7 +14,11 @@ watch(
   () => connectionsStore.showExportModal,
   (show) => {
     if (show) {
-      selectedIds.value = connectionsStore.connections.map((c) => c.id);
+      if (connectionsStore.preSelectedExportId) {
+        selectedIds.value = [connectionsStore.preSelectedExportId];
+      } else {
+        selectedIds.value = connectionsStore.connections.map((c) => c.id);
+      }
       includePasswords.value = false;
     }
   }
