@@ -108,8 +108,8 @@ const selectedCount = computed(() => items.value.filter((i) => i.selected).lengt
                   </div>
                 </div>
 
-                <div v-if="item.conflict" class="mt-2 ml-7 rounded-md bg-warning/10 px-3 py-2">
-                  <div class="flex items-center gap-1.5 text-warning">
+                <div v-if="item.conflict" class="bg-warning/10 mt-2 ml-7 rounded-md px-3 py-2">
+                  <div class="text-warning flex items-center gap-1.5">
                     <AlertCircle :size="14" />
                     <span class="text-[12px] font-medium"
                       >Conflict: Connection with this name or ID already exists</span
