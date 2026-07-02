@@ -232,7 +232,5 @@ export function useSchemaActions(
     clearDbSchema,
     refreshDbSchema,
     loadTableIndexes
-    refreshDbSchema,
-    loadTableIndexes
   };
 }
