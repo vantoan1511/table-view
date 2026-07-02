@@ -84,6 +84,25 @@ const textClass = computed(() => {
       <p class="text-[13px] leading-snug wrap-break-word" :class="textClass">
         {{ toast.message }}
       </p>
+      <div v-if="toast.actions && toast.actions.length" class="mt-2.5 flex items-center gap-2">
+        <button
+          v-for="action in toast.actions"
+          :key="action.label"
+          @click="action.onClick()"
+          class="cursor-pointer rounded-md px-2.5 py-1 text-[12px] font-medium transition-all duration-200"
+          :class="
+            action.primary
+              ? toast.variation === 'filled'
+                ? 'text-text-primary bg-white shadow-sm hover:bg-white/90'
+                : 'bg-primary hover:bg-primary-hover text-white shadow-sm'
+              : toast.variation === 'filled'
+                ? 'text-white/80 hover:bg-white/10 hover:text-white'
+                : 'bg-surface hover:bg-hover border-border text-text-secondary border'
+          "
+        >
+          {{ action.label }}
+        </button>
+      </div>
     </div>
     <button
       @click="$emit('close')"

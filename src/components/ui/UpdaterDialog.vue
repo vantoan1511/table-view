@@ -61,7 +61,7 @@ const formatInlineMarkdown = (text: string): string => {
 
 const close = () => {
   if (!updaterStore.isUpdating) {
-    updaterStore.updateAvailable = null;
+    updaterStore.showUpdateDialog = false;
     updaterStore.error = null;
   }
 };
@@ -71,7 +71,7 @@ const close = () => {
   <Teleport to="body">
     <Transition name="fade">
       <div
-        v-if="updaterStore.updateAvailable || updaterStore.error"
+        v-if="updaterStore.showUpdateDialog || updaterStore.error"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       >
         <div

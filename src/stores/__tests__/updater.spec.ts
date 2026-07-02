@@ -1,6 +1,7 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useUpdaterStore } from '../updater';
+import { useToastStore } from '../toast';
 import * as Neutralino from '@neutralinojs/lib';
 
 // Mock Neutralino
@@ -197,5 +198,98 @@ describe('Updater Store', () => {
       'updater.bat',
       expect.stringContaining('custom-table-view.exe')
     );
+  });
+
+  it('triggers a toast notification in background checks (manual = false)', async () => {
+    const mockManifest = {
+      applicationId: 'table-view',
+      version: '0.2.11',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: {
+        extensionUrl: 'https://example.com/db-bridge.exe'
+      }
+    };
+
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue(mockManifest);
+    global.fetch = vi.fn().mockResolvedValue({ ok: false });
+
+    const toastStore = useToastStore();
+    const store = useUpdaterStore();
+
+    await store.checkForUpdates(false);
+
+    expect(store.updateAvailable).not.toBeNull();
+    expect(store.showUpdateDialog).toBe(false);
+    expect(toastStore.toasts.length).toBe(1);
+    expect(toastStore.toasts[0].title).toBe('Update Available');
+    expect(toastStore.toasts[0].actions).toBeDefined();
+    expect(toastStore.toasts[0].actions?.length).toBe(2);
+  });
+
+  it('directly opens dialog in manual checks (manual = true)', async () => {
+    const mockManifest = {
+      applicationId: 'table-view',
+      version: '0.2.11',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: {
+        extensionUrl: 'https://example.com/db-bridge.exe'
+      }
+    };
+
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue(mockManifest);
+    global.fetch = vi.fn().mockResolvedValue({ ok: false });
+
+    const toastStore = useToastStore();
+    const store = useUpdaterStore();
+
+    await store.checkForUpdates(true);
+
+    expect(store.updateAvailable).not.toBeNull();
+    expect(store.showUpdateDialog).toBe(true);
+    expect(toastStore.toasts.length).toBe(0);
+  });
+
+  it('toast actions behave correctly (Dismiss closes, Show Details opens dialog)', async () => {
+    const mockManifest = {
+      applicationId: 'table-view',
+      version: '0.2.11',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: {
+        extensionUrl: 'https://example.com/db-bridge.exe'
+      }
+    };
+
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue(mockManifest);
+    global.fetch = vi.fn().mockResolvedValue({ ok: false });
+
+    const toastStore = useToastStore();
+    const store = useUpdaterStore();
+
+    // 1. Background check triggers toast
+    await store.checkForUpdates(false);
+    expect(toastStore.toasts.length).toBe(1);
+
+    const toast = toastStore.toasts[0];
+    const dismissAction = toast.actions?.find((a) => a.label === 'Dismiss');
+    const showDetailsAction = toast.actions?.find((a) => a.label === 'Show Details');
+
+    expect(dismissAction).toBeDefined();
+    expect(showDetailsAction).toBeDefined();
+
+    // 2. Click "Show Details" -> Opens dialog, removes toast
+    showDetailsAction?.onClick();
+    expect(store.showUpdateDialog).toBe(true);
+    expect(toastStore.toasts.length).toBe(0);
+
+    // Reset state
+    store.showUpdateDialog = false;
+
+    // 3. Trigger toast again and click "Dismiss"
+    await store.checkForUpdates(false);
+    expect(toastStore.toasts.length).toBe(1);
+
+    toastStore.toasts[0].actions?.find((a) => a.label === 'Dismiss')?.onClick();
+    expect(store.showUpdateDialog).toBe(false);
+    expect(toastStore.toasts.length).toBe(0);
   });
 });
