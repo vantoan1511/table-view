@@ -26,6 +26,12 @@ export interface TableColumn {
   };
 }
 
+export interface TableConstraint {
+  name: string;
+  constraintType: string;
+  definition: string;
+}
+
 export const useGridStore = defineStore('grid', () => {
   const connectionsStore = useConnectionsStore();
   const schemaStore = useSchemaStore();
@@ -154,6 +160,33 @@ export const useGridStore = defineStore('grid', () => {
         severity: 'error',
         title: 'Fetch Columns Failed',
         message: err.message || 'An unknown error occurred while fetching table columns.'
+      });
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const getTableConstraints = async (tableName: string): Promise<TableConstraint[]> => {
+    if (!window.NL_PORT) return [];
+    try {
+      isLoading.value = true;
+      const payload = await BridgeService.request(
+        'dbBridge.getTableConstraints',
+        'dbBridge.getTableConstraintsResult',
+        {
+          connectionId: tableData.activeConnectionId.value || connectionsStore.activeConnectionId,
+          tableName: tableData.resolveBackendTableName(tableName),
+          targetDatabase: tableData.activeDbName.value
+        }
+      );
+      return payload.constraints || [];
+    } catch (err: any) {
+      console.error('Failed to get table constraints:', err);
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Fetch Constraints Failed',
+        message: err.message || 'An unknown error occurred while fetching table constraints.'
       });
       throw err;
     } finally {
@@ -534,6 +567,7 @@ export const useGridStore = defineStore('grid', () => {
     // Actions
     deleteRows,
     getTableColumns,
+    getTableConstraints,
     alterTable,
     dropTable,
     dropSchema,

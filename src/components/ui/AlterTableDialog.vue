@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import TableColumnsEditor, { type ColumnDef } from './TableColumnsEditor.vue';
+import TableConstraintsEditor, { type ConstraintDef } from './TableConstraintsEditor.vue';
 
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
@@ -24,13 +25,18 @@ const connectionsStore = useConnectionsStore();
 const dbType = computed(() => connectionsStore.activeConnection?.type ?? DbType.POSTGRESQL);
 
 const columns = ref<ColumnDef[]>([]);
+const constraints = ref<ConstraintDef[]>([]);
 const loading = ref(true);
 const activeTab = ref('Columns');
 const tabs = ['Columns', 'Constraints', 'Indexes', 'Options', 'Comment'];
 
 onMounted(async () => {
   try {
-    const cols = await gridStore.getTableColumns(props.tableName);
+    const [cols, cons] = await Promise.all([
+      gridStore.getTableColumns(props.tableName),
+      gridStore.getTableConstraints(props.tableName)
+    ]);
+
     columns.value = cols.map((c: any) => ({
       id: crypto.randomUUID(),
       name: c.name,
@@ -44,12 +50,23 @@ onMounted(async () => {
       _deleted: false,
       _editing: false
     }));
+
+    constraints.value = cons.map((c: any) => ({
+      id: crypto.randomUUID(),
+      name: c.name,
+      constraintType: c.constraintType,
+      definition: c.definition,
+      _originalName: c.name,
+      _isNew: false,
+      _deleted: false,
+      _editing: false
+    }));
   } catch (err: any) {
-    console.error('Failed to fetch columns:', err);
+    console.error('Failed to fetch table structure:', err);
     toastStore.addToast({
       severity: 'error',
-      title: 'Failed to Load Columns',
-      message: err.message || 'Could not retrieve the table structure.'
+      title: 'Failed to Load Table Structure',
+      message: err.message || 'Could not retrieve table columns or constraints.'
     });
   } finally {
     loading.value = false;
@@ -94,6 +111,26 @@ const applyChanges = async () => {
         type: 'RENAME_COLUMN',
         oldName: col._originalName,
         newName: col.name
+      });
+    }
+  }
+
+  for (const con of constraints.value) {
+    if (con._deleted) {
+      if (!con._isNew) {
+        operations.push({
+          type: 'DROP_CONSTRAINT',
+          constraintName: con._originalName
+        });
+      }
+      continue;
+    }
+
+    if (con._isNew) {
+      operations.push({
+        type: 'ADD_CONSTRAINT',
+        name: con.name,
+        definition: con.definition
       });
     }
   }
@@ -145,6 +182,10 @@ const applyChanges = async () => {
 
         <div v-else-if="activeTab === 'Columns'">
           <TableColumnsEditor v-model="columns" :db-type="dbType" mode="alter" />
+        </div>
+
+        <div v-else-if="activeTab === 'Constraints'">
+          <TableConstraintsEditor v-model="constraints" :db-type="dbType" mode="alter" />
         </div>
 
         <div v-else class="text-text-tertiary flex h-40 items-center justify-center text-[13px]">

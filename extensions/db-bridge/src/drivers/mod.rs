@@ -154,6 +154,14 @@ pub struct DbIndex {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TableConstraint {
+    pub name: String,
+    #[serde(rename = "constraintType")]
+    pub constraint_type: String, // PRIMARY KEY, FOREIGN KEY, UNIQUE, CHECK
+    pub definition: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableInfo {
     pub name: String,
     pub columns: Vec<TableColumn>,
@@ -185,6 +193,8 @@ pub struct AlterOperation {
     // (such as foreign keys and primary keys) can be altered or dropped directly from the UI.
     #[serde(rename = "constraintName", default)]
     pub constraint_name: Option<String>,
+    #[serde(default)]
+    pub definition: Option<String>,
 }
 
 // ─── Driver Trait ───────────────────────────────────────────────────────────
@@ -242,6 +252,7 @@ pub trait DatabaseDriver: Send + Sync {
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String>;
     async fn get_schema_details(&self, schema_name: &str) -> Result<SchemaDetails, String>;
     async fn get_table_indexes(&self, table_name: &str) -> Result<Vec<DbIndex>, String>;
+    async fn get_table_constraints(&self, table_name: &str) -> Result<Vec<TableConstraint>, String>;
 }
 
 /// Factory function to create a driver by type name.

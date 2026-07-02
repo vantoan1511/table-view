@@ -459,6 +459,13 @@ pub async fn handle_message(
                         Err(e) => broadcast(&writer, &token, "dbBridge.getTableIndexesResult", json!({"reqId": payload.req_id, "success": false, "error": e})).await,
                     }
                 }
+                "getTableConstraints" => {
+                    let result = driver.get_table_constraints(&payload.table_name).await;
+                    match result {
+                        Ok(constraints) => broadcast(&writer, &token, "dbBridge.getTableConstraintsResult", json!({"reqId": payload.req_id, "success": true, "constraints": constraints})).await,
+                        Err(e) => broadcast(&writer, &token, "dbBridge.getTableConstraintsResult", json!({"reqId": payload.req_id, "success": false, "error": e})).await,
+                    }
+                }
                 _ => log::warn!("Unknown action: {}", action),
             }
         }
