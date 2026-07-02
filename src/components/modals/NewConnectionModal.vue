@@ -4,6 +4,7 @@ import Button from '@/components/ui/Button.vue';
 import ColorPicker from '@/components/ui/ColorPicker.vue';
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 import { useConnectionsStore } from '@/stores/connections';
 import { useErrorStore } from '@/stores/error';
@@ -11,7 +12,7 @@ import { useErrorStore } from '@/stores/error';
 import { ConnectionColor, DbType, OracleConnectType, OracleRole, type Connection } from '@/types';
 
 import * as Neutralino from '@neutralinojs/lib';
-import { CircleHelp, Eye, EyeOff, X } from 'lucide-vue-next';
+import { CircleHelp, Download, Eye, EyeOff, X } from 'lucide-vue-next';
 import { reactive, ref, watch } from 'vue';
 
 import { DB_TYPES } from '@/lib/dbTypes';
@@ -25,6 +26,8 @@ const activeTab = ref<'general' | 'ssl' | 'advanced'>('general');
 const showPassword = ref(false);
 const testStatus = ref<'ready' | 'testing' | 'success' | 'error'>('ready');
 const importError = ref('');
+const showImportConfirm = ref(false);
+const pendingImportData = ref<any>(null);
 
 const form = reactive<Omit<Connection, 'id' | 'isConnected'>>({
   name: 'New connection',
@@ -90,6 +93,37 @@ const selectDbType = (type: DbType) => {
 };
 
 // ─── Import Connection ────────────────────────────────────────────────────────
+const confirmImport = () => {
+  if (!pendingImportData.value) return;
+
+  const conn = pendingImportData.value;
+  const importedType = (conn.type || 'postgresql') as DbType;
+
+  Object.assign(form, {
+    name: conn.name || '',
+    type: importedType,
+    host: conn.host || 'localhost',
+    port: conn.port || portDefaults[importedType] || 5432,
+    database: conn.database || '',
+    username: conn.username || conn.user || '',
+    password: conn.password ? decryptPassword(conn.password) : '',
+    color: conn.color || 'indigo',
+    tags: conn.tags || '',
+    savePassword: conn.savePassword ?? false,
+    displayAllDatabases: conn.displayAllDatabases ?? false,
+    oracleConnectType: (conn.oracleConnectType || 'serviceName') as OracleConnectType,
+    oracleRole: (conn.oracleRole || 'normal') as OracleRole
+  });
+
+  showImportConfirm.value = false;
+  pendingImportData.value = null;
+};
+
+const cancelImport = () => {
+  showImportConfirm.value = false;
+  pendingImportData.value = null;
+};
+
 const handleImportConnection = async () => {
   importError.value = '';
   try {
@@ -130,23 +164,8 @@ const handleImportConnection = async () => {
       throw new Error('Invalid connection profile format');
     }
 
-    const importedType = (conn.type || 'postgresql') as DbType;
-
-    Object.assign(form, {
-      name: conn.name || '',
-      type: importedType,
-      host: conn.host || 'localhost',
-      port: conn.port || portDefaults[importedType] || 5432,
-      database: conn.database || '',
-      username: conn.username || conn.user || '',
-      password: conn.password ? decryptPassword(conn.password) : '',
-      color: conn.color || 'indigo',
-      tags: conn.tags || '',
-      savePassword: conn.savePassword ?? false,
-      displayAllDatabases: conn.displayAllDatabases ?? false,
-      oracleConnectType: (conn.oracleConnectType || 'serviceName') as OracleConnectType,
-      oracleRole: (conn.oracleRole || 'normal') as OracleRole
-    });
+    pendingImportData.value = conn;
+    showImportConfirm.value = true;
   } catch (err: any) {
     importError.value = err.message || 'Failed to import connection';
     console.error('Import failed:', err);
@@ -261,7 +280,7 @@ const handleClose = () => {
             </div>
 
             <!-- Import Connection -->
-            <!-- <div class="border-border mt-2 border-t px-3 pt-2">
+            <div class="border-border mt-2 border-t px-3 pt-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -272,7 +291,7 @@ const handleClose = () => {
                 <span>Import Connection</span>
               </Button>
               <p v-if="importError" class="text-danger mt-1 px-3 text-[11px]">{{ importError }}</p>
-            </div> -->
+            </div>
           </div>
 
           <!-- Right: Form -->
@@ -540,6 +559,18 @@ const handleClose = () => {
         </div>
       </div>
     </div>
+
+    <!-- Confirm dialog -->
+    <ConfirmDialog
+      v-if="showImportConfirm"
+      title="Import Connection"
+      message="This will overwrite your current connection settings. Do you want to proceed?"
+      confirm-label="Overwrite"
+      cancel-label="Cancel"
+      variant="warning"
+      @confirm="confirmImport"
+      @cancel="cancelImport"
+    />
   </Teleport>
 </template>
 
