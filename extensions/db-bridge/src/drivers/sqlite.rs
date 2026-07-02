@@ -429,7 +429,7 @@ impl DatabaseDriver for SqliteDriver {
                     }
                     if let Some(ref fk) = op.foreign_key {
                         let quoted_target_table = if fk.target_table.contains('.') {
-                            fk.target_table.split('.').map(|p| Self::quote(p)).collect::<Vec<String>>().join(".")
+                            fk.target_table.split('.').map(Self::quote).collect::<Vec<String>>().join(".")
                         } else {
                             Self::quote(&fk.target_table)
                         };
@@ -465,7 +465,7 @@ impl DatabaseDriver for SqliteDriver {
     async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String> {
         let pool = self.pool()?;
         let safe_table = Self::quote(table_name);
-        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, columns, |s| Self::quote(s))?;
+        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, columns, Self::quote)?;
         sqlx::query(&sql)
             .execute(pool)
             .await

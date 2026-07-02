@@ -600,7 +600,7 @@ impl DatabaseDriver for OracleDriver {
         let (owner, table) = self.split_table_name(table_name);
         let safe_table = Self::qualify_table(owner, table);
 
-        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, columns, |s| Self::quote(s))?;
+        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, columns, Self::quote)?;
         Self::execute_dml(pool, &sql, &[]).await?;
         Ok(())
     }
@@ -638,7 +638,7 @@ impl DatabaseDriver for OracleDriver {
                     }
                     if let Some(ref fk) = op.foreign_key {
                         let quoted_target_table = if fk.target_table.contains('.') {
-                            fk.target_table.split('.').map(|p| Self::quote(p)).collect::<Vec<String>>().join(".")
+                            fk.target_table.split('.').map(Self::quote).collect::<Vec<String>>().join(".")
                         } else {
                             Self::quote(&fk.target_table)
                         };
@@ -665,7 +665,7 @@ impl DatabaseDriver for OracleDriver {
                     let fk = op.foreign_key.as_ref().ok_or("foreignKey is required")?;
                     let fk_name = format!("fk_{}_{}", table_name, op.name);
                     let quoted_target_table = if fk.target_table.contains('.') {
-                        fk.target_table.split('.').map(|p| Self::quote(p)).collect::<Vec<String>>().join(".")
+                        fk.target_table.split('.').map(Self::quote).collect::<Vec<String>>().join(".")
                     } else {
                         Self::quote(&fk.target_table)
                     };
@@ -816,7 +816,7 @@ impl DatabaseDriver for OracleDriver {
             if !tables_map.contains_key(&table_name) {
                 table_order.push(table_name.clone());
             }
-            tables_map.entry(table_name).or_insert_with(Vec::new).push(col);
+            tables_map.entry(table_name).or_default().push(col);
         }
 
         let mut tables = Vec::new();
@@ -898,9 +898,9 @@ impl DatabaseDriver for OracleDriver {
             let ddl = if is_primary_key {
                 format!("PRIMARY KEY ({})", cols.join(", "))
             } else if is_unique {
-                format!("CREATE UNIQUE INDEX {} ON {} ({})", Self::quote(&name), Self::qualify_table(&owner, &table), cols.join(", "))
+                format!("CREATE UNIQUE INDEX {} ON {} ({})", Self::quote(&name), Self::qualify_table(owner, table), cols.join(", "))
             } else {
-                format!("CREATE INDEX {} ON {} ({})", Self::quote(&name), Self::qualify_table(&owner, &table), cols.join(", "))
+                format!("CREATE INDEX {} ON {} ({})", Self::quote(&name), Self::qualify_table(owner, table), cols.join(", "))
             };
 
             indexes.push(DbIndex {

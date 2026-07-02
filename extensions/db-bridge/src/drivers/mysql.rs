@@ -569,7 +569,7 @@ impl DatabaseDriver for MysqlDriver {
                     }
                     if let Some(ref fk) = op.foreign_key {
                         let quoted_target_table = if fk.target_table.contains('.') {
-                            fk.target_table.split('.').map(|p| Self::quote(p)).collect::<Vec<String>>().join(".")
+                            fk.target_table.split('.').map(Self::quote).collect::<Vec<String>>().join(".")
                         } else {
                             Self::quote(&fk.target_table)
                         };
@@ -601,7 +601,7 @@ impl DatabaseDriver for MysqlDriver {
                     let fk = op.foreign_key.as_ref().ok_or("foreignKey is required")?;
                     let fk_name = format!("fk_{}_{}", table_name, op.name);
                     let quoted_target_table = if fk.target_table.contains('.') {
-                        fk.target_table.split('.').map(|p| Self::quote(p)).collect::<Vec<String>>().join(".")
+                        fk.target_table.split('.').map(Self::quote).collect::<Vec<String>>().join(".")
                     } else {
                         Self::quote(&fk.target_table)
                     };
@@ -632,7 +632,7 @@ impl DatabaseDriver for MysqlDriver {
     async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String> {
         let pool = self.pool()?;
         let safe_table = Self::quote(table_name);
-        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, columns, |s| Self::quote(s))?;
+        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, columns, Self::quote)?;
         sqlx::query(&sql)
             .execute(pool)
             .await
@@ -783,7 +783,7 @@ impl DatabaseDriver for MysqlDriver {
             if !tables_map.contains_key(&table_name) {
                 table_order.push(table_name.clone());
             }
-            tables_map.entry(table_name).or_insert_with(Vec::new).push(col);
+            tables_map.entry(table_name).or_default().push(col);
         }
 
         let mut tables = Vec::new();

@@ -119,7 +119,7 @@ impl Bridge {
         let text = serde_json::to_string(&msg)?;
         log::info!("Broadcasting event: {}", event);
         let mut w = writer.lock().await;
-        w.send(Message::Text(text.into())).await?;
+        w.send(Message::Text(text)).await?;
         Ok(())
     }
 
