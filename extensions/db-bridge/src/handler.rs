@@ -478,6 +478,7 @@ async fn broadcast(writer: &Arc<Mutex<WsWriter>>, token: &str, event: &str, data
     }
 }
 
+#[allow(dead_code)]
 async fn handle_result<T: serde::Serialize>(writer: &Arc<Mutex<WsWriter>>, token: &str, event: &str, req_id: &str, key: &str, result: Result<T, String>) {
     match result {
         Ok(data) => broadcast(writer, token, event, json!({"reqId": req_id, "success": true, key: data})).await,

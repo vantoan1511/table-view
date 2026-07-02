@@ -19,6 +19,7 @@ macro_rules! bind_json_value {
     };
 }
 
+#[allow(dead_code)]
 pub fn is_safe_identifier(s: &str) -> bool {
     !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '_')
 }
@@ -26,7 +27,7 @@ pub fn is_safe_identifier(s: &str) -> bool {
 pub fn is_safe_data_type(s: &str) -> bool {
     // Basic allowlist approach for data types
     let s = s.to_uppercase();
-    let parts: Vec<&str> = s.split(|c| c == '(' || c == ')' || c == ' ' || c == ',').filter(|p| !p.is_empty()).collect();
+    let parts: Vec<&str> = s.split(['(', ')', ' ', ',']).filter(|p| !p.is_empty()).collect();
     
     let allowed = [
         "INT", "INTEGER", "SMALLINT", "BIGINT", "TINYINT",
@@ -149,7 +150,7 @@ where
             let quoted_target_table = if fk.target_table.contains('.') {
                 fk.target_table
                     .split('.')
-                    .map(|part| quote_ident(part))
+                    .map(&quote_ident)
                     .collect::<Vec<String>>()
                     .join(".")
             } else {

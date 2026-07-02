@@ -34,6 +34,7 @@ pub struct Config {
     #[serde(rename = "oracleRole", default = "default_oracle_role")]
     pub oracle_role: String,
     #[serde(rename = "displayAllDatabases", default)]
+    #[allow(dead_code)]
     pub display_all_databases: bool,
 }
 
