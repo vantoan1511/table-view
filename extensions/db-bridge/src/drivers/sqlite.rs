@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex
+    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex, TableConstraint
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -590,6 +590,97 @@ impl DatabaseDriver for SqliteDriver {
             });
         }
         Ok(indexes)
+    }
+
+    async fn get_table_constraints(&self, table_name: &str) -> Result<Vec<TableConstraint>, String> {
+        let pool = self.pool()?;
+        let mut constraints = Vec::new();
+
+        // 1. Get Primary Key from table_info
+        let info_sql = format!("PRAGMA table_info({})", Self::quote(table_name));
+        let (info_rows, _, _) = Self::execute_query(pool, &info_sql, &[]).await?;
+        
+        let mut pk_cols = Vec::new();
+        for r in &info_rows {
+            let col_name = r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let pk = r.get("pk").and_then(|v| v.as_i64()).unwrap_or(0);
+            if pk > 0 {
+                // pk is 1-based order index of pk columns
+                pk_cols.push((pk, col_name));
+            }
+        }
+        if !pk_cols.is_empty() {
+            pk_cols.sort_by_key(|k| k.0);
+            let cols: Vec<String> = pk_cols.into_iter().map(|k| k.1).collect();
+            constraints.push(TableConstraint {
+                name: format!("pk_{}", table_name),
+                constraint_type: "PRIMARY KEY".to_string(),
+                definition: format!("PRIMARY KEY ({})", cols.join(", ")),
+            });
+        }
+
+        // 2. Get Foreign Keys from foreign_key_list
+        let fk_sql = format!("PRAGMA foreign_key_list({})", Self::quote(table_name));
+        let (fk_rows, _, _) = Self::execute_query(pool, &fk_sql, &[]).await?;
+        
+        // Group by id to support multi-column foreign keys
+        let mut fk_groups: HashMap<i64, Vec<HashMap<String, Value>>> = HashMap::new();
+        for r in fk_rows {
+            let id = r.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
+            fk_groups.entry(id).or_default().push(r);
+        }
+
+        let mut fk_ids: Vec<i64> = fk_groups.keys().cloned().collect();
+        fk_ids.sort();
+
+        for id in fk_ids {
+            if let Some(mut rows) = fk_groups.remove(&id) {
+                rows.sort_by_key(|r| r.get("seq").and_then(|v| v.as_i64()).unwrap_or(0));
+                
+                let target_table = rows[0].get("table").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let from_cols: Vec<String> = rows.iter().filter_map(|r| r.get("from").and_then(|v| v.as_str().map(|s| s.to_string()))).collect();
+                let to_cols: Vec<String> = rows.iter().filter_map(|r| r.get("to").and_then(|v| v.as_str().map(|s| s.to_string()))).collect();
+
+                let definition = format!(
+                    "FOREIGN KEY ({}) REFERENCES {}({})",
+                    from_cols.join(", "),
+                    target_table,
+                    to_cols.join(", ")
+                );
+
+                constraints.push(TableConstraint {
+                    name: format!("fk_{}_{}_{}", table_name, target_table, id),
+                    constraint_type: "FOREIGN KEY".to_string(),
+                    definition,
+                });
+            }
+        }
+
+        // 3. Get Unique Constraints from index_list where unique = 1 and origin != 'pk'
+        let idx_sql = format!("PRAGMA index_list({})", Self::quote(table_name));
+        let (idx_rows, _, _) = Self::execute_query(pool, &idx_sql, &[]).await?;
+        for r in idx_rows {
+            let is_unique = r.get("unique").and_then(|v| v.as_i64()).unwrap_or(0) == 1;
+            let origin = r.get("origin").and_then(|v| v.as_str()).unwrap_or("");
+            if is_unique && origin != "pk" {
+                let name = r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let col_sql = format!("PRAGMA index_info({})", Self::quote(&name));
+                let (col_rows, _, _) = Self::execute_query(pool, &col_sql, &[]).await?;
+                let mut cols = Vec::new();
+                for cr in col_rows {
+                    if let Some(cname) = cr.get("name").and_then(|v| v.as_str()) {
+                        cols.push(cname.to_string());
+                    }
+                }
+                constraints.push(TableConstraint {
+                    name: name.clone(),
+                    constraint_type: "UNIQUE".to_string(),
+                    definition: format!("UNIQUE ({})", cols.join(", ")),
+                });
+            }
+        }
+
+        Ok(constraints)
     }
 }
 

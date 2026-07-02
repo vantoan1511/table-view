@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, ColumnInfo, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex
+    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex, TableConstraint
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -834,6 +834,10 @@ impl DatabaseDriver for PostgresDriver {
                         Self::quote(&fk.target_column)
                     )
                 }
+                "ADD_CONSTRAINT" => {
+                    let definition = op.definition.as_ref().ok_or("definition is required for ADD_CONSTRAINT")?;
+                    format!("ALTER TABLE {} ADD CONSTRAINT {} {}", safe_table, Self::quote(&op.name), definition)
+                }
                 _ => continue,
             };
 
@@ -1081,6 +1085,47 @@ impl DatabaseDriver for PostgresDriver {
             });
         }
         Ok(indexes)
+    }
+
+    async fn get_table_constraints(&self, table_name: &str) -> Result<Vec<TableConstraint>, String> {
+        let pool = self.pool()?;
+        let (schema_name, bare_table_name) = Self::split_table_name(table_name);
+        let sql = r#"
+            SELECT
+                con.conname AS constraint_name,
+                CASE con.contype
+                    WHEN 'p' THEN 'PRIMARY KEY'
+                    WHEN 'f' THEN 'FOREIGN KEY'
+                    WHEN 'u' THEN 'UNIQUE'
+                    WHEN 'c' THEN 'CHECK'
+                    ELSE con.contype::text
+                END AS constraint_type,
+                pg_get_constraintdef(con.oid) AS definition
+            FROM pg_constraint con
+            JOIN pg_class rel ON rel.oid = con.conrelid
+            JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+            WHERE rel.relname::text = $2::text AND nsp.nspname::text = $1::text
+            ORDER BY con.conname
+        "#;
+        
+        let (rows, _, _) = Self::execute_query(
+            pool,
+            sql,
+            &[
+                Value::String(schema_name.to_string()),
+                Value::String(bare_table_name.to_string()),
+            ],
+        ).await?;
+
+        let mut constraints = Vec::new();
+        for r in rows {
+            constraints.push(TableConstraint {
+                name: r.get("constraint_name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                constraint_type: r.get("constraint_type").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                definition: r.get("definition").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            });
+        }
+        Ok(constraints)
     }
 }
 

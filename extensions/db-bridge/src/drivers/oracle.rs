@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, ColumnInfo, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex
+    TableColumn, TableDataResult, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex, TableConstraint
 };
 use async_trait::async_trait;
 use deadpool_oracle::{Pool, PoolBuilder};
@@ -678,6 +678,10 @@ impl DatabaseDriver for OracleDriver {
                         Self::quote(&fk.target_column)
                     )
                 }
+                "ADD_CONSTRAINT" => {
+                    let definition = op.definition.as_ref().ok_or("definition is required for ADD_CONSTRAINT")?;
+                    format!("ALTER TABLE {} ADD CONSTRAINT {} {}", safe_table, Self::quote(&op.name), definition)
+                }
                 _ => continue,
             };
 
@@ -909,6 +913,98 @@ impl DatabaseDriver for OracleDriver {
             });
         }
         Ok(indexes)
+    }
+
+    async fn get_table_constraints(&self, table_name: &str) -> Result<Vec<TableConstraint>, String> {
+        let pool = self.pool()?;
+        let (owner, table) = self.split_table_name(table_name);
+        
+        let params = [
+            JsonValue::String(owner.to_string()),
+            JsonValue::String(table.to_string()),
+        ];
+
+        let sql = "SELECT \
+            c.CONSTRAINT_NAME AS constraint_name, \
+            c.CONSTRAINT_TYPE AS constraint_type, \
+            cc.COLUMN_NAME AS column_name, \
+            c_pk.TABLE_NAME AS r_table, \
+            cc_pk.COLUMN_NAME AS r_column, \
+            c.SEARCH_CONDITION AS search_condition \
+        FROM ALL_CONSTRAINTS c \
+        LEFT JOIN ALL_CONS_COLUMNS cc \
+          ON c.CONSTRAINT_NAME = cc.CONSTRAINT_NAME \
+          AND c.OWNER = cc.OWNER \
+        LEFT JOIN ALL_CONSTRAINTS c_pk \
+          ON c.R_CONSTRAINT_NAME = c_pk.CONSTRAINT_NAME \
+          AND c.R_OWNER = c_pk.OWNER \
+        LEFT JOIN ALL_CONS_COLUMNS cc_pk \
+          ON c_pk.CONSTRAINT_NAME = cc_pk.CONSTRAINT_NAME \
+          AND c_pk.OWNER = cc_pk.OWNER \
+          AND cc.POSITION = cc_pk.POSITION \
+        WHERE c.OWNER = :1 AND c.TABLE_NAME = :2 \
+        ORDER BY c.CONSTRAINT_NAME, cc.POSITION";
+
+        let (rows, _, _) = Self::execute_query(pool, sql, &params).await?;
+
+        // Group rows by constraint name
+        let mut constraint_map: HashMap<String, (String, Vec<String>, Vec<String>, String, String)> = HashMap::new();
+        let mut constraint_order = Vec::new();
+
+        for r in rows {
+            let name = r.get("CONSTRAINT_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let c_type = r.get("CONSTRAINT_TYPE").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let col = r.get("COLUMN_NAME").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let ref_tbl = r.get("R_TABLE").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let ref_col = r.get("R_COLUMN").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let search_cond = r.get("SEARCH_CONDITION").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+            if !constraint_map.contains_key(&name) {
+                constraint_order.push(name.clone());
+            }
+
+            let entry = constraint_map.entry(name).or_insert_with(|| (c_type, Vec::new(), Vec::new(), ref_tbl, search_cond));
+            if !col.is_empty() {
+                entry.1.push(col);
+            }
+            if !ref_col.is_empty() {
+                entry.2.push(ref_col);
+            }
+        }
+
+        let mut constraints = Vec::new();
+        for name in constraint_order {
+            if let Some((c_type, cols, ref_cols, ref_tbl, search_cond)) = constraint_map.remove(&name) {
+                let mapped_type = match c_type.as_str() {
+                    "P" => "PRIMARY KEY".to_string(),
+                    "R" => "FOREIGN KEY".to_string(),
+                    "U" => "UNIQUE".to_string(),
+                    "C" => "CHECK".to_string(),
+                    _ => c_type,
+                };
+
+                let definition = match mapped_type.as_str() {
+                    "PRIMARY KEY" => format!("PRIMARY KEY ({})", cols.join(", ")),
+                    "UNIQUE" => format!("UNIQUE ({})", cols.join(", ")),
+                    "FOREIGN KEY" => format!(
+                        "FOREIGN KEY ({}) REFERENCES {} ({})",
+                        cols.join(", "),
+                        ref_tbl,
+                        ref_cols.join(", ")
+                    ),
+                    "CHECK" => search_cond,
+                    _ => format!("{} ({})", mapped_type, cols.join(", ")),
+                };
+
+                constraints.push(TableConstraint {
+                    name,
+                    constraint_type: mapped_type,
+                    definition,
+                });
+            }
+        }
+
+        Ok(constraints)
     }
 }
 

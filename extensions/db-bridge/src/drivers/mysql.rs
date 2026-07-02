@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, Config, DatabaseDriver, QueryResult, SchemaObject, SchemaResult,
-    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex
+    TableColumn, TableDataResult, ColumnInfo, SchemaDetails, TableInfo, TableRelation, ForeignKeyDef, DbIndex, TableConstraint
 };
 use crate::bind_json_value;
 use async_trait::async_trait;
@@ -614,6 +614,10 @@ impl DatabaseDriver for MysqlDriver {
                         Self::quote(&fk.target_column)
                     )
                 }
+                "ADD_CONSTRAINT" => {
+                    let definition = op.definition.as_ref().ok_or("definition is required for ADD_CONSTRAINT")?;
+                    format!("ALTER TABLE {} ADD CONSTRAINT {} {}", safe_table, Self::quote(&op.name), definition)
+                }
                 _ => continue,
             };
 
@@ -859,6 +863,87 @@ impl DatabaseDriver for MysqlDriver {
             });
         }
         Ok(indexes)
+    }
+
+    async fn get_table_constraints(&self, table_name: &str) -> Result<Vec<TableConstraint>, String> {
+        let pool = self.pool()?;
+        
+        let sql = r#"
+            SELECT
+                tc.CONSTRAINT_NAME as constraint_name,
+                tc.CONSTRAINT_TYPE as constraint_type,
+                kcu.COLUMN_NAME as column_name,
+                kcu.REFERENCED_TABLE_NAME as referenced_table,
+                kcu.REFERENCED_COLUMN_NAME as referenced_column,
+                cc.CHECK_CLAUSE as check_clause
+            FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+            LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+              ON tc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
+              AND tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+              AND tc.TABLE_NAME = kcu.TABLE_NAME
+            LEFT JOIN INFORMATION_SCHEMA.CHECK_CONSTRAINTS cc
+              ON tc.CONSTRAINT_SCHEMA = cc.CONSTRAINT_SCHEMA
+              AND tc.CONSTRAINT_NAME = cc.CONSTRAINT_NAME
+            WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = ?
+            ORDER BY tc.CONSTRAINT_NAME, kcu.ORDINAL_POSITION
+        "#;
+
+        let (rows, _, _) = Self::execute_query(
+            pool,
+            sql,
+            &[Value::String(table_name.to_string())],
+        ).await?;
+
+        // Group rows by constraint name
+        let mut constraint_map: HashMap<String, (String, Vec<String>, Vec<String>, String, String)> = HashMap::new();
+        let mut constraint_order = Vec::new();
+
+        for r in rows {
+            let name = r.get("constraint_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let c_type = r.get("constraint_type").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let col = r.get("column_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let ref_tbl = r.get("referenced_table").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let ref_col = r.get("referenced_column").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let check_clause = r.get("check_clause").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+            if !constraint_map.contains_key(&name) {
+                constraint_order.push(name.clone());
+            }
+
+            let entry = constraint_map.entry(name).or_insert_with(|| (c_type, Vec::new(), Vec::new(), ref_tbl, check_clause));
+            if !col.is_empty() {
+                entry.1.push(col);
+            }
+            if !ref_col.is_empty() {
+                entry.2.push(ref_col);
+            }
+        }
+
+        let mut constraints = Vec::new();
+        for name in constraint_order {
+            if let Some((c_type, cols, ref_cols, ref_tbl, check_clause)) = constraint_map.remove(&name) {
+                let definition = match c_type.as_str() {
+                    "PRIMARY KEY" => format!("PRIMARY KEY ({})", cols.join(", ")),
+                    "UNIQUE" => format!("UNIQUE ({})", cols.join(", ")),
+                    "FOREIGN KEY" => format!(
+                        "FOREIGN KEY ({}) REFERENCES {} ({})",
+                        cols.join(", "),
+                        ref_tbl,
+                        ref_cols.join(", ")
+                    ),
+                    "CHECK" => format!("CHECK ({})", check_clause),
+                    _ => format!("{} ({})", c_type, cols.join(", ")),
+                };
+
+                constraints.push(TableConstraint {
+                    name,
+                    constraint_type: c_type,
+                    definition,
+                });
+            }
+        }
+
+        Ok(constraints)
     }
 }
 
