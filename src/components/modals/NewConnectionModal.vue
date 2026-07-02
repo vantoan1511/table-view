@@ -4,13 +4,19 @@ import Button from '@/components/ui/Button.vue';
 import ColorPicker from '@/components/ui/ColorPicker.vue';
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
-import { DB_TYPES } from '@/lib/dbTypes';
+
 import { useConnectionsStore } from '@/stores/connections';
 import { useErrorStore } from '@/stores/error';
+
 import { ConnectionColor, DbType, OracleConnectType, OracleRole, type Connection } from '@/types';
+
 import * as Neutralino from '@neutralinojs/lib';
-import { CircleHelp, Download, Eye, EyeOff, X } from 'lucide-vue-next';
+import { CircleHelp, Eye, EyeOff, X } from 'lucide-vue-next';
 import { reactive, ref, watch } from 'vue';
+
+import { DB_TYPES } from '@/lib/dbTypes';
+import { NativeService } from '@/services/native';
+import { decryptPassword } from '@/utils/crypto';
 
 const connectionsStore = useConnectionsStore();
 const errorStore = useErrorStore();
@@ -90,14 +96,14 @@ const handleImportConnection = async () => {
     let fileContent = '';
 
     if (window.NL_PORT) {
-      const filePath = await Neutralino.os.showOpenDialog('Import Connection Profile', {
+      const filePaths = await NativeService.os.showOpenDialog('Import Connection Profile', {
         filters: [{ name: 'JSON files', extensions: ['json'] }],
         multiSelections: false
       });
-      if (!filePath || filePath.length === 0) return;
-      if (filePath[0]) {
-        fileContent = await Neutralino.filesystem.readFile(filePath[0]);
-      }
+      if (!filePaths || filePaths.length === 0 || !filePaths[0]) return;
+      const read = await NativeService.fs.readFile(filePaths[0]);
+      if (!read) return;
+      fileContent = read;
     } else {
       // Browser fallback via <input type="file">
       fileContent = await new Promise((resolve, reject) => {
@@ -133,7 +139,7 @@ const handleImportConnection = async () => {
       port: conn.port || portDefaults[importedType] || 5432,
       database: conn.database || '',
       username: conn.username || conn.user || '',
-      password: conn.password || '',
+      password: conn.password ? decryptPassword(conn.password) : '',
       color: conn.color || 'indigo',
       tags: conn.tags || '',
       savePassword: conn.savePassword ?? false,
@@ -255,7 +261,7 @@ const handleClose = () => {
             </div>
 
             <!-- Import Connection -->
-            <div class="border-border mt-2 border-t px-3 pt-2">
+            <!-- <div class="border-border mt-2 border-t px-3 pt-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -266,7 +272,7 @@ const handleClose = () => {
                 <span>Import Connection</span>
               </Button>
               <p v-if="importError" class="text-danger mt-1 px-3 text-[11px]">{{ importError }}</p>
-            </div>
+            </div> -->
           </div>
 
           <!-- Right: Form -->

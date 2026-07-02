@@ -11,6 +11,22 @@ vi.mock('@neutralinojs/lib', () => ({
   }
 }));
 
+// Mock NativeService
+vi.mock('@/services/native', () => ({
+  NativeService: {
+    os: {
+      showSaveDialog: vi.fn(),
+      showOpenDialog: vi.fn()
+    },
+    fs: {
+      writeFile: vi.fn(),
+      readFile: vi.fn()
+    }
+  }
+}));
+
+import { NativeService } from '@/services/native';
+
 describe('Connections Store', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -130,5 +146,119 @@ describe('Connections Store', () => {
     store.activeConnectionId = id;
     expect(store.activeConnectionId).toBe(id);
     expect(store.activeConnection?.id).toBe(id);
+  });
+
+  describe('Import/Export', () => {
+    it('validates correct connection format on import', async () => {
+      const store = useConnectionsStore();
+
+      vi.mocked(NativeService.os.showOpenDialog).mockResolvedValueOnce(['test.json']);
+      // Invalid format
+      vi.mocked(NativeService.fs.readFile).mockResolvedValueOnce(
+        JSON.stringify([{ invalid: 'data' }])
+      );
+
+      await store.selectImportFile();
+      expect(store.showImportModal).toBe(false);
+
+      // Valid format
+      vi.mocked(NativeService.os.showOpenDialog).mockResolvedValueOnce(['test2.json']);
+      vi.mocked(NativeService.fs.readFile).mockResolvedValueOnce(
+        JSON.stringify([
+          {
+            id: 'conn-test',
+            name: 'Test',
+            type: 'postgresql',
+            host: 'localhost'
+          }
+        ])
+      );
+
+      await store.selectImportFile();
+      expect(store.showImportModal).toBe(true);
+      expect(store.importedConnections.length).toBe(1);
+    });
+
+    it('encrypts passwords on export and decrypts on import', async () => {
+      const store = useConnectionsStore();
+      store.connections.push({
+        id: 'conn-1',
+        name: 'Test',
+        type: 'postgresql',
+        host: 'localhost',
+        port: 5432,
+        username: 'postgres',
+        password: 'my-secret-password',
+        database: 'db',
+        isConnected: false
+      } as any);
+
+      vi.mocked(NativeService.os.showSaveDialog).mockResolvedValueOnce('export.json');
+      await store.exportConnections(['conn-1'], true);
+
+      expect(NativeService.fs.writeFile).toHaveBeenCalled();
+      const writeCall = vi.mocked(NativeService.fs.writeFile).mock.calls[0];
+      const writtenData = JSON.parse(writeCall[1] as string);
+
+      expect(writtenData[0].password).not.toBe('my-secret-password');
+      expect(writtenData[0].password).not.toBe('');
+
+      // Test import decryption
+      const mockImportData = [
+        {
+          connection: { ...writtenData[0] },
+          selected: true,
+          resolution: 'copy' as const
+        }
+      ];
+
+      await store.importConnections(mockImportData);
+
+      // Should have 2 connections now
+      expect(store.connections.length).toBe(2);
+      expect(store.connections[1].password).toBe('my-secret-password');
+    });
+
+    it('resolves conflicts by creating copies or overwriting existing connections', async () => {
+      const store = useConnectionsStore();
+      const existingConn = {
+        id: 'conn-1',
+        name: 'Test DB',
+        type: 'postgresql',
+        host: 'localhost',
+        port: 5432,
+        username: 'postgres',
+        password: '',
+        database: 'db',
+        isConnected: false
+      } as any;
+      store.connections.push(existingConn);
+
+      // Overwrite resolution
+      await store.importConnections([
+        {
+          connection: { ...existingConn, username: 'newuser' },
+          selected: true,
+          resolution: 'overwrite' as const
+        }
+      ]);
+
+      expect(store.connections.length).toBe(1);
+      expect(store.connections[0].username).toBe('newuser');
+
+      // Copy resolution
+      await store.importConnections([
+        {
+          connection: { ...existingConn },
+          selected: true,
+          resolution: 'copy' as const
+        }
+      ]);
+
+      expect(store.connections.length).toBe(2);
+      expect(store.connections[1].name).toBe('Test DB (Copy)');
+      expect(store.connections[1].id).not.toBe('conn-1');
+      expect(store.connections[1].id).toMatch(/^conn-/);
+    });
   });
 });

@@ -3,13 +3,18 @@ import * as Neutralino from '@neutralinojs/lib';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-import { useToastStore } from './toast';
+import { NativeService } from '@/services/native';
 import { decryptPassword, encryptPassword } from '@/utils/crypto';
+import { useToastStore } from './toast';
 
 export const useConnectionsStore = defineStore('connections', () => {
   const connections = ref<Connection[]>([]);
   const activeConnectionId = ref<string | null>(null);
   const showNewConnectionModal = ref(false);
+  const showExportModal = ref(false);
+  const preSelectedExportId = ref<string | null>(null);
+  const showImportModal = ref(false);
+  const importedConnections = ref<Connection[]>([]);
 
   const activeConnection = computed(
     () => connections.value.find((c) => c.id === activeConnectionId.value) ?? null
@@ -111,6 +116,159 @@ export const useConnectionsStore = defineStore('connections', () => {
     return `conn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   };
 
+  const toggleExportModal = (show?: boolean, connId?: string) => {
+    showExportModal.value = show ?? !showExportModal.value;
+    preSelectedExportId.value = connId ?? null;
+  };
+
+  const toggleImportModal = (show?: boolean) => {
+    showImportModal.value = show ?? !showImportModal.value;
+    if (!showImportModal.value) {
+      importedConnections.value = [];
+    }
+  };
+
+  const exportConnections = async (selectedIds: string[], includePasswords: boolean) => {
+    if (!window.NL_PORT) return;
+    const toastStore = useToastStore();
+
+    try {
+      const filePath = await NativeService.os.showSaveDialog('Export Connections Profile', {
+        filters: [{ name: 'JSON files', extensions: ['json'] }]
+      });
+
+      if (!filePath) return;
+
+      const toExport = connections.value
+        .filter((c) => selectedIds.includes(c.id))
+        .map((c) => ({
+          ...c,
+          password: includePasswords ? encryptPassword(c.password) : ''
+        }));
+
+      await NativeService.fs.writeFile(filePath, JSON.stringify(toExport, null, 2));
+
+      toastStore.addToast({
+        severity: 'success',
+        title: 'Export Successful',
+        message: `Exported ${toExport.length} connection(s) to ${filePath}`
+      });
+    } catch (err: any) {
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Export Failed',
+        message: err.message
+      });
+    }
+  };
+
+  const selectImportFile = async () => {
+    if (!window.NL_PORT) return;
+    const toastStore = useToastStore();
+
+    try {
+      const filePaths = await NativeService.os.showOpenDialog('Import Connection Profile', {
+        filters: [{ name: 'JSON files', extensions: ['json'] }],
+        multiSelections: false
+      });
+
+      if (!filePaths || filePaths.length === 0 || !filePaths[0]) return;
+
+      const content = await NativeService.fs.readFile(filePaths[0]);
+      if (!content) return;
+
+      const parsed = JSON.parse(content) as Partial<Connection>[];
+      if (!Array.isArray(parsed)) {
+        throw new Error('Invalid JSON format: Expected an array of connections.');
+      }
+
+      // Validate basic connection structure
+      const validConnections: Connection[] = [];
+      for (const item of parsed) {
+        if (!item.id || !item.name || !item.type || !item.host) {
+          throw new Error(
+            'Invalid JSON format: Missing required connection fields (id, name, type, host).'
+          );
+        }
+        item.isConnected = false;
+        // Passwords are left alone here, they will be decrypted when imported
+        validConnections.push(item as Connection);
+      }
+
+      importedConnections.value = validConnections;
+      toggleImportModal(true);
+    } catch (err: any) {
+      toastStore.addToast({
+        severity: 'error',
+        title: 'Import Failed',
+        message: err.message
+      });
+    }
+  };
+
+  const importConnections = async (
+    items: { connection: Connection; selected: boolean; resolution: 'copy' | 'overwrite' }[]
+  ) => {
+    const toastStore = useToastStore();
+    let importedCount = 0;
+
+    for (const item of items) {
+      if (!item.selected) continue;
+
+      const incoming = { ...item.connection };
+      incoming.password = decryptPassword(incoming.password);
+
+      if (item.resolution === 'overwrite') {
+        const existingIndex = connections.value.findIndex(
+          (c) => c.id === incoming.id || c.name === incoming.name
+        );
+        if (existingIndex !== -1) {
+          connections.value[existingIndex] = incoming;
+        } else {
+          connections.value.push(incoming);
+        }
+      } else {
+        // copy resolution
+        const nameExists = connections.value.some((c) => c.name === incoming.name);
+        const idExists = connections.value.some((c) => c.id === incoming.id);
+
+        if (nameExists || idExists) {
+          incoming.id = generateId();
+
+          if (nameExists) {
+            // Find a unique name
+            let nameSuffix = 1;
+            let originalName = incoming.name;
+            // Remove existing copy suffix if present
+            const copyMatch = originalName.match(/ \(Copy(?: \d+)?\)$/);
+            if (copyMatch) {
+              originalName = originalName.substring(0, originalName.length - copyMatch[0].length);
+            }
+
+            let newName = `${originalName} (Copy)`;
+            while (connections.value.some((c) => c.name === newName)) {
+              nameSuffix++;
+              newName = `${originalName} (Copy ${nameSuffix})`;
+            }
+            incoming.name = newName;
+          }
+        }
+
+        connections.value.push(incoming);
+      }
+      importedCount++;
+    }
+
+    await saveConnections();
+    toggleImportModal(false);
+
+    toastStore.addToast({
+      severity: 'success',
+      title: 'Import Successful',
+      message: `Imported ${importedCount} connection(s).`
+    });
+  };
+
   const updateConnection = async (id: string, updates: Partial<Connection>) => {
     const conn = connections.value.find((c) => c.id === id);
     if (conn) {
@@ -189,6 +347,10 @@ export const useConnectionsStore = defineStore('connections', () => {
     activeConnection,
     connectedConnections,
     showNewConnectionModal,
+    showExportModal,
+    preSelectedExportId,
+    showImportModal,
+    importedConnections,
     connectionToEdit,
     loadConnections,
     saveConnections,
@@ -198,6 +360,11 @@ export const useConnectionsStore = defineStore('connections', () => {
     removeConnection,
     updateConnection,
     toggleConnectionModal,
+    toggleExportModal,
+    toggleImportModal,
+    exportConnections,
+    selectImportFile,
+    importConnections,
     generateId
   };
 });

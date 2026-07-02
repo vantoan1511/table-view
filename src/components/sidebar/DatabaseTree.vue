@@ -14,8 +14,8 @@ import { useTabsStore } from '@/stores/tabs';
 
 import type { Connection } from '@/types';
 
-import { ChevronsDownUpIcon, Layers } from 'lucide-vue-next';
-import { provide, ref } from 'vue';
+import { ChevronsDownUpIcon, Download, Layers, LocateFixed, Upload } from 'lucide-vue-next';
+import { nextTick, provide, ref } from 'vue';
 import Tooltip from '../ui/Tooltip.vue';
 
 const connectionsStore = useConnectionsStore();
@@ -29,6 +29,41 @@ const expandedConnections = ref<Record<string, boolean>>({});
 const collapseAll = () => {
   expandedConnections.value = {};
   schemaStore.collapseAll();
+};
+
+const navigateToActive = async () => {
+  const tab = tabsStore.activeTab;
+  if (!tab) return;
+
+  if (tab.connectionId) {
+    expandedConnections.value[tab.connectionId] = true;
+
+    if (tab.dbName) {
+      schemaStore.setDbExpanded(tab.connectionId, tab.dbName, true);
+    }
+
+    if (tab.schema) {
+      schemaStore.setSchemaExpanded(tab.connectionId, tab.schema, true);
+    }
+
+    if (tab.tableName) {
+      const groupKey = tab.dbName
+        ? `${tab.connectionId}::${tab.dbName}::${tab.schema}::tables`
+        : `${tab.connectionId}::${tab.schema}::tables`;
+
+      if (!schemaStore.expandedGroups) schemaStore.expandedGroups = {};
+      schemaStore.expandedGroups[groupKey] = true;
+
+      await nextTick();
+      setTimeout(() => {
+        const tableId = `${tab.connectionId}_${tab.dbName || ''}_${tab.schema}_${tab.tableName}`;
+        const el = document.querySelector(`[data-table-id="${tableId}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 50);
+    }
+  }
 };
 
 const toggleConnection = async (conn: Connection) => {
@@ -163,6 +198,8 @@ const handleContextAction = async (action: string) => {
       await connectionsStore.disconnectConnection(connId);
     } else if (action === 'delete') {
       idToDelete.value = connId;
+    } else if (action === 'export') {
+      connectionsStore.toggleExportModal(true, connId);
     }
   } else if (type === 'database') {
     if (action === 'refresh' && dbName) {
@@ -247,16 +284,46 @@ const handleContextAction = async (action: string) => {
       <span class="text-text-secondary text-[11px] font-semibold tracking-wider uppercase"
         >Connections</span
       >
-      <Tooltip text="Collapse All" position="bottom">
-        <Button
-          id="btn-collapse-all"
-          variant="ghost"
-          size="icon"
-          :icon="ChevronsDownUpIcon"
-          class="h-6 w-6"
-          @click="collapseAll"
-        />
-      </Tooltip>
+      <div class="flex items-center gap-0.5">
+        <Tooltip text="Import Connections" position="bottom">
+          <Button
+            variant="ghost"
+            size="icon"
+            :icon="Download"
+            class="h-6 w-6"
+            @click="connectionsStore.selectImportFile()"
+          />
+        </Tooltip>
+        <Tooltip text="Export Connections" position="bottom">
+          <Button
+            variant="ghost"
+            size="icon"
+            :icon="Upload"
+            class="h-6 w-6"
+            @click="connectionsStore.toggleExportModal(true)"
+          />
+        </Tooltip>
+        <Tooltip text="Locate Current Table" position="bottom">
+          <Button
+            id="btn-navigate-active"
+            variant="ghost"
+            size="icon"
+            :icon="LocateFixed"
+            class="h-6 w-6"
+            @click="navigateToActive"
+          />
+        </Tooltip>
+        <Tooltip text="Collapse All" position="bottom">
+          <Button
+            id="btn-collapse-all"
+            variant="ghost"
+            size="icon"
+            :icon="ChevronsDownUpIcon"
+            class="h-6 w-6"
+            @click="collapseAll"
+          />
+        </Tooltip>
+      </div>
     </div>
 
     <div class="flex-1 overflow-y-auto py-1">

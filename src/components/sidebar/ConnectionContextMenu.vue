@@ -3,7 +3,17 @@ import ContextMenu from '../ui/ContextMenu.vue';
 
 import { useConnectionsStore } from '@/stores/connections';
 
-import { Code2, Copy, Database, Pencil, Plug, RefreshCw, Trash2, Unplug } from 'lucide-vue-next';
+import {
+  Code2,
+  Copy,
+  Database,
+  Pencil,
+  Plug,
+  RefreshCw,
+  Trash2,
+  Unplug,
+  Upload
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -77,6 +87,13 @@ const isConnected = computed(() => connection.value?.isConnected ?? false);
     >
       <Copy :size="13" class="text-text-secondary" />
       <span>Duplicate</span>
+    </button>
+    <button
+      class="text-text-primary hover:bg-hover flex w-full items-center gap-2 px-3 py-1.5 text-[12px]"
+      @click="emit('action', 'export')"
+    >
+      <Upload :size="13" class="text-text-secondary" />
+      <span>Export Profile</span>
     </button>
     <div class="bg-border my-1 h-px w-full" />
     <button

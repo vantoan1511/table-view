@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.2] - 2026-06-27
+## [0.4.3] - 2026-06-30
+
+### Added
+- **Database: Index Support**: Implemented database index support in sidebar tree, table nodes, detail panels, and backend Rust drivers.
+- **Database: Retrieve Column Foreign Keys and Schema Support**: Enabled retrieval of column foreign keys and schema support in Rust db-bridge and Vue frontend components.
+- **Database: Table Creation & Alteration Foreign Keys**: Supported setting foreign keys on columns during table creation and alteration.
+- **Database: Table Navigation & Relationships**: Added UI elements to display foreign key relationships and navigate between tables.
+- **SQL Editor: Connection-Aware Formatter**: Integrated connection-aware SQL formatter in SQL Editor.
+- **UI: Additional Connection Colors**: Added more connection colors (purple, rose, emerald, cyan, violet, red) to the database connection manager.
+
+### Fixed
+- **UI: Close Button for Update Error**: Added close button to the update error dialog.
+
 
 ### Added
 - **History: Dynamic Query & Action History Tracking**: Implemented a Pinia `history` store to track SQL query executions and table data load actions.
