@@ -9,7 +9,7 @@
   "documentRoot": "/build/",
   "defaultMode": "window",
   "storageLocation": "system",
-  "dataLocation": "system",
+  "dataLocation": "app",
   "logging": {
     "enabled": true,
     "writeToLogFile": false
@@ -20,7 +20,7 @@
   "enableNativeAPI": true,
   "singlePageServe": true,
   "enableExtensions": true,
-  "tokenSecurity": "one-time",
+  "tokenSecurity": "none",
   "nativeAllowList": [
     "app.*",
     "os.*",
@@ -47,7 +47,7 @@
       "minHeight": 720,
       "center": true,
       "icon": "/icon.png",
-      "enableInspector": false
+      "enableInspector": true
     }
   },
   "cli": {

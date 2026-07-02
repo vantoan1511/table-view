@@ -36,14 +36,47 @@ const navigateToActive = async () => {
   if (!tab) return;
 
   if (tab.connectionId) {
+    const conn = connectionsStore.connections.find((c) => c.id === tab.connectionId);
+
+    // Connect if not connected
+    if (conn && !conn.isConnected) {
+      try {
+        await connectionsStore.setActiveConnection(conn.id);
+      } catch (err) {
+        console.error('Failed to connect before locating:', err);
+        return;
+      }
+    }
+
     expandedConnections.value[tab.connectionId] = true;
+
+    if (conn && !schemaStore.hasSchemaLoaded(conn.id)) {
+      if (schemaStore.isConnectionLoading(conn.id)) {
+        while (schemaStore.isConnectionLoading(conn.id)) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+      } else {
+        await schemaStore.loadSchema(conn.displayAllDatabases, conn.id);
+      }
+    }
 
     if (tab.dbName) {
       schemaStore.setDbExpanded(tab.connectionId, tab.dbName, true);
+      const hasDbSchema = schemaStore.perDbSchemas[tab.connectionId]?.[tab.dbName];
+      if (!hasDbSchema) {
+        if (schemaStore.isDbLoading(tab.connectionId, tab.dbName)) {
+          while (schemaStore.isDbLoading(tab.connectionId, tab.dbName)) {
+            await new Promise((resolve) => setTimeout(resolve, 50));
+          }
+        } else {
+          await schemaStore.loadDbSchema(tab.connectionId, tab.dbName, true);
+        }
+      }
     }
 
     if (tab.schema) {
-      schemaStore.setSchemaExpanded(tab.connectionId, tab.schema, true);
+      const schemaKey = tab.dbName ? `__db__${tab.dbName}.${tab.schema}` : tab.schema;
+      schemaStore.setSchemaExpanded(tab.connectionId, schemaKey, true);
     }
 
     if (tab.tableName) {
@@ -61,7 +94,7 @@ const navigateToActive = async () => {
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 50);
+      }, 150);
     }
   }
 };
