@@ -24,7 +24,8 @@ describe('useSchemaActions', () => {
       schemasByConnection: ref({}),
       loadingDbByConnection: ref({}),
       perDbSchemas: ref({}),
-      errorDbByConnection: ref({})
+      errorDbByConnection: ref({}),
+      tableIndexes: ref({})
     };
     treeState = {
       selectedSchemaByConnection: ref({}),
@@ -104,6 +105,37 @@ describe('useSchemaActions', () => {
 
       expect(cache.perDbSchemas.value['conn-1']['logs_db']).toBeDefined();
       expect(cache.perDbSchemas.value['conn-1']['logs_db'].tables[0].name).toBe('logs');
+    });
+  });
+
+  describe('loadTableIndexes', () => {
+    it('loads table indexes and updates cache', async () => {
+      const actions = useSchemaActions(cache, treeState, connectionsStore, loadedAllDatabases);
+      const mockResponse = {
+        indexes: [
+          {
+            name: 'idx_users_id',
+            isUnique: true,
+            isPrimaryKey: true,
+            indexType: 'btree',
+            columns: ['id']
+          }
+        ]
+      };
+      vi.mocked(BridgeService.request).mockResolvedValue(mockResponse);
+
+      await actions.loadTableIndexes('conn-1', 'users');
+
+      expect(BridgeService.request).toHaveBeenCalledWith(
+        'dbBridge.getTableIndexes',
+        'dbBridge.getTableIndexesResult',
+        { connectionId: 'conn-1', tableName: 'users' }
+      );
+
+      expect(cache.tableIndexes.value['conn-1']).toBeDefined();
+      expect(cache.tableIndexes.value['conn-1']['users']).toHaveLength(1);
+      expect(cache.tableIndexes.value['conn-1']['users'][0].name).toBe('idx_users_id');
+      expect(cache.tableIndexes.value['conn-1']['users'][0].isPrimaryKey).toBe(true);
     });
   });
 });
