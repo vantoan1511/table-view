@@ -11,6 +11,12 @@ export type ToastPosition =
   | 'bottom-center';
 export type ToastVariation = 'filled' | 'outlined' | 'subtle';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+}
+
 export interface ToastOptions {
   id?: string;
   title?: string;
@@ -20,6 +26,7 @@ export interface ToastOptions {
   variation?: ToastVariation;
   ttl?: number; // time to live in ms, 0 means manual close
   icon?: any; // component
+  actions?: ToastAction[];
 }
 
 export const useToastStore = defineStore('toast', () => {

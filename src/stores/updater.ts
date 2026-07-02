@@ -2,6 +2,8 @@ import * as Neutralino from '@neutralinojs/lib';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
+import { useToastStore } from './toast';
+
 export interface UpdateManifest {
   applicationId: string;
   version: string;
@@ -19,6 +21,7 @@ export const useUpdaterStore = defineStore('updater', () => {
   const updateStatus = ref('');
   const error = ref<string | null>(null);
   const ignoredVersion = ref<string | null>(null);
+  const showUpdateDialog = ref(false);
 
   const MANIFEST_URL =
     'https://raw.githubusercontent.com/vantoan1511/table-view/main/manifest.json';
@@ -79,6 +82,33 @@ export const useUpdaterStore = defineStore('updater', () => {
 
         if (manual || manifest.version !== ignoredVersion.value) {
           updateAvailable.value = manifest;
+          if (manual) {
+            showUpdateDialog.value = true;
+          } else {
+            const toastStore = useToastStore();
+            const toastId = toastStore.addToast({
+              title: 'Update Available',
+              message: `Version ${manifest.version} is ready to install.`,
+              severity: 'info',
+              ttl: 0,
+              actions: [
+                {
+                  label: 'Dismiss',
+                  onClick: () => {
+                    toastStore.removeToast(toastId);
+                  }
+                },
+                {
+                  label: 'Show Details',
+                  primary: true,
+                  onClick: () => {
+                    showUpdateDialog.value = true;
+                    toastStore.removeToast(toastId);
+                  }
+                }
+              ]
+            });
+          }
         }
       }
     } catch (err: any) {
@@ -168,6 +198,7 @@ export const useUpdaterStore = defineStore('updater', () => {
       }
     }
     updateAvailable.value = null; // Close dialog
+    showUpdateDialog.value = false;
   };
 
   const downloadFileNative = async (url: string, dest: string) => {
@@ -226,6 +257,7 @@ del "%~f0" & exit
     isChecking,
     isUpdating,
     updateAvailable,
+    showUpdateDialog,
     updateStatus,
     error,
     ignoredVersion,
