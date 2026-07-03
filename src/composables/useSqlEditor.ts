@@ -1,13 +1,23 @@
 import { useGridStore } from '@/stores/grid';
 import { useTabsStore } from '@/stores/tabs';
 import type { Tab } from '@/types';
+import { isDestructiveQuery } from '@/utils/sqlGuard';
 import { EditorView } from 'codemirror';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 export function useSqlEditor(props: { tab: Tab }) {
   const gridStore = useGridStore();
   const tabsStore = useTabsStore();
   const activeResultTab = ref<'results' | 'messages'>('results');
+
+  const showDestructiveConfirm = ref(false);
+  const pendingQuery = ref('');
+  const hasActiveTransaction = ref(false);
+
+  const autoCommit = computed({
+    get: () => props.tab.autoCommit ?? true,
+    set: (val) => tabsStore.updateTabAutoCommit(props.tab.id, val)
+  });
 
   /**
    * Extract the SQL statement at the current cursor position.
@@ -43,6 +53,24 @@ export function useSqlEditor(props: { tab: Tab }) {
     return statements[statements.length - 1]?.text ?? '';
   };
 
+  const showTransactionConfirm = ref(false);
+
+  const runQuery = async (query: string) => {
+    const isAuto = autoCommit.value;
+    const success = await gridStore.runQuery(
+      query,
+      gridStore.sqlLimit,
+      props.tab.connectionId,
+      props.tab.dbName,
+      isAuto
+    );
+    activeResultTab.value = 'results';
+    if (success && !isAuto) {
+      hasActiveTransaction.value = true;
+      showTransactionConfirm.value = true;
+    }
+  };
+
   const executeRun = (view: EditorView | null) => {
     if (!view) return;
 
@@ -55,8 +83,44 @@ export function useSqlEditor(props: { tab: Tab }) {
     const query = selection.trim() || queryAtCursor || view.state.doc.toString();
     if (!query) return;
 
-    gridStore.runQuery(query, gridStore.sqlLimit, props.tab.connectionId, props.tab.dbName);
-    activeResultTab.value = 'results';
+    if (isDestructiveQuery(query)) {
+      pendingQuery.value = query;
+      showDestructiveConfirm.value = true;
+      return;
+    }
+
+    runQuery(query);
+  };
+
+  const confirmDestructive = () => {
+    if (pendingQuery.value) {
+      runQuery(pendingQuery.value);
+      pendingQuery.value = '';
+    }
+    showDestructiveConfirm.value = false;
+  };
+
+  const cancelDestructive = () => {
+    pendingQuery.value = '';
+    showDestructiveConfirm.value = false;
+  };
+
+  const commitTx = async () => {
+    try {
+      await gridStore.commitTransaction(props.tab.connectionId, props.tab.dbName);
+    } finally {
+      hasActiveTransaction.value = false;
+      showTransactionConfirm.value = false;
+    }
+  };
+
+  const rollbackTx = async () => {
+    try {
+      await gridStore.rollbackTransaction(props.tab.connectionId, props.tab.dbName);
+    } finally {
+      hasActiveTransaction.value = false;
+      showTransactionConfirm.value = false;
+    }
   };
 
   const saveQuery = () => {
@@ -69,7 +133,15 @@ export function useSqlEditor(props: { tab: Tab }) {
 
   return {
     activeResultTab,
+    autoCommit,
+    showDestructiveConfirm,
+    showTransactionConfirm,
+    hasActiveTransaction,
     executeRun,
+    confirmDestructive,
+    cancelDestructive,
+    commitTx,
+    rollbackTx,
     saveQuery,
     exportQuery
   };

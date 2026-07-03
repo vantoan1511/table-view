@@ -515,8 +515,17 @@ export const useGridStore = defineStore('grid', () => {
     sqlExecutionTime: sqlQuery.sqlExecutionTime,
     sqlLimit: sqlQuery.sqlLimit,
     sqlMessages: sqlQuery.sqlMessages,
-    runQuery: (sql: string, limit?: number, connectionId?: string, dbName?: string) =>
-      sqlQuery.runQuery(sql, isLoading, limit, connectionId, dbName),
+    runQuery: (
+      sql: string,
+      limit?: number,
+      connectionId?: string,
+      dbName?: string,
+      autoCommit = true
+    ) => sqlQuery.runQuery(sql, isLoading, limit, connectionId, dbName, autoCommit),
+    commitTransaction: (connectionId?: string, dbName?: string) =>
+      sqlQuery.commitTransaction(connectionId, dbName),
+    rollbackTransaction: (connectionId?: string, dbName?: string) =>
+      sqlQuery.rollbackTransaction(connectionId, dbName),
 
     // Grid specific
     isLoading,

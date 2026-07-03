@@ -12,6 +12,7 @@ pub struct OracleDriver {
     pool: Option<Pool>,
     current_schema: String,
     service_name: String,
+    tx_conn: tokio::sync::Mutex<Option<deadpool_oracle::Object>>,
 }
 
 impl OracleDriver {
@@ -20,6 +21,7 @@ impl OracleDriver {
             pool: None,
             current_schema: String::new(),
             service_name: String::new(),
+            tx_conn: tokio::sync::Mutex::new(None),
         }
     }
 
@@ -120,12 +122,11 @@ impl OracleDriver {
         (rows, fields)
     }
 
-    async fn execute_query(
-        pool: &Pool,
+    async fn execute_query_on_conn(
+        conn: &oracle_rs::Connection,
         sql: &str,
         params: &[JsonValue],
     ) -> Result<(Vec<HashMap<String, JsonValue>>, Vec<ColumnInfo>, u64), String> {
-        let conn = pool.get().await.map_err(|e| e.to_string())?;
         let bind_values: Vec<OracleValue> = params.iter().map(Self::json_to_oracle_value).collect();
 
         log::info!("oracle: executing query: {}", sql);
@@ -139,6 +140,15 @@ impl OracleDriver {
 
         let (rows, fields) = Self::rows_to_maps(&result);
         Ok((rows, fields, elapsed))
+    }
+
+    async fn execute_query(
+        pool: &Pool,
+        sql: &str,
+        params: &[JsonValue],
+    ) -> Result<(Vec<HashMap<String, JsonValue>>, Vec<ColumnInfo>, u64), String> {
+        let conn = pool.get().await.map_err(|e| e.to_string())?;
+        Self::execute_query_on_conn(&*conn, sql, params).await
     }
 
     async fn execute_dml(pool: &Pool, sql: &str, params: &[JsonValue]) -> Result<(), String> {
@@ -229,6 +239,10 @@ impl DatabaseDriver for OracleDriver {
     }
 
     async fn disconnect(&mut self) -> Result<(), String> {
+        {
+            let mut tx = self.tx_conn.lock().await;
+            *tx = None;
+        }
         self.pool.take();
         Ok(())
     }
@@ -436,8 +450,13 @@ impl DatabaseDriver for OracleDriver {
     }
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
-        let pool = self.pool()?;
-        let (rows, fields, elapsed) = Self::execute_query(pool, sql, &[]).await?;
+        let mut tx_guard = self.tx_conn.lock().await;
+        let (rows, fields, elapsed) = if let Some(ref mut conn) = *tx_guard {
+            Self::execute_query_on_conn(conn, sql, &[]).await?
+        } else {
+            let pool = self.pool()?;
+            Self::execute_query(pool, sql, &[]).await?
+        };
         let row_count = rows.len();
         Ok(QueryResult {
             rows,
@@ -1005,6 +1024,42 @@ impl DatabaseDriver for OracleDriver {
         }
 
         Ok(constraints)
+    }
+
+    async fn begin_transaction(&self) -> Result<(), String> {
+        let pool = self.pool()?;
+        let mut tx = self.tx_conn.lock().await;
+        if tx.is_some() {
+            return Err("Transaction already in progress".to_string());
+        }
+        
+        let conn = pool.get().await.map_err(|e| e.to_string())?;
+        *tx = Some(conn);
+        Ok(())
+    }
+
+    async fn commit_transaction(&self) -> Result<(), String> {
+        let mut tx = self.tx_conn.lock().await;
+        if let Some(conn) = tx.take() {
+            conn.commit().await.map_err(|e| e.to_string())?;
+            Ok(())
+        } else {
+            Err("No active transaction to commit".to_string())
+        }
+    }
+
+    async fn rollback_transaction(&self) -> Result<(), String> {
+        let mut tx = self.tx_conn.lock().await;
+        if let Some(conn) = tx.take() {
+            conn.rollback().await.map_err(|e| e.to_string())?;
+            Ok(())
+        } else {
+            Err("No active transaction to rollback".to_string())
+        }
+    }
+
+    async fn is_in_transaction(&self) -> bool {
+        self.tx_conn.lock().await.is_some()
     }
 }
 

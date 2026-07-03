@@ -254,6 +254,19 @@ pub trait DatabaseDriver: Send + Sync {
     async fn get_schema_details(&self, schema_name: &str) -> Result<SchemaDetails, String>;
     async fn get_table_indexes(&self, table_name: &str) -> Result<Vec<DbIndex>, String>;
     async fn get_table_constraints(&self, table_name: &str) -> Result<Vec<TableConstraint>, String>;
+    
+    async fn begin_transaction(&self) -> Result<(), String> {
+        Err("Transactions not supported for this database type".to_string())
+    }
+    async fn commit_transaction(&self) -> Result<(), String> {
+        Err("Transactions not supported for this database type".to_string())
+    }
+    async fn rollback_transaction(&self) -> Result<(), String> {
+        Err("Transactions not supported for this database type".to_string())
+    }
+    async fn is_in_transaction(&self) -> bool {
+        false
+    }
 }
 
 /// Factory function to create a driver by type name.

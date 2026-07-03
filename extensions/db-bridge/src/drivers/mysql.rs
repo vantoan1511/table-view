@@ -12,11 +12,16 @@ use std::collections::HashMap;
 pub struct MysqlDriver {
     pool: Option<MySqlPool>,
     database: String,
+    tx_conn: tokio::sync::Mutex<Option<sqlx::pool::PoolConnection<sqlx::MySql>>>,
 }
 
 impl MysqlDriver {
     pub fn new() -> Self {
-        Self { pool: None, database: String::new() }
+        Self {
+            pool: None,
+            database: String::new(),
+            tx_conn: tokio::sync::Mutex::new(None),
+        }
     }
 
     fn pool(&self) -> Result<&MySqlPool, String> {
@@ -27,11 +32,14 @@ impl MysqlDriver {
         format!("`{}`", ident.replace('`', "``"))
     }
 
-    async fn execute_query(
-        pool: &MySqlPool,
+    async fn execute_query_on_executor<'a, E>(
+        executor: E,
         sql: &str,
         params: &[Value],
-    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>, u64), String> {
+    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>, u64), String>
+    where
+        E: sqlx::Executor<'a, Database = sqlx::MySql>,
+    {
         let mut q = sqlx::query(sql);
         for p in params {
             q = bind_json_value!(q, p);
@@ -39,7 +47,7 @@ impl MysqlDriver {
 
         log::info!("mysql: executing query: {}", sql);
         let start = std::time::Instant::now();
-        let rows = q.fetch_all(pool).await.map_err(|e| e.to_string())?;
+        let rows = q.fetch_all(executor).await.map_err(|e| e.to_string())?;
         let elapsed = start.elapsed().as_millis() as u64;
         log::info!("mysql: query finished in {}ms", elapsed);
 
@@ -77,6 +85,14 @@ impl MysqlDriver {
         }
 
         Ok((data, fields, elapsed))
+    }
+
+    async fn execute_query(
+        pool: &MySqlPool,
+        sql: &str,
+        params: &[Value],
+    ) -> Result<(Vec<HashMap<String, Value>>, Vec<ColumnInfo>, u64), String> {
+        Self::execute_query_on_executor(pool, sql, params).await
     }
 
     fn get_column_value(row: &MySqlRow, i: usize) -> Value {
@@ -184,6 +200,10 @@ impl DatabaseDriver for MysqlDriver {
     }
 
     async fn disconnect(&mut self) -> Result<(), String> {
+        {
+            let mut tx = self.tx_conn.lock().await;
+            *tx = None;
+        }
         if let Some(pool) = self.pool.take() {
             pool.close().await;
         }
@@ -374,8 +394,13 @@ impl DatabaseDriver for MysqlDriver {
     }
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
-        let pool = self.pool()?;
-        let (data, fields, elapsed) = Self::execute_query(pool, sql, &[]).await?;
+        let mut tx_guard = self.tx_conn.lock().await;
+        let (data, fields, elapsed) = if let Some(ref mut conn) = *tx_guard {
+            Self::execute_query_on_executor(&mut **conn, sql, &[]).await?
+        } else {
+            let pool = self.pool()?;
+            Self::execute_query_on_executor(pool, sql, &[]).await?
+        };
         let count = data.len();
         Ok(QueryResult {
             rows: data,
@@ -944,6 +969,43 @@ impl DatabaseDriver for MysqlDriver {
         }
 
         Ok(constraints)
+    }
+
+    async fn begin_transaction(&self) -> Result<(), String> {
+        let pool = self.pool()?;
+        let mut tx = self.tx_conn.lock().await;
+        if tx.is_some() {
+            return Err("Transaction already in progress".to_string());
+        }
+        
+        let mut conn = pool.acquire().await.map_err(|e| e.to_string())?;
+        sqlx::query("BEGIN").execute(&mut *conn).await.map_err(|e| e.to_string())?;
+        *tx = Some(conn);
+        Ok(())
+    }
+
+    async fn commit_transaction(&self) -> Result<(), String> {
+        let mut tx = self.tx_conn.lock().await;
+        if let Some(mut conn) = tx.take() {
+            sqlx::query("COMMIT").execute(&mut *conn).await.map_err(|e| e.to_string())?;
+            Ok(())
+        } else {
+            Err("No active transaction to commit".to_string())
+        }
+    }
+
+    async fn rollback_transaction(&self) -> Result<(), String> {
+        let mut tx = self.tx_conn.lock().await;
+        if let Some(mut conn) = tx.take() {
+            sqlx::query("ROLLBACK").execute(&mut *conn).await.map_err(|e| e.to_string())?;
+            Ok(())
+        } else {
+            Err("No active transaction to rollback".to_string())
+        }
+    }
+
+    async fn is_in_transaction(&self) -> bool {
+        self.tx_conn.lock().await.is_some()
     }
 }
 

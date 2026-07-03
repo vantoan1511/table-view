@@ -239,6 +239,13 @@ export const useTabsStore = defineStore('tabs', () => {
     }
   };
 
+  const updateTabAutoCommit = (id: string, autoCommit: boolean) => {
+    const tab = tabs.value.find((t) => t.id === id);
+    if (tab && tab.type === 'sql') {
+      tab.autoCommit = autoCommit;
+    }
+  };
+
   const saveSqlTab = (id: string) => {
     const tab = tabs.value.find((t) => t.id === id);
     if (tab && tab.type === 'sql') {
@@ -314,6 +321,7 @@ export const useTabsStore = defineStore('tabs', () => {
     openIndexTab,
     openSqlEditor,
     updateTabQuery,
+    updateTabAutoCommit,
     saveSqlTab,
     exportSqlTab,
     renameTab,
