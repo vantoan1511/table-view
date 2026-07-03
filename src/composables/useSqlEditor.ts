@@ -68,6 +68,9 @@ export function useSqlEditor(props: { tab: Tab }) {
     if (success && !isAuto) {
       hasActiveTransaction.value = true;
       showTransactionConfirm.value = true;
+    } else if (!success) {
+      hasActiveTransaction.value = false;
+      showTransactionConfirm.value = false;
     }
   };
 
