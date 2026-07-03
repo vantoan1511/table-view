@@ -273,13 +273,76 @@ impl DatabaseDriver for SqliteDriver {
     }
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
+        use sqlx::Executor;
+        use sqlx::Either;
+        use futures_util::StreamExt;
+
+        let start = std::time::Instant::now();
+        log::info!("sqlite: executing raw query: {}", sql);
+
+        let mut rows = Vec::new();
+        let mut rows_affected = 0;
+
         let mut tx_guard = self.tx_conn.lock().await;
-        let (data, fields, elapsed) = if let Some(ref mut conn) = *tx_guard {
-            Self::execute_query_on_executor(&mut **conn, sql, &[]).await?
+        let mut stream = if let Some(ref mut conn) = *tx_guard {
+            (&mut **conn).fetch_many(sqlx::raw_sql(sql))
         } else {
             let pool = self.pool()?;
-            Self::execute_query_on_executor(pool, sql, &[]).await?
+            pool.fetch_many(sqlx::raw_sql(sql))
         };
+
+        while let Some(res) = stream.next().await {
+            match res.map_err(|e| e.to_string())? {
+                Either::Left(result) => {
+                    rows_affected += result.rows_affected();
+                }
+                Either::Right(row) => {
+                    rows.push(row);
+                }
+            }
+        }
+
+        let elapsed = start.elapsed().as_millis() as u64;
+        log::info!("sqlite: raw query finished in {}ms", elapsed);
+
+        if rows.is_empty() {
+            return Ok(QueryResult {
+                rows: vec![],
+                fields: vec![],
+                row_count: rows_affected as usize,
+                execution_time: elapsed,
+            });
+        }
+
+        let orig_names: Vec<String> = rows[0].columns().iter().map(|c| c.name().to_string()).collect();
+        let unique_names = crate::drivers::utils::make_unique_column_names(&orig_names);
+
+        let mut fields = Vec::new();
+        for (col, unique_name) in rows[0].columns().iter().zip(unique_names.iter()) {
+            let display_name = if unique_name != col.name() {
+                Some(col.name().to_string())
+            } else {
+                None
+            };
+            fields.push(ColumnInfo {
+                name: unique_name.clone(),
+                data_type: col.type_info().name().to_string(),
+                is_primary_key: false,
+                is_nullable: true,
+                display_name,
+            });
+        }
+
+        let mut data = Vec::new();
+        for row in rows {
+            let mut map = std::collections::HashMap::new();
+            for (i, unique_name) in unique_names.iter().enumerate() {
+                let val = Self::get_column_value(&row, i);
+                map.insert(unique_name.clone(), val);
+            }
+            data.push(map);
+        }
+
         let count = data.len();
         Ok(QueryResult {
             rows: data,

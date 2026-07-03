@@ -541,21 +541,33 @@ impl DatabaseDriver for PostgresDriver {
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
         use sqlx::Executor;
+        use sqlx::Either;
+        use futures_util::StreamExt;
+
         let start = std::time::Instant::now();
         log::info!("postgres: executing raw query: {}", sql);
 
+        let mut rows = Vec::new();
+        let mut rows_affected = 0;
+
         let mut tx_guard = self.tx_conn.lock().await;
-        let rows = if let Some(ref mut conn) = *tx_guard {
-            (&mut **conn)
-                .fetch_all(sqlx::raw_sql(sql))
-                .await
-                .map_err(|e| e.to_string())?
+        let mut stream = if let Some(ref mut conn) = *tx_guard {
+            (&mut **conn).fetch_many(sqlx::raw_sql(sql))
         } else {
             let pool = self.pool()?;
-            pool.fetch_all(sqlx::raw_sql(sql))
-                .await
-                .map_err(|e| e.to_string())?
+            pool.fetch_many(sqlx::raw_sql(sql))
         };
+
+        while let Some(res) = stream.next().await {
+            match res.map_err(|e| e.to_string())? {
+                Either::Left(result) => {
+                    rows_affected += result.rows_affected();
+                }
+                Either::Right(row) => {
+                    rows.push(row);
+                }
+            }
+        }
 
         let elapsed = start.elapsed().as_millis() as u64;
         log::info!("postgres: raw query finished in {}ms", elapsed);
@@ -564,7 +576,7 @@ impl DatabaseDriver for PostgresDriver {
             return Ok(QueryResult {
                 rows: vec![],
                 fields: vec![],
-                row_count: 0,
+                row_count: rows_affected as usize,
                 execution_time: elapsed,
             });
         }
