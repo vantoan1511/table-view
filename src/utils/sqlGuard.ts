@@ -8,6 +8,52 @@ export const stripSqlComments = (sql: string): string => {
 };
 
 /**
+ * Strips the content of single-quoted and double-quoted string literals,
+ * replacing their inner characters with spaces.
+ */
+export const stripSqlStringLiterals = (sql: string): string => {
+  let result = '';
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let escapeNext = false;
+
+  for (let i = 0; i < sql.length; i++) {
+    const char = sql[i];
+
+    if (escapeNext) {
+      result += ' ';
+      escapeNext = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escapeNext = true;
+      result += ' ';
+      continue;
+    }
+
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      result += "'";
+      continue;
+    }
+
+    if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      result += '"';
+      continue;
+    }
+
+    if (inSingleQuote || inDoubleQuote) {
+      result += ' ';
+    } else {
+      result += char;
+    }
+  }
+  return result;
+};
+
+/**
  * Checks if a SQL query block contains any potentially destructive operations
  * that should trigger a safety warning.
  * Destructive operations include:
@@ -19,7 +65,7 @@ export const stripSqlComments = (sql: string): string => {
 export const isDestructiveQuery = (sql: string): boolean => {
   if (!sql) return false;
 
-  const cleanSql = stripSqlComments(sql);
+  const cleanSql = stripSqlStringLiterals(stripSqlComments(sql));
   // Split queries by semicolon to check each query statement independently
   const statements = cleanSql
     .split(';')

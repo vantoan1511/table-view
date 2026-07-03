@@ -67,5 +67,18 @@ describe('SQL Guard Utility', () => {
       // UPDATE without WHERE but with comments around should still be flagged
       expect(isDestructiveQuery('UPDATE users SET active = false; -- update all users')).toBe(true);
     });
+
+    it('correctly handles where word/boundaries in string literals', () => {
+      // "where" inside string literal - should be flagged as destructive (no actual WHERE clause)
+      expect(isDestructiveQuery("UPDATE users SET bio = 'I live where it is quiet';")).toBe(true);
+      expect(isDestructiveQuery("UPDATE users SET name = 'where';")).toBe(true);
+      expect(isDestructiveQuery('UPDATE users SET name = "where";')).toBe(true);
+
+      // "where" inside string literal + actual WHERE clause - should be safe
+      expect(
+        isDestructiveQuery("UPDATE users SET bio = 'I live where it is quiet' WHERE id = 1;")
+      ).toBe(false);
+      expect(isDestructiveQuery("UPDATE users SET name = 'where' WHERE id = 1;")).toBe(false);
+    });
   });
 });
