@@ -388,6 +388,38 @@ pub async fn handle_message(
                         Err(e) => broadcast(&writer, &token, "dbBridge.executeQueryResult", json!({"reqId": payload.req_id, "success": false, "error": e})).await,
                     }
                 }
+                "executeTransaction" => {
+                    if !driver.is_in_transaction().await {
+                        if let Err(e) = driver.begin_transaction().await {
+                            broadcast(&writer, &token, "dbBridge.executeTransactionResult", json!({"reqId": payload.req_id, "success": false, "error": e})).await;
+                            return;
+                        }
+                    }
+
+                    let result = driver.query(&payload.sql).await;
+                    match result {
+                        Ok(data) => {
+                            let mut resp = serde_json::to_value(&data).unwrap_or(json!({}));
+                            if let Some(obj) = resp.as_object_mut() {
+                                obj.insert("reqId".to_string(), json!(payload.req_id));
+                                obj.insert("success".to_string(), json!(true));
+                            }
+                            broadcast(&writer, &token, "dbBridge.executeTransactionResult", resp).await;
+                        }
+                        Err(e) => {
+                            let _ = driver.rollback_transaction().await;
+                            broadcast(&writer, &token, "dbBridge.executeTransactionResult", json!({"reqId": payload.req_id, "success": false, "error": e})).await;
+                        }
+                    }
+                }
+                "commitTransaction" => {
+                    let result = driver.commit_transaction().await;
+                    handle_result_void(&writer, &token, "dbBridge.commitTransactionResult", &payload.req_id, result).await;
+                }
+                "rollbackTransaction" => {
+                    let result = driver.rollback_transaction().await;
+                    handle_result_void(&writer, &token, "dbBridge.rollbackTransactionResult", &payload.req_id, result).await;
+                }
                 "updateCell" => {
                     let result = driver.update_cell(&payload.table_name, &payload.pk_column, &payload.pk_value, &payload.target_column, &payload.new_value).await;
                     handle_result_void(&writer, &token, "dbBridge.updateCellResult", &payload.req_id, result).await;

@@ -13,11 +13,15 @@ use uuid;
 
 pub struct PostgresDriver {
     pool: Option<PgPool>,
+    tx_conn: tokio::sync::Mutex<Option<sqlx::pool::PoolConnection<sqlx::Postgres>>>,
 }
 
 impl PostgresDriver {
     pub fn new() -> Self {
-        Self { pool: None }
+        Self {
+            pool: None,
+            tx_conn: tokio::sync::Mutex::new(None),
+        }
     }
 
     fn pool(&self) -> Result<&PgPool, String> {
@@ -234,6 +238,10 @@ impl DatabaseDriver for PostgresDriver {
     }
 
     async fn disconnect(&mut self) -> Result<(), String> {
+        {
+            let mut tx = self.tx_conn.lock().await;
+            *tx = None;
+        }
         if let Some(pool) = self.pool.take() {
             pool.close().await;
         }
@@ -533,16 +541,21 @@ impl DatabaseDriver for PostgresDriver {
 
     async fn query(&self, sql: &str) -> Result<QueryResult, String> {
         use sqlx::Executor;
-        let pool = self.pool()?;
         let start = std::time::Instant::now();
         log::info!("postgres: executing raw query: {}", sql);
 
-        // Use the simple query protocol so multi-statement scripts work.
-        // `sqlx::raw_sql` sends all statements in one go without preparing them.
-        let rows = pool
-            .fetch_all(sqlx::raw_sql(sql))
-            .await
-            .map_err(|e| e.to_string())?;
+        let mut tx_guard = self.tx_conn.lock().await;
+        let rows = if let Some(ref mut conn) = *tx_guard {
+            (&mut **conn)
+                .fetch_all(sqlx::raw_sql(sql))
+                .await
+                .map_err(|e| e.to_string())?
+        } else {
+            let pool = self.pool()?;
+            pool.fetch_all(sqlx::raw_sql(sql))
+                .await
+                .map_err(|e| e.to_string())?
+        };
 
         let elapsed = start.elapsed().as_millis() as u64;
         log::info!("postgres: raw query finished in {}ms", elapsed);
@@ -1126,6 +1139,43 @@ impl DatabaseDriver for PostgresDriver {
             });
         }
         Ok(constraints)
+    }
+
+    async fn begin_transaction(&self) -> Result<(), String> {
+        let pool = self.pool()?;
+        let mut tx = self.tx_conn.lock().await;
+        if tx.is_some() {
+            return Err("Transaction already in progress".to_string());
+        }
+        
+        let mut conn = pool.acquire().await.map_err(|e| e.to_string())?;
+        sqlx::query("BEGIN").execute(&mut *conn).await.map_err(|e| e.to_string())?;
+        *tx = Some(conn);
+        Ok(())
+    }
+
+    async fn commit_transaction(&self) -> Result<(), String> {
+        let mut tx = self.tx_conn.lock().await;
+        if let Some(mut conn) = tx.take() {
+            sqlx::query("COMMIT").execute(&mut *conn).await.map_err(|e| e.to_string())?;
+            Ok(())
+        } else {
+            Err("No active transaction to commit".to_string())
+        }
+    }
+
+    async fn rollback_transaction(&self) -> Result<(), String> {
+        let mut tx = self.tx_conn.lock().await;
+        if let Some(mut conn) = tx.take() {
+            sqlx::query("ROLLBACK").execute(&mut *conn).await.map_err(|e| e.to_string())?;
+            Ok(())
+        } else {
+            Err("No active transaction to rollback".to_string())
+        }
+    }
+
+    async fn is_in_transaction(&self) -> bool {
+        self.tx_conn.lock().await.is_some()
     }
 }
 

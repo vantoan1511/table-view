@@ -71,6 +71,7 @@ export interface Tab {
   title: string;
   tableName?: string;
   query?: string;
+  autoCommit?: boolean;
   scrollPosition?: number;
   minimized?: boolean;
   connectionId?: string;

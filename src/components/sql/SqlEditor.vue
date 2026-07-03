@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Components
 import Button from '@/components/ui/Button.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import ResizeHandle from '@/components/ui/ResizeHandle.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import ResultsGrid from './ResultsGrid.vue';
@@ -24,7 +25,7 @@ import { syntaxHighlighting } from '@codemirror/language';
 import { Compartment, EditorState, Prec } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { EditorView, basicSetup } from 'codemirror';
-import { Clock, Download, Play, Save } from 'lucide-vue-next';
+import { Clock, Download, Play, Save, Check, RotateCcw } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
 
 // Other imports
@@ -41,7 +42,20 @@ const schemaStore = useSchemaStore();
 const tabsStore = useTabsStore();
 const diagramStore = useDiagramStore();
 
-const { activeResultTab, executeRun, saveQuery, exportQuery } = useSqlEditor(props);
+const {
+  activeResultTab,
+  autoCommit,
+  showDestructiveConfirm,
+  showTransactionConfirm,
+  hasActiveTransaction,
+  executeRun,
+  confirmDestructive,
+  cancelDestructive,
+  commitTx,
+  rollbackTx,
+  saveQuery,
+  exportQuery
+} = useSqlEditor(props);
 
 const editorContainer = ref<HTMLElement>();
 const editorWidth = ref(600);
@@ -224,6 +238,13 @@ onMounted(() => {
             {{ gridStore.isLoading ? 'Running...' : 'Run' }}
           </Button>
 
+          <template v-if="hasActiveTransaction">
+            <Button variant="success" size="sm" :icon="Check" @click="commitTx"> Commit </Button>
+            <Button variant="danger" size="sm" :icon="RotateCcw" @click="rollbackTx">
+              Rollback
+            </Button>
+          </template>
+
           <span class="relative">
             <Button variant="secondary" size="sm" :icon="Save" @click="saveQuery" />
             <Tooltip text="Save (Ctrl+S)" position="top" />
@@ -235,6 +256,17 @@ onMounted(() => {
             </Button>
             <Tooltip text="Export to .sql file" position="top" />
           </span>
+
+          <label
+            class="hover:bg-hover text-text-secondary border-border bg-surface ml-1 flex cursor-pointer items-center gap-1.5 rounded border px-2 py-1 text-[11px] font-medium transition-colors select-none"
+          >
+            <input
+              type="checkbox"
+              v-model="autoCommit"
+              class="form-checkbox border-border bg-muted text-primary focus:ring-primary/20 accent-primary h-3 w-3 rounded"
+            />
+            <span>Auto-Commit</span>
+          </label>
 
           <div class="text-text-secondary ml-auto flex items-center gap-1 text-[11px]">
             <Clock :size="12" class="text-success" />
@@ -315,5 +347,29 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Confirm Dialog for Destructive Query Warning -->
+    <ConfirmDialog
+      v-if="showDestructiveConfirm"
+      title="Dangerous Query Warning"
+      message="You are about to execute a potentially destructive query (DROP, TRUNCATE, or UPDATE/DELETE without a WHERE clause). Are you sure you want to proceed?"
+      variant="danger"
+      confirm-label="Execute"
+      cancel-label="Cancel"
+      @confirm="confirmDestructive"
+      @cancel="cancelDestructive"
+    />
+
+    <!-- Confirm Dialog for Transaction Preview -->
+    <ConfirmDialog
+      v-if="showTransactionConfirm"
+      title="Transaction Preview"
+      :message="`Query executed successfully. ${gridStore.sqlRowCount} rows affected. Would you like to commit these changes or rollback?`"
+      variant="info"
+      confirm-label="Commit"
+      cancel-label="Rollback"
+      @confirm="commitTx"
+      @cancel="rollbackTx"
+    />
   </div>
 </template>
