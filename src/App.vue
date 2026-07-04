@@ -98,7 +98,6 @@ const exitApp = async () => {
     id="app-shell"
     class="bg-surface flex h-screen flex-col overflow-hidden"
     :style="{ '--sidebar-width': `${layoutStore.sidebarWidth}px` }"
-    @contextmenu.prevent
   >
     <!-- Main Top Area -->
     <div class="flex min-h-0 flex-1">

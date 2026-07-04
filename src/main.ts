@@ -47,4 +47,18 @@ if (window.NL_PORT) {
   setWindowTitle();
 }
 
+// Prevent default browser behaviors
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+document.addEventListener('dragover', (e) => e.preventDefault());
+document.addEventListener('drop', (e) => e.preventDefault());
+document.addEventListener(
+  'wheel',
+  (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+    }
+  },
+  { passive: false }
+);
+
 app.mount('#app');
