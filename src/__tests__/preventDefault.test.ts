@@ -1,0 +1,68 @@
+import { describe, it, expect, vi } from 'vitest';
+
+// Mock App.vue to prevent any lifecycle hooks or store initializations
+vi.mock('../App.vue', () => ({
+  default: {
+    name: 'App',
+    render: () => null
+  }
+}));
+
+// Mock @neutralinojs/lib
+vi.mock('@neutralinojs/lib', () => ({
+  init: vi.fn(),
+  app: {
+    getConfig: vi.fn().mockResolvedValue({ applicationName: 'Table View', version: '0.4.3' }),
+  },
+  window: {
+    setTitle: vi.fn(),
+  },
+  events: {
+    on: vi.fn(),
+  },
+  extensions: {
+    getStats: vi.fn().mockResolvedValue({ loaded: [] }),
+  }
+}));
+
+// Create the container element that main.ts expects to mount to
+const appEl = document.createElement('div');
+appEl.id = 'app';
+document.body.appendChild(appEl);
+
+// Mock window.NL_PORT to cover the Neutralino init path
+window.NL_PORT = '12345';
+
+// Import at the top level so module loading time does not count against test-case timeout
+import '../main';
+
+describe('Prevent Default Browser Behaviors', () => {
+  it('registers global event listeners that prevent default browser behaviors', () => {
+    // 1. Verify contextmenu is prevented
+    const contextMenuEvent = new MouseEvent('contextmenu', { cancelable: true, bubbles: true });
+    document.dispatchEvent(contextMenuEvent);
+    expect(contextMenuEvent.defaultPrevented).toBe(true);
+
+    // 2. Verify dragover is prevented using general Event
+    const dragOverEvent = new Event('dragover', { cancelable: true, bubbles: true });
+    document.dispatchEvent(dragOverEvent);
+    expect(dragOverEvent.defaultPrevented).toBe(true);
+
+    // 3. Verify drop is prevented using general Event
+    const dropEvent = new Event('drop', { cancelable: true, bubbles: true });
+    document.dispatchEvent(dropEvent);
+    expect(dropEvent.defaultPrevented).toBe(true);
+
+    // 4. Verify wheel with ctrl key is prevented
+    const ctrlWheelEvent = new Event('wheel', { cancelable: true, bubbles: true });
+    Object.defineProperty(ctrlWheelEvent, 'ctrlKey', { value: true });
+    document.dispatchEvent(ctrlWheelEvent);
+    expect(ctrlWheelEvent.defaultPrevented).toBe(true);
+
+    // 5. Verify wheel without ctrl key is NOT prevented
+    const normalWheelEvent = new Event('wheel', { cancelable: true, bubbles: true });
+    Object.defineProperty(normalWheelEvent, 'ctrlKey', { value: false });
+    document.dispatchEvent(normalWheelEvent);
+    expect(normalWheelEvent.defaultPrevented).toBe(false);
+  });
+});
