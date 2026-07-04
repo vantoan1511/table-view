@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import ContextMenu from '@/components/ui/ContextMenu.vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
+
 import { useAboutStore } from '@/stores/about';
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
@@ -7,7 +9,7 @@ import { useLayoutStore } from '@/stores/layout';
 import { usePreferencesStore } from '@/stores/preferences';
 import { useToastStore } from '@/stores/toast';
 import { useUpdaterStore } from '@/stores/updater';
-import * as Neutralino from '@neutralinojs/lib';
+
 import {
   Info,
   Loader2,
@@ -18,8 +20,7 @@ import {
   Settings,
   Sun
 } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
-import Tooltip from '../ui/Tooltip.vue';
+import { computed, ref } from 'vue';
 
 const aboutStore = useAboutStore();
 const preferencesStore = usePreferencesStore();
@@ -28,7 +29,13 @@ const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
 const updaterStore = useUpdaterStore();
 const toastStore = useToastStore();
-const isDark = ref(false);
+
+const isDark = computed(() => {
+  if (preferencesStore.settings.theme === 'system') {
+    return document.documentElement.classList.contains('dark');
+  }
+  return preferencesStore.settings.theme === 'dark';
+});
 
 const showSettingsMenu = ref(false);
 const settingsMenuPos = ref({ x: 0, y: 0 });
@@ -39,21 +46,6 @@ const toggleSettingsMenu = (e: MouseEvent) => {
   settingsMenuPos.value = { x: rect.left, y: rect.top - 8 };
   showSettingsMenu.value = !showSettingsMenu.value;
 };
-
-onMounted(async () => {
-  // Load saved theme preference
-  if (window.NL_PORT) {
-    try {
-      const theme = await Neutralino.storage.getData('theme');
-      if (theme === 'dark') {
-        isDark.value = true;
-        document.documentElement.classList.add('dark');
-      }
-    } catch {
-      // No theme stored yet, default to light
-    }
-  }
-});
 
 // ─── Row Count ────────────────────────────────────────────────────────────
 // Show the total rows from the active table grid, or SQL row count if a query was run
@@ -72,11 +64,15 @@ const displayExecTime = computed(() => {
 });
 
 const toggleDarkMode = async () => {
-  isDark.value = !isDark.value;
-  document.documentElement.classList.toggle('dark', isDark.value);
-  if (window.NL_PORT) {
-    await Neutralino.storage.setData('theme', isDark.value ? 'dark' : 'light');
+  const currentTheme = preferencesStore.settings.theme;
+  let nextTheme: 'light' | 'dark';
+  if (currentTheme === 'system') {
+    const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    nextTheme = systemIsDark ? 'light' : 'dark';
+  } else {
+    nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
   }
+  await preferencesStore.save({ theme: nextTheme });
 };
 
 const handleCheckForUpdates = async () => {

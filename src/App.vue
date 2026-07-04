@@ -9,10 +9,13 @@ import ResizeHandle from '@/components/ui/ResizeHandle.vue';
 
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
 import { useTabSync } from '@/composables/useTabSync';
+
 import { useConnectionsStore } from '@/stores/connections';
 import { useLayoutStore } from '@/stores/layout';
+import { usePreferencesStore } from '@/stores/preferences';
 import { useTabsStore } from '@/stores/tabs';
 import { useUpdaterStore } from '@/stores/updater';
+
 import * as Neutralino from '@neutralinojs/lib';
 import { defineAsyncComponent, onMounted } from 'vue';
 
@@ -42,6 +45,7 @@ const TabSelectorDialog = defineAsyncComponent(
 const tabsStore = useTabsStore();
 const connectionsStore = useConnectionsStore();
 const layoutStore = useLayoutStore();
+const preferencesStore = usePreferencesStore();
 const updaterStore = useUpdaterStore();
 
 useKeyboardShortcuts();
@@ -50,6 +54,7 @@ useTabSync();
 onMounted(async () => {
   // Load initial data and persisted state in parallel to optimize startup time
   await Promise.all([
+    preferencesStore.init(),
     connectionsStore.loadConnections(),
     layoutStore.init(),
     tabsStore.loadTabsFromStorage()
