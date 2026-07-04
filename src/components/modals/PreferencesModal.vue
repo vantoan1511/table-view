@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import Button from '@/components/ui/Button.vue';
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
+
 import { usePreferencesStore } from '@/stores/preferences';
 import { useToastStore } from '@/stores/toast';
+
 import {
   Code,
   Info,
@@ -15,7 +17,7 @@ import {
   Terminal,
   X
 } from 'lucide-vue-next';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 
 const preferencesStore = usePreferencesStore();
 const toastStore = useToastStore();
@@ -35,8 +37,8 @@ const tabs = [
 ];
 
 const settings = reactive({
-  theme: 'dark',
-  language: 'en',
+  theme: 'dark' as 'light' | 'dark' | 'system',
+  language: 'en' as 'en' | 'vi',
   autoUpdate: true,
   startMinimized: false,
   maxRows: 1000,
@@ -54,6 +56,20 @@ const getCurrentTabIcon = computed(() => {
   const current = tabs.find((t) => t.id === activeTab.value);
   return current ? current.icon : Settings;
 });
+
+const syncLocalSettings = () => {
+  Object.assign(settings, preferencesStore.settings);
+};
+
+watch(
+  () => preferencesStore.isOpen,
+  (isOpen) => {
+    if (isOpen) {
+      syncLocalSettings();
+    }
+  },
+  { immediate: true }
+);
 
 const resetToDefaults = () => {
   settings.theme = 'dark';
@@ -75,16 +91,28 @@ const resetToDefaults = () => {
   });
 };
 
-const savePreferences = () => {
-  preferencesStore.close();
-  toastStore.addToast({
-    title: 'Preferences saved',
-    message: 'Changes saved successfully (prototype only).',
-    severity: 'success',
-    variation: 'filled',
-    position: 'bottom-center',
-    ttl: 3000
-  });
+const savePreferences = async () => {
+  try {
+    await preferencesStore.save(settings);
+    preferencesStore.close();
+    toastStore.addToast({
+      title: 'Preferences saved',
+      message: 'Changes saved successfully.',
+      severity: 'success',
+      variation: 'filled',
+      position: 'bottom-center',
+      ttl: 3000
+    });
+  } catch (error) {
+    toastStore.addToast({
+      title: 'Error saving preferences',
+      message: error instanceof Error ? error.message : 'Unknown error occurred.',
+      severity: 'error',
+      variation: 'filled',
+      position: 'bottom-center',
+      ttl: 3000
+    });
+  }
 };
 </script>
 
