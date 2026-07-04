@@ -1,7 +1,7 @@
-import { useHistoryStore } from '../history';
 import { BridgeService } from '@/services/bridge';
 import type { GridColumn, GridRow } from '@/types';
 import { ref } from 'vue';
+import { useHistoryStore } from '../history';
 
 export function useSqlQuery(connectionsStore: any) {
   const sqlColumns = ref<GridColumn[]>([]);

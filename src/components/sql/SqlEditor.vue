@@ -46,7 +46,6 @@ const {
   activeResultTab,
   autoCommit,
   showDestructiveConfirm,
-  showTransactionConfirm,
   hasActiveTransaction,
   executeRun,
   confirmDestructive,
@@ -358,18 +357,6 @@ onMounted(() => {
       cancel-label="Cancel"
       @confirm="confirmDestructive"
       @cancel="cancelDestructive"
-    />
-
-    <!-- Confirm Dialog for Transaction Preview -->
-    <ConfirmDialog
-      v-if="showTransactionConfirm"
-      title="Transaction Preview"
-      :message="`Query executed successfully. ${gridStore.sqlRowCount} rows affected. Would you like to commit these changes or rollback?`"
-      variant="info"
-      confirm-label="Commit"
-      cancel-label="Rollback"
-      @confirm="commitTx"
-      @cancel="rollbackTx"
     />
   </div>
 </template>

@@ -29,6 +29,8 @@ describe('SQL Guard Utility', () => {
       expect(isDestructiveQuery('DROP TABLE users;')).toBe(true);
       expect(isDestructiveQuery('drop database prod;')).toBe(true);
       expect(isDestructiveQuery('DROP view active_users;')).toBe(true);
+      expect(isDestructiveQuery('ALTER TABLE users DROP COLUMN email;')).toBe(true);
+      expect(isDestructiveQuery('alter table users drop column email')).toBe(true);
     });
 
     it('returns true for TRUNCATE statements', () => {

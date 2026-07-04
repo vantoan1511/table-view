@@ -76,7 +76,7 @@ export const isDestructiveQuery = (sql: string): boolean => {
     const lower = statement.toLowerCase();
 
     // Check for DROP or TRUNCATE
-    if (lower.startsWith('drop') || lower.startsWith('truncate')) {
+    if (/\bdrop\b/.test(lower) || /\btruncate\b/.test(lower)) {
       return true;
     }
 

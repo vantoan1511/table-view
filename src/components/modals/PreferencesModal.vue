@@ -5,7 +5,6 @@ import { usePreferencesStore } from '@/stores/preferences';
 import { useToastStore } from '@/stores/toast';
 import {
   Code,
-  Database,
   Info,
   Keyboard,
   Link2,
