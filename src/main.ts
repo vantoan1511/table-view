@@ -61,4 +61,10 @@ document.addEventListener(
   { passive: false }
 );
 
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && ['+', '=', '-', '_', '0'].includes(e.key)) {
+    e.preventDefault();
+  }
+});
+
 app.mount('#app');

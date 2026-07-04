@@ -12,16 +12,16 @@ vi.mock('../App.vue', () => ({
 vi.mock('@neutralinojs/lib', () => ({
   init: vi.fn(),
   app: {
-    getConfig: vi.fn().mockResolvedValue({ applicationName: 'Table View', version: '0.4.3' }),
+    getConfig: vi.fn().mockResolvedValue({ applicationName: 'Table View', version: '0.4.3' })
   },
   window: {
-    setTitle: vi.fn(),
+    setTitle: vi.fn()
   },
   events: {
-    on: vi.fn(),
+    on: vi.fn()
   },
   extensions: {
-    getStats: vi.fn().mockResolvedValue({ loaded: [] }),
+    getStats: vi.fn().mockResolvedValue({ loaded: [] })
   }
 }));
 
@@ -64,5 +64,27 @@ describe('Prevent Default Browser Behaviors', () => {
     Object.defineProperty(normalWheelEvent, 'ctrlKey', { value: false });
     document.dispatchEvent(normalWheelEvent);
     expect(normalWheelEvent.defaultPrevented).toBe(false);
+
+    // 6. Verify keydown with ctrl key and +/=/0/- is prevented
+    ['+', '=', '-', '_', '0'].forEach((key) => {
+      const keydownEvent = new KeyboardEvent('keydown', {
+        cancelable: true,
+        bubbles: true,
+        key,
+        ctrlKey: true
+      });
+      document.dispatchEvent(keydownEvent);
+      expect(keydownEvent.defaultPrevented).toBe(true);
+    });
+
+    // 7. Verify keydown without ctrl key is NOT prevented
+    const normalKeydownEvent = new KeyboardEvent('keydown', {
+      cancelable: true,
+      bubbles: true,
+      key: '+',
+      ctrlKey: false
+    });
+    document.dispatchEvent(normalKeydownEvent);
+    expect(normalKeydownEvent.defaultPrevented).toBe(false);
   });
 });
