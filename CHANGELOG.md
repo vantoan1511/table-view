@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-07-04
+
+### Added
+- **UI: Browser Default Preventions**: Prevented native browser interactions like right-click menus, drag-and-drop file opening, and zooming to enforce a native desktop app feel.
+
 ## [0.4.3] - 2026-06-30
 
 ### Added
