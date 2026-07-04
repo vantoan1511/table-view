@@ -107,11 +107,14 @@ describe('Preferences Store', () => {
       maxRows: 5000
     });
 
-    expect(NativeService.storage.set).toHaveBeenCalledWith('preferences', expect.objectContaining({
-      theme: 'light',
-      language: 'vi',
-      maxRows: 5000
-    }));
+    expect(NativeService.storage.set).toHaveBeenCalledWith(
+      'preferences',
+      expect.objectContaining({
+        theme: 'light',
+        language: 'vi',
+        maxRows: 5000
+      })
+    );
     expect(store.settings.theme).toBe('light');
     expect(store.settings.language).toBe('vi');
     expect(store.settings.maxRows).toBe(5000);
