@@ -4,6 +4,7 @@ import { useAboutStore } from '@/stores/about';
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { useLayoutStore } from '@/stores/layout';
+import { usePreferencesStore } from '@/stores/preferences';
 import { useToastStore } from '@/stores/toast';
 import { useUpdaterStore } from '@/stores/updater';
 import * as Neutralino from '@neutralinojs/lib';
@@ -21,6 +22,7 @@ import { computed, onMounted, ref } from 'vue';
 import Tooltip from '../ui/Tooltip.vue';
 
 const aboutStore = useAboutStore();
+const preferencesStore = usePreferencesStore();
 const layoutStore = useLayoutStore();
 const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
@@ -94,13 +96,7 @@ const handleCheckForUpdates = async () => {
 };
 
 const openSettings = () => {
-  toastStore.addToast({
-    title: 'Settings',
-    message: 'Settings panel coming soon.',
-    severity: 'info',
-    variation: 'outlined',
-    position: 'bottom-center'
-  });
+  preferencesStore.open();
 };
 </script>
 

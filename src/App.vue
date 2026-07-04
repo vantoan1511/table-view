@@ -32,6 +32,9 @@ const GlobalErrorDialog = defineAsyncComponent(
 const ToastContainer = defineAsyncComponent(() => import('@/components/ui/ToastContainer.vue'));
 const UpdaterDialog = defineAsyncComponent(() => import('@/components/ui/UpdaterDialog.vue'));
 const AboutDialog = defineAsyncComponent(() => import('@/components/ui/AboutDialog.vue'));
+const PreferencesModal = defineAsyncComponent(
+  () => import('@/components/modals/PreferencesModal.vue')
+);
 const TabSelectorDialog = defineAsyncComponent(
   () => import('@/components/ui/TabSelectorDialog.vue')
 );
@@ -141,6 +144,7 @@ const exitApp = async () => {
     <ToastContainer />
     <UpdaterDialog />
     <AboutDialog />
+    <PreferencesModal />
     <TabSelectorDialog />
   </div>
 </template>
