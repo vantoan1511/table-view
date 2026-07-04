@@ -1218,7 +1218,7 @@ mod tests {
         ];
 
         let safe_table = PostgresDriver::qualified_table_name("public.users");
-        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, &columns, |s| PostgresDriver::quote(s)).unwrap();
+        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, &columns, PostgresDriver::quote).unwrap();
         assert_eq!(
             sql,
             "CREATE TABLE \"public\".\"users\" (\"id\" SERIAL NOT NULL PRIMARY KEY, \"name\" VARCHAR(255) DEFAULT 'Guest')"
@@ -1244,7 +1244,7 @@ mod tests {
             foreign_key: None,
         }];
 
-        let res = crate::drivers::utils::build_create_table_sql_generic("\"users\"", &columns, |s| PostgresDriver::quote(s));
+        let res = crate::drivers::utils::build_create_table_sql_generic("\"users\"", &columns, PostgresDriver::quote);
         assert!(res.is_err());
         assert!(res.unwrap_err().contains("Invalid or unsafe data type"));
     }

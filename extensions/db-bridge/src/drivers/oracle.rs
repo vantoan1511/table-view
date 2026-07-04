@@ -148,7 +148,7 @@ impl OracleDriver {
         params: &[JsonValue],
     ) -> Result<(Vec<HashMap<String, JsonValue>>, Vec<ColumnInfo>, u64), String> {
         let conn = pool.get().await.map_err(|e| e.to_string())?;
-        Self::execute_query_on_conn(&*conn, sql, params).await
+        Self::execute_query_on_conn(&conn, sql, params).await
     }
 
     async fn execute_dml(pool: &Pool, sql: &str, params: &[JsonValue]) -> Result<(), String> {

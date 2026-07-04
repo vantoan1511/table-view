@@ -3,7 +3,7 @@ import { useTabsStore } from '@/stores/tabs';
 import type { Tab } from '@/types';
 import { isDestructiveQuery } from '@/utils/sqlGuard';
 import { EditorView } from 'codemirror';
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 
 export function useSqlEditor(props: { tab: Tab }) {
   const gridStore = useGridStore();
@@ -53,8 +53,6 @@ export function useSqlEditor(props: { tab: Tab }) {
     return statements[statements.length - 1]?.text ?? '';
   };
 
-  const showTransactionConfirm = ref(false);
-
   const runQuery = async (query: string) => {
     const isAuto = autoCommit.value;
     const success = await gridStore.runQuery(
@@ -67,10 +65,8 @@ export function useSqlEditor(props: { tab: Tab }) {
     activeResultTab.value = 'results';
     if (success && !isAuto) {
       hasActiveTransaction.value = true;
-      showTransactionConfirm.value = true;
     } else if (!success) {
       hasActiveTransaction.value = false;
-      showTransactionConfirm.value = false;
     }
   };
 
@@ -113,7 +109,6 @@ export function useSqlEditor(props: { tab: Tab }) {
       await gridStore.commitTransaction(props.tab.connectionId, props.tab.dbName);
     } finally {
       hasActiveTransaction.value = false;
-      showTransactionConfirm.value = false;
     }
   };
 
@@ -122,7 +117,6 @@ export function useSqlEditor(props: { tab: Tab }) {
       await gridStore.rollbackTransaction(props.tab.connectionId, props.tab.dbName);
     } finally {
       hasActiveTransaction.value = false;
-      showTransactionConfirm.value = false;
     }
   };
 
@@ -138,7 +132,6 @@ export function useSqlEditor(props: { tab: Tab }) {
     activeResultTab,
     autoCommit,
     showDestructiveConfirm,
-    showTransactionConfirm,
     hasActiveTransaction,
     executeRun,
     confirmDestructive,
