@@ -6,5 +6,5 @@
   "printWidth": 100,
   "trailingComma": "none",
   "plugins": ["prettier-plugin-tailwindcss"],
-  "endOfLine": "crlf"
+  "endOfLine": "auto"
 }
