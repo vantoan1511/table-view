@@ -34,7 +34,7 @@ const schemaStore = useSchemaStore();
         <Search :size="12" class="text-text-tertiary shrink-0" />
         <input
           type="text"
-          placeholder="Search connections..."
+          placeholder="Search tables"
           class="text-text-primary placeholder-text-tertiary flex-1 border-none bg-transparent text-[12px] outline-none"
           :value="schemaStore.filterQuery"
           @input="schemaStore.setFilter(($event.target as HTMLInputElement).value)"

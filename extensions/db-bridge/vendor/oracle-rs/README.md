@@ -233,23 +233,23 @@ for row in result.rows() {
 
 ### Supported Types
 
-| Oracle Type | Rust Type |
-|-------------|-----------|
-| NUMBER | `i8`, `i16`, `i32`, `i64`, `f32`, `f64`, `String` |
-| VARCHAR2, CHAR | `String`, `&str` |
-| DATE | `chrono::NaiveDateTime` |
-| TIMESTAMP | `chrono::NaiveDateTime` |
-| TIMESTAMP WITH TIME ZONE | `chrono::DateTime<FixedOffset>` |
-| INTERVAL DAY TO SECOND | `chrono::Duration` |
-| RAW | `Vec<u8>`, `&[u8]` |
-| CLOB, NCLOB | `String` (auto-fetched) or streaming |
-| BLOB | `Vec<u8>` (auto-fetched) or streaming |
-| BOOLEAN | `bool` |
-| JSON | `serde_json::Value` |
-| VECTOR | `Vec<f32>`, `Vec<f64>`, `Vec<i8>` |
-| ROWID | `String` |
-| BINARY_FLOAT | `f32` |
-| BINARY_DOUBLE | `f64` |
+| Oracle Type              | Rust Type                                         |
+| ------------------------ | ------------------------------------------------- |
+| NUMBER                   | `i8`, `i16`, `i32`, `i64`, `f32`, `f64`, `String` |
+| VARCHAR2, CHAR           | `String`, `&str`                                  |
+| DATE                     | `chrono::NaiveDateTime`                           |
+| TIMESTAMP                | `chrono::NaiveDateTime`                           |
+| TIMESTAMP WITH TIME ZONE | `chrono::DateTime<FixedOffset>`                   |
+| INTERVAL DAY TO SECOND   | `chrono::Duration`                                |
+| RAW                      | `Vec<u8>`, `&[u8]`                                |
+| CLOB, NCLOB              | `String` (auto-fetched) or streaming              |
+| BLOB                     | `Vec<u8>` (auto-fetched) or streaming             |
+| BOOLEAN                  | `bool`                                            |
+| JSON                     | `serde_json::Value`                               |
+| VECTOR                   | `Vec<f32>`, `Vec<f64>`, `Vec<i8>`                 |
+| ROWID                    | `String`                                          |
+| BINARY_FLOAT             | `f32`                                             |
+| BINARY_DOUBLE            | `f64`                                             |
 
 ### Working with LOBs
 
