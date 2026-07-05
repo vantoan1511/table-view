@@ -3,9 +3,10 @@ import './assets/main.css';
 import { useErrorStore } from '@/stores/error';
 import { initLogger, setupConsoleOverride } from '@/utils/logger';
 import * as Neutralino from '@neutralinojs/lib';
+import Aura from '@primeuix/themes/aura';
 import { createPinia } from 'pinia';
+import PrimeVue from 'primevue/config';
 import { createApp } from 'vue';
-
 import App from './App.vue';
 
 // Initialize central logging before anything else
@@ -17,6 +18,20 @@ const pinia = createPinia();
 const errorStore = useErrorStore(pinia);
 
 app.use(pinia);
+
+app.use(PrimeVue, {
+  ripple: true,
+  theme: {
+    preset: Aura,
+    options: {
+      darkModeSelector: '.dark',
+      cssLayer: {
+        name: 'primevue',
+        order: 'theme, base, primevue'
+      }
+    }
+  }
+});
 
 app.config.errorHandler = (err, instance, info) => {
   console.error('Vue Error:', err, info);

@@ -44,7 +44,8 @@ const settings = reactive({
   maxRows: 1000,
   autoSaveHistory: true,
   playCompletionSound: false,
-  telemetry: false
+  telemetry: false,
+  experimentalFeatures: false
 });
 
 const getCurrentTabName = computed(() => {
@@ -306,6 +307,18 @@ const savePreferences = async () => {
                       </span>
                     </div>
                     <ToggleSwitch v-model="settings.telemetry" />
+                  </div>
+
+                  <div class="flex items-center justify-between py-1">
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-text-primary text-xs font-medium">
+                        Enable Experimental Features
+                      </span>
+                      <span class="text-text-tertiary text-[11px]">
+                        Enable experimental features.
+                      </span>
+                    </div>
+                    <ToggleSwitch v-model="settings.experimentalFeatures" />
                   </div>
                 </div>
               </div>

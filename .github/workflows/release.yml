@@ -30,7 +30,7 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: "extensions/db-bridge"
+          workspaces: 'extensions/db-bridge'
           # Cache size is limited, so we only cache the necessary bits
           cache-all-crates: true
 
@@ -55,7 +55,7 @@ jobs:
           # Wait for Rust build to finish
           wait $RUST_PID
           cp extensions/db-bridge/target/release/db-bridge.exe extensions/db-bridge/
-          
+
       - name: Build Windows Installer
         shell: pwsh
         run: |
@@ -78,17 +78,17 @@ jobs:
           else
             VERSION=$(node -p "require('./neutralino.config.json').version")
           fi
-          
+
           echo "Extracting notes for version $VERSION"
-          
+
           # Extract section between the current version header and the next header
           sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d' > release_notes.md
-          
+
           # If file is empty (version not found or it's the last entry), handle it
           if [ ! -s release_notes.md ]; then
             sed -n "/## \[$VERSION\]/,\$p" CHANGELOG.md > release_notes.md
           fi
-          
+
           # Final check
           if [ ! -s release_notes.md ]; then
             echo "No notes found for version $VERSION in CHANGELOG.md" > release_notes.md
@@ -113,26 +113,26 @@ jobs:
           else
             VERSION=$(node -p "require('./neutralino.config.json').version")
           fi
-          
+
           echo "Updating manifest version to $VERSION"
-          
+
           # Configure Git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
+
           # Clean up any build-time modifications to tracked files (e.g. package-lock.json, binaries)
           # to allow branch switching and pulling.
           git reset --hard
-          
+
           # Switch to main branch BEFORE modifying manifest.json to avoid checkout conflicts
           git fetch origin main
           git checkout main
           git pull origin main --rebase
-          
+
           # Use node to only update the version number in manifest.json
           # The URLs are now static pointing to 'latest/download'
           node -e "const fs = require('fs'); const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8')); manifest.version = '$VERSION'; fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));"
-          
+
           # Commit and Push manifest.json only back to main
           git add manifest.json
           git commit -m "chore: update manifest.json for release v$VERSION [skip ci]" || echo "No changes to commit"
