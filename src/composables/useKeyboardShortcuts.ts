@@ -62,6 +62,13 @@ export function useKeyboardShortcuts() {
       return;
     }
 
+    // Ctrl+B: Toggle Sidebar
+    if (isMod && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      layoutStore.toggleSidebar();
+      return;
+    }
+
     // Ctrl+J: Toggle Console
     if (isMod && e.key.toLowerCase() === 'j') {
       e.preventDefault();

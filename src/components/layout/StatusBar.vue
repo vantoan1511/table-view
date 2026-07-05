@@ -15,6 +15,7 @@ import {
   Loader2,
   Moon,
   PanelBottom,
+  PanelLeft,
   PanelRight,
   RefreshCw,
   Settings,
@@ -238,6 +239,19 @@ const openSettings = () => {
 
     <!-- Right: Panel Toggles -->
     <div class="border-border ml-3 flex shrink-0 items-center gap-1.5 border-l pl-3">
+      <Tooltip text="Toggle Sidebar (Ctrl+B)" preferred-position="left">
+        <button
+          class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
+          :class="
+            layoutStore.isSidebarVisible
+              ? 'text-primary bg-primary/10'
+              : 'text-text-tertiary hover:text-text-secondary'
+          "
+          @click="layoutStore.toggleSidebar()"
+        >
+          <PanelLeft :size="14" />
+        </button>
+      </Tooltip>
       <Tooltip text="Toggle Console (Ctrl+J)" preferred-position="left">
         <button
           class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
