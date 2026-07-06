@@ -23,7 +23,7 @@ import { syntaxHighlighting } from '@codemirror/language';
 import { Compartment, EditorState, Prec } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { EditorView, basicSetup } from 'codemirror';
-import { Check, Clock, Download, Loader2, Play, RotateCcw, Save } from 'lucide-vue-next';
+import { Check, Clock, RotateCcw } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
 
 // Other imports

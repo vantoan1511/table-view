@@ -70,7 +70,7 @@ const handleCreate = async () => {
       props.db
     );
     emit('close');
-  } catch (err) {
+  } catch {
     // Error handled by store/toast
   }
 };

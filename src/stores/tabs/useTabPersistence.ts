@@ -31,7 +31,7 @@ export function useTabPersistence(tabs: Ref<Tab[]>, activeTabId: Ref<string>) {
         activeTabId.value = activeId;
       }
     } catch (err) {
-      console.log('[TabsStore] No persisted tabs found');
+      console.log('[TabsStore] No persisted tabs found', err);
     }
   };
 

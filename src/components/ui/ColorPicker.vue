@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ConnectionColor } from '@/types';
 
-const props = defineProps<{
+defineProps<{
   modelValue: ConnectionColor;
 }>();
 

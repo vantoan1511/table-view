@@ -3,7 +3,7 @@ import type { Panel } from '@/types';
 
 import { Minus } from 'lucide-vue-next';
 
-const props = defineProps<{
+defineProps<{
   panel: Panel;
 }>();
 

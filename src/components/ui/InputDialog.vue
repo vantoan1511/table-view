@@ -2,7 +2,7 @@
 import { AlertCircle, X } from 'lucide-vue-next';
 import { ref } from 'vue';
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     title: string;
     label: string;

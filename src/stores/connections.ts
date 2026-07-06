@@ -35,7 +35,7 @@ export const useConnectionsStore = defineStore('connections', () => {
           c.oracleRole = c.oracleRole || OracleRole.NORMAL;
         });
         connections.value = loaded;
-      } catch (err) {
+      } catch {
         // Storage not found, initialize empty
         connections.value = [];
       }

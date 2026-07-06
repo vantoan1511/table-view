@@ -35,7 +35,7 @@ export const useUpdaterStore = defineStore('updater', () => {
         const data = await Neutralino.storage.getData('updater_config');
         const config = JSON.parse(data);
         ignoredVersion.value = config.ignoredVersion || null;
-      } catch (err) {
+      } catch {
         // Not found or invalid
       }
 

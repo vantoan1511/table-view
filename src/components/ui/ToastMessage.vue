@@ -7,7 +7,7 @@ const props = defineProps<{
   toast: ToastOptions;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'close'): void;
 }>();
 

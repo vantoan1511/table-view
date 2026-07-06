@@ -73,7 +73,7 @@ export const useLayoutStore = defineStore('layout', {
               this.isSidebarVisible = layout.isSidebarVisible;
             }
           }
-        } catch (err) {
+        } catch {
           // Storage item might not exist yet or be invalid JSON
         }
       }

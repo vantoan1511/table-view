@@ -1,11 +1,10 @@
 // src/components/grid/GridHeaderCell.vue
 <script setup lang="ts">
 import { ArrowDown, ArrowUp } from 'lucide-vue-next';
-import { computed } from 'vue';
 
 import type { GridColumn } from '@/types';
 
-const props = defineProps<{
+defineProps<{
   column: GridColumn;
   isSorted?: boolean;
   sortDirection?: 'asc' | 'desc';

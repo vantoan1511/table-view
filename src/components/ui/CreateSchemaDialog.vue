@@ -18,7 +18,7 @@ const handleCreate = async (name: string) => {
   try {
     await gridStore.createSchema(props.connectionId, name, props.db);
     emit('close');
-  } catch (err) {
+  } catch {
     // Error handled by store/toast
   }
 };

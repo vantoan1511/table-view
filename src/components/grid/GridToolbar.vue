@@ -310,11 +310,6 @@ const handleExport = async () => {
     }
   }
 };
-
-// Custom directive for auto-focusing
-const vFocus = {
-  mounted: (el: HTMLElement) => el.focus()
-};
 </script>
 
 <template>

@@ -7,7 +7,6 @@ import TimelinePanel from '@/components/panels/TimelinePanel.vue';
 import ValueViewer from '@/components/panels/ValueViewer.vue';
 import ResizeHandle from '@/components/ui/ResizeHandle.vue';
 import { useLayoutStore } from '@/stores/layout';
-import Terminal from 'primevue/terminal';
 
 const layoutStore = useLayoutStore();
 </script>
