@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import PanelHeader from '@/components/layout/PanelHeader.vue';
-import IndexesPanel from '@/components/panels/IndexesPanel.vue';
-import OutputPanel from '@/components/panels/OutputPanel.vue';
-import PropertiesPanel from '@/components/panels/PropertiesPanel.vue';
-import TimelinePanel from '@/components/panels/TimelinePanel.vue';
-import ValueViewer from '@/components/panels/ValueViewer.vue';
 import ResizeHandle from '@/components/ui/ResizeHandle.vue';
 import { useLayoutStore } from '@/stores/layout';
+import { defineAsyncComponent } from 'vue';
+
+const IndexesPanel = defineAsyncComponent(() => import('@/components/panels/IndexesPanel.vue'));
+const OutputPanel = defineAsyncComponent(() => import('@/components/panels/OutputPanel.vue'));
+const PropertiesPanel = defineAsyncComponent(
+  () => import('@/components/panels/PropertiesPanel.vue')
+);
+const TimelinePanel = defineAsyncComponent(() => import('@/components/panels/TimelinePanel.vue'));
+const ValueViewer = defineAsyncComponent(() => import('@/components/panels/ValueViewer.vue'));
 
 const layoutStore = useLayoutStore();
 </script>
