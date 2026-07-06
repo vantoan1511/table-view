@@ -226,15 +226,45 @@ onMounted(() => {
         <div class="border-border bg-muted flex items-center gap-2 border-t px-3 py-1.5">
           <Button
             :loading="gridStore.isLoading"
+            :label="gridStore.isLoading ? 'Running...' : 'Run'"
+            icon="pi pi-play"
             id="btn-run-query"
             variant="outlined"
             size="small"
             @click="handleRun"
+          />
+
+          <Button
+            rounded
+            v-tooltip.top="'Save (Ctrl+S)'"
+            icon="pi pi-save"
+            variant="text"
+            severity="secondary"
+            size="small"
+            @click="saveQuery"
           >
-            <Play v-if="!gridStore.isLoading" :size="14" />
-            <Loader2 v-else :size="14" class="animate-spin" />
-            {{ gridStore.isLoading ? 'Running...' : 'Run' }}
           </Button>
+
+          <Button
+            rounded
+            v-tooltip.top="'Export to .sql file'"
+            icon="pi pi-download"
+            variant="text"
+            severity="secondary"
+            size="small"
+            @click="exportQuery"
+          />
+
+          <ToggleButton
+            v-tooltip.top="autoCommit ? 'Switch to manual' : 'Switch to Auto'"
+            v-model="autoCommit"
+            onLabel="Auto"
+            onIcon="pi pi-sync"
+            offLabel="Manual"
+            offIcon="pi pi-cog"
+            size="small"
+            class="font-mono text-xs"
+          />
 
           <template v-if="hasActiveTransaction">
             <Button variant="text" severity="success" size="small" @click="commitTx">
@@ -246,41 +276,6 @@ onMounted(() => {
               Rollback
             </Button>
           </template>
-
-          <Button
-            v-tooltip.top="'Save (Ctrl+S)'"
-            variant="outlined"
-            severity="secondary"
-            size="small"
-            @click="saveQuery"
-          >
-            <template #icon>
-              <Save :size="16" />
-            </template>
-          </Button>
-
-          <Button
-            v-tooltip.top="'Export to .sql file'"
-            variant="outlined"
-            severity="secondary"
-            size="small"
-            @click="exportQuery"
-          >
-            <template #icon>
-              <Download :size="16" />
-            </template>
-          </Button>
-
-          <label
-            class="hover:bg-hover text-text-secondary border-border bg-surface ml-1 flex cursor-pointer items-center gap-1.5 rounded border px-2 py-1 text-[11px] font-medium transition-colors select-none"
-          >
-            <input
-              type="checkbox"
-              v-model="autoCommit"
-              class="form-checkbox border-border bg-muted text-primary focus:ring-primary/20 accent-primary h-3 w-3 rounded"
-            />
-            <span>Auto-Commit</span>
-          </label>
 
           <div class="text-text-secondary ml-auto flex items-center gap-1 text-[11px]">
             <Clock :size="12" class="text-success" />

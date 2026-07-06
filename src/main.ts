@@ -1,4 +1,5 @@
 import './assets/main.css';
+import 'primeicons/primeicons.css';
 
 import { useErrorStore } from '@/stores/error';
 import { initLogger, setupConsoleOverride } from '@/utils/logger';
