@@ -3,7 +3,7 @@ import './assets/main.css';
 import { useErrorStore } from '@/stores/error';
 import { initLogger, setupConsoleOverride } from '@/utils/logger';
 import * as Neutralino from '@neutralinojs/lib';
-import Aura from '@primeuix/themes/aura';
+import { TableViewTheme } from '@/theme/TableViewTheme';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Tooltip from 'primevue/tooltip';
@@ -23,7 +23,7 @@ app.use(pinia);
 app.use(PrimeVue, {
   ripple: true,
   theme: {
-    preset: Aura,
+    preset: TableViewTheme,
     options: {
       darkModeSelector: '.dark',
       cssLayer: {
