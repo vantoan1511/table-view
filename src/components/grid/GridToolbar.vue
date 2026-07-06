@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import AlterTableDialog from '@/components/ui/AlterTableDialog.vue';
 import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
-import Tooltip from '@/components/ui/Tooltip.vue';
 
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
@@ -325,13 +324,12 @@ const vFocus = {
     <!-- Left: Table name + row actions -->
     <div class="flex min-w-0 items-center gap-2">
       <div class="mr-1 flex shrink-0 items-center gap-2">
-        <Tooltip :text="gridStore.activeTableName" position="bottom">
-          <h2
-            class="text-text-primary max-w-20 cursor-help truncate text-[14px] font-semibold @[400px]:max-w-37.5 @[850px]:max-w-none"
-          >
-            {{ gridStore.activeTableName }}
-          </h2>
-        </Tooltip>
+        <h2
+          v-tooltip.bottom="gridStore.activeTableName"
+          class="text-text-primary max-w-20 cursor-help truncate text-[14px] font-semibold @[400px]:max-w-37.5 @[850px]:max-w-none"
+        >
+          {{ gridStore.activeTableName }}
+        </h2>
       </div>
     </div>
 
@@ -406,16 +404,18 @@ const vFocus = {
       <div class="hidden items-center gap-1.5 @[500px]:flex">
         <!-- Columns -->
         <DropdownMenu
+          v-tooltip.bottom="'Configure Columns'"
           :model-value="''"
           :options="[]"
-          aria-label="Configure columns"
+          aria-label="Columns configuration"
+          align="right"
+          :show-chevron="true"
           button-class="border-border text-text-secondary hover:bg-hover group rounded-lg px-2.5 py-1.5"
           menu-class="min-w-52"
         >
           <template #trigger>
             <Columns3 :size="13" />
             <span class="hidden @[850px]:inline">Columns</span>
-            <Tooltip text="Configure Columns" position="bottom" />
           </template>
           <div
             class="text-text-tertiary px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
@@ -459,12 +459,12 @@ const vFocus = {
 
         <!-- Export -->
         <button
+          v-tooltip.bottom="'Export Data'"
           class="border-border text-text-secondary hover:bg-hover group relative flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors"
           @click="handleExport"
         >
           <Download :size="13" />
           <span class="hidden @[850px]:inline">Export</span>
-          <Tooltip text="Export Data" position="bottom" />
         </button>
 
         <!-- Row Count -->
@@ -487,26 +487,27 @@ const vFocus = {
 
         <!-- Alter Table -->
         <button
+          v-tooltip.bottom="'Alter Table Structure'"
           class="border-border text-text-secondary hover:bg-hover group relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-colors"
           @click="gridStore.showAlterTableDialog = true"
         >
           <Wrench :size="14" />
-          <Tooltip text="Alter Table Structure" position="bottom" />
         </button>
 
         <!-- Refresh -->
         <button
+          v-tooltip.bottom="'Refresh Table'"
           class="border-border text-text-secondary hover:bg-hover group relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-colors"
           @click="handleRefresh"
         >
           <RefreshCw :size="14" />
-          <Tooltip text="Refresh Table" position="bottom" />
         </button>
       </div>
 
       <!-- Level 3: Speed Dial / More Button -->
       <div class="flex items-center @[500px]:hidden">
         <DropdownMenu
+          v-tooltip.bottom="'More Actions'"
           :model-value="''"
           :options="[]"
           aria-label="More actions"
@@ -517,7 +518,6 @@ const vFocus = {
         >
           <template #trigger>
             <MoreHorizontal :size="16" />
-            <Tooltip text="More Actions" position="bottom" />
           </template>
           <template #default="{ close }">
             <button

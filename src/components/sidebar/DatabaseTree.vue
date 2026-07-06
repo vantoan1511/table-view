@@ -16,7 +16,6 @@ import type { Connection } from '@/types';
 
 import { ChevronsDownUpIcon, Download, Layers, LocateFixed, Upload } from 'lucide-vue-next';
 import { nextTick, provide, ref } from 'vue';
-import Tooltip from '../ui/Tooltip.vue';
 
 const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
@@ -318,44 +317,40 @@ const handleContextAction = async (action: string) => {
         >Connections</span
       >
       <div class="flex items-center gap-0.5">
-        <Tooltip text="Import Connections" position="bottom">
-          <Button
-            variant="ghost"
-            size="icon"
-            :icon="Download"
-            class="h-6 w-6"
-            @click="connectionsStore.selectImportFile()"
-          />
-        </Tooltip>
-        <Tooltip text="Export Connections" position="bottom">
-          <Button
-            variant="ghost"
-            size="icon"
-            :icon="Upload"
-            class="h-6 w-6"
-            @click="connectionsStore.toggleExportModal(true)"
-          />
-        </Tooltip>
-        <Tooltip text="Locate Current Table" position="bottom">
-          <Button
-            id="btn-navigate-active"
-            variant="ghost"
-            size="icon"
-            :icon="LocateFixed"
-            class="h-6 w-6"
-            @click="navigateToActive"
-          />
-        </Tooltip>
-        <Tooltip text="Collapse All" position="bottom">
-          <Button
-            id="btn-collapse-all"
-            variant="ghost"
-            size="icon"
-            :icon="ChevronsDownUpIcon"
-            class="h-6 w-6"
-            @click="collapseAll"
-          />
-        </Tooltip>
+        <Button
+          v-tooltip.bottom="'Import Connections'"
+          variant="ghost"
+          size="icon"
+          :icon="Download"
+          class="h-6 w-6"
+          @click="connectionsStore.selectImportFile()"
+        />
+        <Button
+          v-tooltip.bottom="'Export Connections'"
+          variant="ghost"
+          size="icon"
+          :icon="Upload"
+          class="h-6 w-6"
+          @click="connectionsStore.toggleExportModal(true)"
+        />
+        <Button
+          v-tooltip.bottom="'Locate Current Table'"
+          id="btn-navigate-active"
+          variant="ghost"
+          size="icon"
+          :icon="LocateFixed"
+          class="h-6 w-6"
+          @click="navigateToActive"
+        />
+        <Button
+          v-tooltip.bottom="'Collapse All'"
+          id="btn-collapse-all"
+          variant="ghost"
+          size="icon"
+          :icon="ChevronsDownUpIcon"
+          class="h-6 w-6"
+          @click="collapseAll"
+        />
       </div>
     </div>
 

@@ -2,7 +2,6 @@
 <script setup lang="ts">
 import { ArrowDown, ArrowUp } from 'lucide-vue-next';
 import { computed } from 'vue';
-import Tooltip from '@/components/ui/Tooltip.vue';
 
 import type { GridColumn } from '@/types';
 
@@ -51,10 +50,10 @@ const formatDataType = (dt: string): string => {
       <span class="truncate text-[12px]">{{ column.displayName || column.name }}</span>
       <span
         v-if="column.isPrimaryKey"
+        v-tooltip.top="'Primary Key'"
         class="relative shrink-0 text-[10px] font-bold text-amber-500"
       >
         PK
-        <Tooltip text="Primary Key" position="top" />
       </span>
       <ArrowUp
         v-if="isSorted && sortDirection === 'asc'"

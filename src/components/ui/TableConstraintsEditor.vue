@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import DropdownMenu from './DropdownMenu.vue';
-import Tooltip from './Tooltip.vue';
 
 import { DbType } from '@/types';
 
@@ -154,27 +153,27 @@ const saveConstraint = (c: ConstraintDef) => {
                 <button
                   v-if="c._editing"
                   @click="saveConstraint(c)"
+                  v-tooltip.top="'Save'"
                   class="text-success hover:text-success/80 cursor-pointer transition-colors"
                   :disabled="!c.name.trim() || !c.definition.trim()"
                 >
                   <Check :size="14" />
-                  <Tooltip text="Save" position="top" />
                 </button>
                 <button
                   v-else-if="mode === 'create' || c._isNew"
                   @click="editConstraint(c)"
+                  v-tooltip.top="'Edit'"
                   class="text-text-tertiary hover:text-primary cursor-pointer transition-colors"
                 >
                   <Edit2 :size="14" />
-                  <Tooltip text="Edit" position="top" />
                 </button>
 
                 <button
                   @click="removeConstraint(c.id)"
+                  v-tooltip.top="'Delete'"
                   class="text-text-tertiary hover:text-danger cursor-pointer transition-colors"
                 >
                   <Trash2 :size="14" />
-                  <Tooltip text="Delete" position="top" />
                 </button>
               </div>
             </td>

@@ -5,7 +5,6 @@ import GridCell from './GridCell.vue';
 import GridHeaderCell from './GridHeaderCell.vue';
 import GridToolbar from './GridToolbar.vue';
 import Pagination from './Pagination.vue';
-import Tooltip from '@/components/ui/Tooltip.vue';
 
 import { useClickOutside } from '@/composables/useClickOutside';
 import { useContextMenu } from '@/composables/useContextMenu';
@@ -372,19 +371,19 @@ onUnmounted(() => {
                   <div class="flex items-center justify-end gap-1.5">
                     <button
                       @click.stop="gridStore.saveNewRow"
+                      v-tooltip.top="'Save row'"
                       class="text-success hover:bg-success/10 flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium"
                     >
                       <Check :size="12" />
                       <span>Save</span>
-                      <Tooltip text="Save row" position="top" />
                     </button>
                     <button
                       @click.stop="gridStore.cancelNewRow"
+                      v-tooltip.top="'Discard'"
                       class="text-danger hover:bg-danger/10 flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium"
                     >
                       <X :size="12" />
                       <span>Discard</span>
-                      <Tooltip text="Discard" position="top" />
                     </button>
                   </div>
                 </td>

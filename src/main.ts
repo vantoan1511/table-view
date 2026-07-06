@@ -6,6 +6,7 @@ import * as Neutralino from '@neutralinojs/lib';
 import Aura from '@primeuix/themes/aura';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
+import Tooltip from 'primevue/tooltip';
 import { createApp } from 'vue';
 import App from './App.vue';
 
@@ -32,6 +33,8 @@ app.use(PrimeVue, {
     }
   }
 });
+
+app.directive('tooltip', Tooltip);
 
 app.config.errorHandler = (err, instance, info) => {
   console.error('Vue Error:', err, info);

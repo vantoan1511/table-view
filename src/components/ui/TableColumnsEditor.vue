@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Checkbox from './Checkbox.vue';
 import DropdownMenu from './DropdownMenu.vue';
-import Tooltip from './Tooltip.vue';
 
 import { DbType } from '@/types';
 
@@ -283,8 +282,9 @@ const togglePrimaryKey = (col: ColumnDef) => {
                     >Precision, Scale:</span
                   >
                   <div class="flex w-full items-center gap-1">
-                    <span class="relative flex-1">
+                    <span class="flex-1">
                       <input
+                        v-tooltip.top="'Precision (total digits)'"
                         type="number"
                         min="1"
                         :value="parseDataType(col.dataType).precision"
@@ -295,11 +295,11 @@ const togglePrimaryKey = (col: ColumnDef) => {
                         placeholder="10"
                         class="bg-surface border-border focus:border-primary text-text-primary w-full rounded border px-1 py-0.5 text-center text-[12px] outline-none"
                       />
-                      <Tooltip text="Precision (total digits)" position="top" />
                     </span>
                     <span class="text-text-tertiary">,</span>
-                    <span class="relative flex-1">
+                    <span class="flex-1">
                       <input
+                        v-tooltip.top="'Scale (decimal digits)'"
                         type="number"
                         min="0"
                         :value="parseDataType(col.dataType).scale"
@@ -310,7 +310,6 @@ const togglePrimaryKey = (col: ColumnDef) => {
                         placeholder="2"
                         class="bg-surface border-border focus:border-primary text-text-primary w-full rounded border px-1 py-0.5 text-center text-[12px] outline-none"
                       />
-                      <Tooltip text="Scale (decimal digits)" position="top" />
                     </span>
                   </div>
                 </div>
@@ -365,27 +364,27 @@ const togglePrimaryKey = (col: ColumnDef) => {
                 <button
                   v-if="col._editing"
                   @click="saveColumn(col)"
+                  v-tooltip.top="'Save'"
                   class="text-success hover:text-success/80 cursor-pointer transition-colors"
                   :disabled="!col.name.trim()"
                 >
                   <Check :size="14" />
-                  <Tooltip text="Save" position="top" />
                 </button>
                 <button
                   v-else
                   @click="editColumn(col)"
+                  v-tooltip.top="'Edit'"
                   class="text-text-tertiary hover:text-primary cursor-pointer transition-colors"
                 >
                   <Edit2 :size="14" />
-                  <Tooltip text="Edit" position="top" />
                 </button>
 
                 <button
                   @click="removeColumn(col.id)"
+                  v-tooltip.top="'Delete'"
                   class="text-text-tertiary hover:text-danger cursor-pointer transition-colors"
                 >
                   <Trash2 :size="14" />
-                  <Tooltip text="Delete" position="top" />
                 </button>
               </div>
             </td>
