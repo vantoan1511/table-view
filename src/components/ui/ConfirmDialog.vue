@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import Checkbox from './Checkbox.vue';
-
 import { AlertTriangle, Info, Trash2, X } from 'lucide-vue-next';
 
 interface Props {
@@ -76,11 +74,20 @@ const colorMap = {
             <h3 class="text-text-primary text-[14px] leading-tight font-semibold">{{ title }}</h3>
             <p class="text-text-secondary mt-1 text-[13px] leading-relaxed">{{ message }}</p>
             <div v-if="showCheckbox" class="mt-3">
-              <Checkbox
-                :model-value="checkboxValue"
-                :label="checkboxLabel"
-                @update:model-value="(val) => emit('update:checkboxValue', val)"
-              />
+              <div class="flex items-center gap-2">
+                <Checkbox
+                  :model-value="checkboxValue"
+                  @update:model-value="(val) => emit('update:checkboxValue', val)"
+                  inputId="confirm-dialog-check"
+                  binary
+                />
+                <label
+                  for="confirm-dialog-check"
+                  class="text-text-secondary cursor-pointer text-sm select-none"
+                >
+                  {{ checkboxLabel }}
+                </label>
+              </div>
             </div>
           </div>
           <Button variant="text" severity="secondary" @click="emit('cancel')">
