@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 import { useGridStore } from '@/stores/grid';
@@ -174,12 +173,13 @@ const getFlagColorClass = (colorName?: string) => {
 
       <Button
         v-if="historyStore.history.length > 0"
-        variant="ghost"
-        size="sm"
-        :icon="Trash2"
+        variant="text"
+        severity="secondary"
+        size="small"
         class="text-text-tertiary hover:text-danger h-7"
         @click="handleClearHistory"
       >
+        <Trash2 class="h-4 w-4" />
         Clear
       </Button>
     </div>
@@ -208,7 +208,7 @@ const getFlagColorClass = (colorName?: string) => {
         >
           <!-- Timeline point indicator -->
           <div
-            class="border-surface absolute top-4 -left-[21px] h-2.5 w-2.5 rounded-full border"
+            class="border-surface absolute top-4 -left-5.25 h-2.5 w-2.5 rounded-full border"
             :class="[entry.type === 'sql' ? 'bg-primary' : 'bg-success']"
           />
 

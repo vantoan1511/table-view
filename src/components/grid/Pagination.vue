@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
-import Button from '../ui/Button.vue';
 
 import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
@@ -91,24 +90,28 @@ const confirmDelete = async () => {
     <div class="flex items-center gap-2.5">
       <!-- Add Row -->
       <Button
+        v-tooltip.top="'Add row'"
         id="btn-add-row"
-        variant="outline"
+        variant="outlined"
         severity="success"
-        size="icon"
-        :icon="Plus"
+        size="small"
         @click="handleInsert"
-      />
+      >
+        <template #icon>
+          <Plus class="h-4 w-4" />
+        </template>
+      </Button>
 
       <!-- Delete Selected -->
       <Button
         v-if="selectedCount > 0"
         id="btn-delete-rows"
-        variant="ghost"
+        variant="text"
         severity="danger"
-        :size="selectedCount > 0 ? 'sm' : 'icon'"
-        :icon="Trash2"
+        size="small"
         @click="promptDelete"
       >
+        <Trash2 class="h-4 w-4" />
         <span>Delete ({{ selectedCount }})</span>
       </Button>
 

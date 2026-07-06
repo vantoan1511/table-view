@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Button from '../ui/Button.vue';
 import Checkbox from '../ui/Checkbox.vue';
 import ConfirmDialog from '../ui/ConfirmDialog.vue';
 import CreateDatabaseDialog from '../ui/CreateDatabaseDialog.vue';
@@ -236,8 +235,10 @@ const confirmDatabaseDelete = async () => {
               </h3>
               <p class="text-text-tertiary mt-0.5 text-[11px]">Highly Critical Action</p>
             </div>
-            <Button variant="ghost" size="icon" @click="closeDatabaseDelete">
-              <X :size="16" />
+            <Button rounded variant="text" severity="secondary" @click="closeDatabaseDelete">
+              <template #icon>
+                <X class="h-4 w-4" />
+              </template>
             </Button>
           </div>
 
@@ -319,12 +320,15 @@ const confirmDatabaseDelete = async () => {
 
           <!-- Footer -->
           <div class="flex items-center justify-end gap-2 p-4">
-            <Button variant="secondary" @click="closeDatabaseDelete">Cancel</Button>
+            <Button variant="text" severity="secondary" size="small" @click="closeDatabaseDelete">
+              Cancel
+            </Button>
 
             <!-- Step 1 Button -->
             <Button
               v-if="confirmStep === 1"
-              variant="danger"
+              severity="danger"
+              size="small"
               :disabled="typedDbName !== databaseToDelete.name"
               @click="confirmStep = 2"
             >
@@ -334,7 +338,8 @@ const confirmDatabaseDelete = async () => {
             <!-- Step 2 Button -->
             <Button
               v-else
-              variant="danger"
+              severity="danger"
+              size="small"
               :disabled="!backedUpChecked"
               @click="confirmDatabaseDelete"
             >

@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
 import Checkbox from '@/components/ui/Checkbox.vue';
 import { useConnectionsStore } from '@/stores/connections';
+import type { Connection } from '@/types';
 import { AlertCircle, X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
-import type { Connection } from '@/types';
 
 const connectionsStore = useConnectionsStore();
 
@@ -74,8 +73,10 @@ const selectedCount = computed(() => items.value.filter((i) => i.selected).lengt
         <!-- Header -->
         <div class="border-border flex items-center justify-between border-b px-5 py-3.5">
           <h2 class="text-text-primary text-[15px] font-semibold">Import Connections</h2>
-          <Button variant="ghost" size="icon" @click="handleClose">
-            <X :size="16" />
+          <Button rounded variant="text" severity="secondary" @click="handleClose">
+            <template #icon>
+              <X class="h-4 w-4" />
+            </template>
           </Button>
         </div>
 
@@ -151,8 +152,10 @@ const selectedCount = computed(() => items.value.filter((i) => i.selected).lengt
             {{ selectedCount }} connection(s) selected
           </div>
           <div class="flex items-center gap-2">
-            <Button variant="secondary" @click="handleClose">Cancel</Button>
-            <Button variant="primary" :disabled="selectedCount === 0" @click="handleImport">
+            <Button variant="text" severity="secondary" size="small" @click="handleClose">
+              Cancel
+            </Button>
+            <Button :disabled="selectedCount === 0" size="small" @click="handleImport">
               Import
             </Button>
           </div>

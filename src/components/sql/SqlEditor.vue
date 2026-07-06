@@ -1,6 +1,5 @@
 <script setup lang="ts">
 // Components
-import Button from '@/components/ui/Button.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import ResizeHandle from '@/components/ui/ResizeHandle.vue';
 import ResultsGrid from './ResultsGrid.vue';
@@ -24,7 +23,7 @@ import { syntaxHighlighting } from '@codemirror/language';
 import { Compartment, EditorState, Prec } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { EditorView, basicSetup } from 'codemirror';
-import { Check, Clock, Download, Play, RotateCcw, Save } from 'lucide-vue-next';
+import { Check, Clock, Download, Loader2, Play, RotateCcw, Save } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
 
 // Other imports
@@ -226,39 +225,50 @@ onMounted(() => {
         <!-- Run Bar -->
         <div class="border-border bg-muted flex items-center gap-2 border-t px-3 py-1.5">
           <Button
-            id="btn-run-query"
-            variant="primary"
-            size="sm"
             :loading="gridStore.isLoading"
-            :icon="Play"
+            id="btn-run-query"
+            variant="outlined"
+            size="small"
             @click="handleRun"
           >
+            <Play v-if="!gridStore.isLoading" :size="14" />
+            <Loader2 v-else :size="14" class="animate-spin" />
             {{ gridStore.isLoading ? 'Running...' : 'Run' }}
           </Button>
 
           <template v-if="hasActiveTransaction">
-            <Button variant="success" size="sm" :icon="Check" @click="commitTx"> Commit </Button>
-            <Button variant="danger" size="sm" :icon="RotateCcw" @click="rollbackTx">
+            <Button variant="text" severity="success" size="small" @click="commitTx">
+              <Check :size="13" />
+              Commit
+            </Button>
+            <Button variant="text" severity="danger" size="small" @click="rollbackTx">
+              <RotateCcw :size="13" />
               Rollback
             </Button>
           </template>
 
           <Button
             v-tooltip.top="'Save (Ctrl+S)'"
-            variant="secondary"
-            size="sm"
-            :icon="Save"
+            variant="outlined"
+            severity="secondary"
+            size="small"
             @click="saveQuery"
-          />
+          >
+            <template #icon>
+              <Save :size="16" />
+            </template>
+          </Button>
 
           <Button
             v-tooltip.top="'Export to .sql file'"
-            variant="secondary"
-            size="sm"
-            :icon="Download"
+            variant="outlined"
+            severity="secondary"
+            size="small"
             @click="exportQuery"
           >
-            Export
+            <template #icon>
+              <Download :size="16" />
+            </template>
           </Button>
 
           <label

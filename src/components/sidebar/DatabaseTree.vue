@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
 import ConnectionContextMenu from './ConnectionContextMenu.vue';
 import ConnectionNode from './ConnectionNode.vue';
 import DatabaseContextMenu from './DatabaseContextMenu.vue';
@@ -319,38 +318,50 @@ const handleContextAction = async (action: string) => {
       <div class="flex items-center gap-0.5">
         <Button
           v-tooltip.bottom="'Import Connections'"
-          variant="ghost"
-          size="icon"
-          :icon="Download"
+          variant="text"
+          severity="secondary"
           class="h-6 w-6"
           @click="connectionsStore.selectImportFile()"
-        />
+        >
+          <template #icon>
+            <Download class="h-3.5 w-3.5" />
+          </template>
+        </Button>
         <Button
           v-tooltip.bottom="'Export Connections'"
-          variant="ghost"
-          size="icon"
-          :icon="Upload"
+          variant="text"
+          severity="secondary"
           class="h-6 w-6"
           @click="connectionsStore.toggleExportModal(true)"
-        />
+        >
+          <template #icon>
+            <Upload class="h-3.5 w-3.5" />
+          </template>
+        </Button>
         <Button
           v-tooltip.bottom="'Locate Current Table'"
           id="btn-navigate-active"
-          variant="ghost"
-          size="icon"
-          :icon="LocateFixed"
+          variant="text"
+          severity="secondary"
           class="h-6 w-6"
           @click="navigateToActive"
-        />
+        >
+          <template #icon>
+            <LocateFixed class="h-3.5 w-3.5" />
+          </template>
+        </Button>
         <Button
           v-tooltip.bottom="'Collapse All'"
           id="btn-collapse-all"
-          variant="ghost"
-          size="icon"
-          :icon="ChevronsDownUpIcon"
+          variant="text"
+          severity="secondary"
           class="h-6 w-6"
           @click="collapseAll"
-        />
+        >
+          <template #icon>
+            <ChevronsDownUpIcon class="h-3.5 w-3.5" />
+          </template>
+        </Button>
       </div>
     </div>
 

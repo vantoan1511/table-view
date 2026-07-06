@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import DbIcon from '@/components/icons/DbIcon.vue';
-import Button from '@/components/ui/Button.vue';
 import DatabaseNode from './DatabaseNode.vue';
 import SchemaNode from './SchemaNode.vue';
 
@@ -124,12 +123,14 @@ const connectionDatabases = computed(
       />
 
       <Button
-        variant="ghost"
-        size="icon"
+        variant="text"
+        severity="secondary"
         class="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100"
         @click.stop="emit('contextmenu', $event)"
       >
-        <MoreVertical :size="12" />
+        <template #icon>
+          <MoreVertical class="h-3 w-3" />
+        </template>
       </Button>
     </div>
 

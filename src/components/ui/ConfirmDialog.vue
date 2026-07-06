@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import Checkbox from './Checkbox.vue';
-import Button from './Button.vue';
 
 import { AlertTriangle, Info, Trash2, X } from 'lucide-vue-next';
 
@@ -84,8 +83,10 @@ const colorMap = {
               />
             </div>
           </div>
-          <Button variant="ghost" size="icon" @click="emit('cancel')">
-            <X :size="16" />
+          <Button variant="text" severity="secondary" @click="emit('cancel')">
+            <template #icon>
+              <X class="h-4 w-4" />
+            </template>
           </Button>
         </div>
 
@@ -94,10 +95,10 @@ const colorMap = {
 
         <!-- Footer -->
         <div class="flex items-center justify-end gap-2 p-4">
-          <Button variant="secondary" @click="emit('cancel')">
+          <Button variant="outlined" severity="secondary" @click="emit('cancel')">
             {{ cancelLabel }}
           </Button>
-          <Button :variant="colorMap[variant].variant" @click="emit('confirm')">
+          <Button :severity="colorMap[variant].variant" @click="emit('confirm')">
             {{ confirmLabel }}
           </Button>
         </div>
