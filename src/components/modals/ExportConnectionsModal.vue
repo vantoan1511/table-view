@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Checkbox from '@/components/ui/Checkbox.vue';
 import { useConnectionsStore } from '@/stores/connections';
 import { X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
@@ -74,8 +73,17 @@ const handleExport = async () => {
         <div class="flex-1 overflow-y-auto px-5 py-4">
           <div class="border-border rounded-lg border">
             <div class="border-border bg-sidebar/50 flex items-center gap-3 border-b px-3 py-2">
-              <Checkbox :model-value="isAllSelected" @update:model-value="toggleSelectAll" />
-              <span class="text-text-secondary text-[13px] font-medium">Select All</span>
+              <Checkbox
+                :model-value="isAllSelected"
+                @update:model-value="toggleSelectAll"
+                inputId="select-all-export"
+                binary
+              />
+              <label
+                for="select-all-export"
+                class="text-text-secondary cursor-pointer text-[13px] font-medium select-none"
+                >Select All</label
+              >
             </div>
             <div class="max-h-60 overflow-y-auto">
               <div
@@ -91,17 +99,22 @@ const handleExport = async () => {
                       else selectedIds = selectedIds.filter((id) => id !== conn.id);
                     }
                   "
+                  :inputId="'conn-' + conn.id"
+                  binary
                 />
-                <div class="flex items-center gap-2">
+                <label
+                  :for="'conn-' + conn.id"
+                  class="flex flex-1 cursor-pointer items-center gap-2 select-none"
+                >
                   <div
-                    class="h-2 w-2 rounded-full"
+                    class="h-2 w-2 shrink-0 rounded-full"
                     :class="conn.color ? `bg-conn-${conn.color}` : 'bg-conn-gray'"
                   />
                   <span class="text-text-primary text-[13px]">{{ conn.name }}</span>
                   <span class="text-text-tertiary font-mono text-[11px]"
                     >{{ conn.host }}:{{ conn.port }}</span
                   >
-                </div>
+                </label>
               </div>
               <div
                 v-if="connectionsStore.connections.length === 0"
@@ -113,15 +126,20 @@ const handleExport = async () => {
           </div>
 
           <div class="mt-4 flex items-start gap-2">
-            <Checkbox v-model="includePasswords" class="mt-0.5" />
-            <div class="flex flex-col">
+            <Checkbox
+              v-model="includePasswords"
+              inputId="include-passwords-export"
+              binary
+              class="mt-0.5"
+            />
+            <label for="include-passwords-export" class="flex cursor-pointer flex-col select-none">
               <span class="text-text-primary text-[13px] font-medium"
                 >Include passwords / credentials</span
               >
               <span class="text-text-tertiary text-[11px]">
                 Passwords will be encrypted, but anyone with Table View can import and use them.
               </span>
-            </div>
+            </label>
           </div>
         </div>
 

@@ -14,7 +14,7 @@ declare module 'vue' {
     AboutDialog: typeof import('./src/components/ui/AboutDialog.vue')['default']
     AlterTableDialog: typeof import('./src/components/ui/AlterTableDialog.vue')['default']
     Button: typeof import('primevue/button')['default']
-    Checkbox: typeof import('./src/components/ui/Checkbox.vue')['default']
+    Checkbox: typeof import('primevue/checkbox')['default']
     ColorPicker: typeof import('./src/components/ui/ColorPicker.vue')['default']
     ConfirmDialog: typeof import('./src/components/ui/ConfirmDialog.vue')['default']
     ConnectionContextMenu: typeof import('./src/components/sidebar/ConnectionContextMenu.vue')['default']

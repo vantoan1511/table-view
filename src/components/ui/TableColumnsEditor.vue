@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Checkbox from './Checkbox.vue';
 import DropdownMenu from './DropdownMenu.vue';
 
 import { DbType } from '@/types';
@@ -322,6 +321,8 @@ const togglePrimaryKey = (col: ColumnDef) => {
               <Checkbox
                 :model-value="col.isPrimaryKey"
                 @update:model-value="togglePrimaryKey(col)"
+                :inputId="'pk-' + col.id"
+                binary
               />
             </td>
 
@@ -330,6 +331,8 @@ const togglePrimaryKey = (col: ColumnDef) => {
               <Checkbox
                 v-model="col.nullable"
                 :disabled="mode === 'alter' ? !col._isNew || !col._editing : col.isPrimaryKey"
+                :inputId="'null-' + col.id"
+                binary
               />
             </td>
 

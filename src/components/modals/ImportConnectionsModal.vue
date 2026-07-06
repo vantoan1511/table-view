@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Checkbox from '@/components/ui/Checkbox.vue';
 import { useConnectionsStore } from '@/stores/connections';
 import type { Connection } from '@/types';
 import { AlertCircle, X } from 'lucide-vue-next';
@@ -84,8 +83,17 @@ const selectedCount = computed(() => items.value.filter((i) => i.selected).lengt
         <div class="flex-1 overflow-y-auto px-5 py-4">
           <div class="border-border rounded-lg border">
             <div class="border-border bg-sidebar/50 flex items-center gap-3 border-b px-3 py-2">
-              <Checkbox :model-value="isAllSelected" @update:model-value="toggleSelectAll" />
-              <span class="text-text-secondary text-[13px] font-medium">Select All</span>
+              <Checkbox
+                :model-value="isAllSelected"
+                @update:model-value="toggleSelectAll"
+                inputId="select-all-import"
+                binary
+              />
+              <label
+                for="select-all-import"
+                class="text-text-secondary cursor-pointer text-[13px] font-medium select-none"
+                >Select All</label
+              >
             </div>
             <div class="max-h-[50vh] overflow-y-auto">
               <div
@@ -94,8 +102,11 @@ const selectedCount = computed(() => items.value.filter((i) => i.selected).lengt
                 class="border-border hover:bg-sidebar/30 flex flex-col border-b px-3 py-2 last:border-b-0"
               >
                 <div class="flex items-center gap-3">
-                  <Checkbox v-model="item.selected" />
-                  <div class="flex flex-1 items-center gap-2">
+                  <Checkbox v-model="item.selected" :inputId="'import-conn-' + index" binary />
+                  <label
+                    :for="'import-conn-' + index"
+                    class="flex flex-1 cursor-pointer items-center gap-2 select-none"
+                  >
                     <div
                       class="h-2 w-2 rounded-full"
                       :class="
@@ -106,7 +117,7 @@ const selectedCount = computed(() => items.value.filter((i) => i.selected).lengt
                     <span class="text-text-tertiary font-mono text-[11px]"
                       >{{ item.connection.host }}:{{ item.connection.port }}</span
                     >
-                  </div>
+                  </label>
                 </div>
 
                 <div v-if="item.conflict" class="bg-warning/10 mt-2 ml-7 rounded-md px-3 py-2">
