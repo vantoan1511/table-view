@@ -1,8 +1,15 @@
 import { definePreset } from '@primeuix/themes';
+
 import Aura from '@primeuix/themes/aura';
 
 export const TableViewTheme = definePreset(Aura, {
   semantic: {
+    focusRing: {
+      width: '2px',
+      style: 'dashed',
+      color: '{primary.color}',
+      offset: '5px'
+    },
     primary: {
       50: '{indigo.50}',
       100: '{indigo.100}',
@@ -35,18 +42,18 @@ export const TableViewTheme = definePreset(Aura, {
       },
       dark: {
         surface: {
-          0: '#1e1e2e',
-          50: '#181825',
-          100: '#1e1e2e',
-          200: '#313244',
-          300: '#45475a',
-          400: '#585b70',
-          500: '#6c7086',
-          600: '#a6adc8',
-          700: '#bac2de',
-          800: '#cdd6f4',
-          900: '#cdd6f4',
-          950: '#181825'
+          0: '#ffffff',
+          50: '{slate.50}',
+          100: '{slate.100}',
+          200: '{slate.200}',
+          300: '{slate.300}',
+          400: '{slate.400}',
+          500: '{slate.500}',
+          600: '{slate.600}',
+          700: '{slate.700}',
+          800: '{slate.800}',
+          900: '{slate.900}',
+          950: '{slate.950}'
         }
       }
     }
