@@ -28,6 +28,7 @@
     "codemirror": "^6.0.2",
     "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
+    "primeicons": "^7.0.0",
     "primevue": "^4.5.5",
     "sql-formatter": "^15.4.9",
     "tailwindcss": "^4.2.4",
