@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
 
 import { usePreferencesStore } from '@/stores/preferences';
@@ -126,7 +125,7 @@ const savePreferences = async () => {
         @click.self="preferencesStore.close"
       >
         <div
-          class="bg-surface border-border animate-in zoom-in modal-container flex h-[580px] max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border shadow-2xl duration-200"
+          class="bg-surface border-border animate-in zoom-in modal-container flex h-145 max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border shadow-2xl duration-200"
         >
           <!-- Header -->
           <div class="border-border flex items-center justify-between border-b px-5 py-4">
@@ -134,12 +133,11 @@ const savePreferences = async () => {
               <Settings :size="18" class="text-primary shrink-0" />
               <h2 class="text-sm font-semibold">Preferences</h2>
             </div>
-            <button
-              @click="preferencesStore.close"
-              class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded-lg p-1.5 transition-colors"
-            >
-              <X :size="16" />
-            </button>
+            <Button rounded variant="text" severity="secondary" @click="preferencesStore.close">
+              <template #icon>
+                <X class="h-4 w-4" />
+              </template>
+            </Button>
           </div>
 
           <!-- Body -->
@@ -345,12 +343,19 @@ const savePreferences = async () => {
 
           <!-- Footer -->
           <div class="border-border flex shrink-0 items-center justify-between border-t px-5 py-3">
-            <Button variant="secondary" size="sm" @click="resetToDefaults">
+            <Button variant="text" severity="secondary" size="small" @click="resetToDefaults">
               Reset to Defaults
             </Button>
             <div class="flex items-center gap-2">
-              <Button variant="ghost" size="sm" @click="preferencesStore.close"> Cancel </Button>
-              <Button variant="primary" size="sm" @click="savePreferences"> Save Changes </Button>
+              <Button
+                variant="text"
+                severity="secondary"
+                size="small"
+                @click="preferencesStore.close"
+              >
+                Cancel
+              </Button>
+              <Button size="small" @click="savePreferences"> Save Changes </Button>
             </div>
           </div>
         </div>

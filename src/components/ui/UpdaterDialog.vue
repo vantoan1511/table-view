@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import Button from './Button.vue';
-
 import { useUpdaterStore } from '@/stores/updater';
 
 import { Download, FileText, Info, Loader2, RefreshCw, X } from 'lucide-vue-next';
@@ -90,8 +88,16 @@ const close = () => {
                 {{ updaterStore.isUpdating ? 'Updating Application' : 'Update Available' }}
               </h3>
             </div>
-            <Button v-if="!updaterStore.isUpdating" variant="ghost" size="icon" @click="close">
-              <X :size="18" />
+            <Button
+              v-if="!updaterStore.isUpdating"
+              rounded
+              variant="text"
+              severity="secondary"
+              @click="close"
+            >
+              <template #icon>
+                <X class="h-4 w-4" />
+              </template>
             </Button>
           </div>
 
@@ -106,12 +112,16 @@ const close = () => {
                 <p class="text-text-tertiary text-sm">{{ updaterStore.error }}</p>
               </div>
               <div class="flex w-full max-w-xs justify-center gap-3">
-                <Button variant="secondary" class="flex-1" @click="close"> Close </Button>
                 <Button
-                  variant="primary"
+                  variant="text"
+                  severity="secondary"
+                  size="small"
                   class="flex-1"
-                  @click="updaterStore.checkForUpdates(true)"
+                  @click="close"
                 >
+                  Close
+                </Button>
+                <Button size="small" class="flex-1" @click="updaterStore.checkForUpdates(true)">
                   Try Again
                 </Button>
               </div>
@@ -198,19 +208,24 @@ const close = () => {
               </div>
 
               <div class="flex flex-col gap-3 pt-2">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  class="w-full"
-                  @click="updaterStore.installUpdates"
-                >
-                  <Download :size="16" />
+                <Button fluid size="large" @click="updaterStore.installUpdates">
+                  <Download class="h-4 w-4" />
                   Install and Restart
                 </Button>
                 <div class="flex gap-3">
-                  <Button variant="secondary" class="flex-1" @click="close"> Later </Button>
                   <Button
-                    variant="secondary"
+                    variant="text"
+                    severity="secondary"
+                    size="small"
+                    class="flex-1"
+                    @click="close"
+                  >
+                    Later
+                  </Button>
+                  <Button
+                    variant="text"
+                    severity="secondary"
+                    size="small"
                     class="text-text-tertiary! flex-1"
                     @click="updaterStore.ignoreUpdate(updaterStore.updateAvailable.version)"
                   >

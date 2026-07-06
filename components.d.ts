@@ -13,7 +13,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     AboutDialog: typeof import('./src/components/ui/AboutDialog.vue')['default']
     AlterTableDialog: typeof import('./src/components/ui/AlterTableDialog.vue')['default']
-    Button: typeof import('./src/components/ui/Button.vue')['default']
+    Button: typeof import('primevue/button')['default']
     Checkbox: typeof import('./src/components/ui/Checkbox.vue')['default']
     ColorPicker: typeof import('./src/components/ui/ColorPicker.vue')['default']
     ConfirmDialog: typeof import('./src/components/ui/ConfirmDialog.vue')['default']

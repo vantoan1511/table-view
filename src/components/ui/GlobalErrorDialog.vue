@@ -2,7 +2,6 @@
 import { useErrorStore } from '@/stores/error';
 import { AlertCircle, ChevronDown, ChevronRight, X } from 'lucide-vue-next';
 import { ref } from 'vue';
-import Button from './Button.vue';
 
 const errorStore = useErrorStore();
 const showDetails = ref(false);
@@ -25,14 +24,13 @@ const handleClose = () => {
       <div class="border-border bg-danger/5 text-danger flex items-center gap-3 border-b px-5 py-4">
         <AlertCircle :size="20" class="shrink-0" />
         <h3 class="flex-1 text-[15px] font-semibold">Application Error</h3>
-        <Button
-          variant="none"
-          size="icon"
+        <button
+          type="button"
           @click="handleClose"
-          class="text-danger/70 hover:text-danger"
+          class="text-danger/70 hover:text-danger flex cursor-pointer items-center justify-center border-none bg-transparent p-1"
         >
           <X :size="18" />
-        </Button>
+        </button>
       </div>
 
       <!-- Body -->
@@ -43,12 +41,14 @@ const handleClose = () => {
 
         <div v-if="errorStore.details" class="mt-2">
           <Button
-            variant="ghost"
-            size="sm"
+            variant="text"
+            severity="secondary"
+            size="small"
             @click="showDetails = !showDetails"
             class="text-text-tertiary! hover:text-text-secondary! p-0!"
           >
-            <component :is="showDetails ? ChevronDown : ChevronRight" :size="14" />
+            <ChevronDown v-if="showDetails" />
+            <ChevronRight v-else />
             <span>{{ showDetails ? 'Hide details' : 'Show details' }}</span>
           </Button>
 
@@ -63,7 +63,7 @@ const handleClose = () => {
 
       <!-- Footer -->
       <div class="border-border bg-muted/30 flex items-center justify-end border-t px-5 py-4">
-        <Button variant="danger" @click="handleClose" class="px-5"> Close </Button>
+        <Button severity="danger" size="small" @click="handleClose"> Close </Button>
       </div>
     </div>
   </div>

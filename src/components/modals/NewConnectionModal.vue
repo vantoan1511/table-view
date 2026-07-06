@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import DbIcon from '@/components/icons/DbIcon.vue';
-import Button from '@/components/ui/Button.vue';
 import ColorPicker from '@/components/ui/ColorPicker.vue';
-import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
 
 import { useConnectionsStore } from '@/stores/connections';
 import { useErrorStore } from '@/stores/error';
@@ -11,7 +10,7 @@ import { useErrorStore } from '@/stores/error';
 import { ConnectionColor, DbType, OracleConnectType, OracleRole, type Connection } from '@/types';
 
 import * as Neutralino from '@neutralinojs/lib';
-import { CircleHelp, Download, Eye, EyeOff, X } from 'lucide-vue-next';
+import { CircleHelp, Download, Eye, EyeOff, Loader2, Send, X } from 'lucide-vue-next';
 import { reactive, ref, watch } from 'vue';
 
 import { DB_TYPES } from '@/lib/dbTypes';
@@ -251,8 +250,10 @@ const handleClose = () => {
           <h2 class="text-text-primary text-[15px] font-semibold">
             {{ connectionsStore.connectionToEdit ? 'Edit Connection' : 'New Connection' }}
           </h2>
-          <Button variant="ghost" size="icon" @click="handleClose">
-            <X :size="16" />
+          <Button rounded variant="text" severity="secondary" @click="handleClose">
+            <template #icon>
+              <X class="h-4 w-4" />
+            </template>
           </Button>
         </div>
 
@@ -269,8 +270,11 @@ const handleClose = () => {
               <Button
                 v-for="db in DB_TYPES"
                 :key="db.key"
-                class="mb-0.5 w-full !justify-start"
-                :variant="form.type === db.key ? 'subtle' : 'ghost'"
+                fluid
+                class="mb-0.5 w-full justify-start!"
+                size="small"
+                :variant="form.type === db.key ? 'link' : 'text'"
+                :severity="form.type === db.key ? 'primary' : 'secondary'"
                 @click="selectDbType(db.key)"
               >
                 <DbIcon :type="db.key" size="18" />
@@ -281,13 +285,14 @@ const handleClose = () => {
             <!-- Import Connection -->
             <div class="border-border mt-2 border-t px-3 pt-2">
               <Button
-                variant="ghost"
-                size="sm"
-                class="w-full !justify-start"
-                :icon="Download"
+                variant="text"
+                severity="secondary"
+                size="small"
+                class="w-full justify-start!"
                 @click="handleImportConnection"
               >
-                <span>Import Connection</span>
+                <Download class="h-4 w-4" />
+                <span>Import</span>
               </Button>
               <p v-if="importError" class="text-danger mt-1 px-3 text-[11px]">{{ importError }}</p>
             </div>
@@ -297,11 +302,10 @@ const handleClose = () => {
           <div class="flex min-h-0 flex-1 flex-col">
             <!-- Tabs -->
             <div class="border-border flex items-center gap-1 border-b px-5 pt-3 pb-0">
-              <Button
+              <button
                 v-for="tab in ['general', 'ssl', 'advanced'] as const"
                 :key="tab"
-                variant="none"
-                class="-mb-px px-3 py-2 text-[13px] font-medium capitalize"
+                class="-mb-px cursor-pointer border-none bg-transparent px-3 py-2 text-[13px] font-medium capitalize transition-colors"
                 :class="
                   activeTab === tab
                     ? 'text-primary border-primary rounded-none border-b-2'
@@ -310,7 +314,7 @@ const handleClose = () => {
                 @click="activeTab = tab"
               >
                 {{ tab === 'ssl' ? 'SSL' : tab }}
-              </Button>
+              </button>
             </div>
 
             <!-- Form Content -->
@@ -425,15 +429,14 @@ const handleClose = () => {
                       :type="showPassword ? 'text' : 'password'"
                       class="border-border text-text-primary bg-surface focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 pr-10 text-[13px] transition-all outline-none focus:ring-1"
                     />
-                    <Button
-                      variant="none"
-                      size="icon"
-                      class="text-text-tertiary hover:text-text-secondary absolute top-1/2 right-1 -translate-y-1/2"
+                    <button
+                      type="button"
+                      class="text-text-tertiary hover:text-text-secondary absolute top-1/2 right-1 flex -translate-y-1/2 cursor-pointer items-center justify-center border-none bg-transparent p-1"
                       @click="showPassword = !showPassword"
                     >
                       <Eye v-if="!showPassword" :size="15" />
                       <EyeOff v-else :size="15" />
-                    </Button>
+                    </button>
                   </div>
                   <div class="mt-2 flex items-center gap-1.5">
                     <ToggleSwitch v-model="form.savePassword" />
@@ -507,24 +510,15 @@ const handleClose = () => {
           <div class="flex items-center gap-3">
             <Button
               id="btn-test-connection"
-              variant="secondary"
+              variant="text"
+              severity="secondary"
+              size="small"
               :loading="testStatus === 'testing'"
               @click="handleTestConnection"
             >
-              <template v-if="testStatus !== 'testing'">
-                <svg
-                  class="h-3.5 w-3.5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"
-                  />
-                </svg>
-              </template>
-              <span>Test Connection</span>
+              <Send v-if="testStatus !== 'testing'" :size="13" />
+              <Loader2 v-else :size="13" class="text-text-tertiary shrink-0 animate-spin" />
+              <span>{{ testStatus === 'testing' ? 'Testing...' : 'Test Connection' }}</span>
             </Button>
             <span class="flex items-center gap-1.5 text-[12px]">
               <span
@@ -552,8 +546,10 @@ const handleClose = () => {
 
           <!-- Right: Cancel / Save -->
           <div class="flex items-center gap-2">
-            <Button variant="secondary" @click="handleClose"> Cancel </Button>
-            <Button id="btn-save-connection" variant="primary" @click="handleSave">
+            <Button variant="text" severity="secondary" size="small" @click="handleClose">
+              Cancel
+            </Button>
+            <Button id="btn-save-connection" size="small" @click="handleSave">
               Save Connection
             </Button>
           </div>

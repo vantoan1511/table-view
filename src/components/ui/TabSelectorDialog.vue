@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import Button from './Button.vue';
-
 import { useConnectionsStore } from '@/stores/connections';
 import { useTabsStore } from '@/stores/tabs';
 
@@ -69,7 +67,11 @@ const deleteTab = (id: string) => {
             Open Editor: {{ connection?.name }}
           </h3>
         </div>
-        <Button variant="ghost" size="icon" :icon="X" @click="close" />
+        <Button rounded variant="text" severity="secondary" @click="close">
+          <template #icon>
+            <X class="h-4 w-4" />
+          </template>
+        </Button>
       </div>
 
       <!-- List -->
@@ -93,12 +95,16 @@ const deleteTab = (id: string) => {
             </div>
           </div>
           <Button
-            variant="ghost"
-            size="icon"
-            :icon="Trash2"
-            class="hover:!text-danger hover:!bg-danger/10 opacity-0 group-hover:opacity-100"
+            rounded
+            variant="text"
+            severity="secondary"
+            class="hover:text-danger! hover:bg-danger/10! opacity-0 group-hover:opacity-100"
             @click.stop="deleteTab(tab.id)"
-          />
+          >
+            <template #icon>
+              <Trash2 class="h-4 w-4" />
+            </template>
+          </Button>
         </div>
 
         <div
@@ -114,7 +120,10 @@ const deleteTab = (id: string) => {
         <span class="text-text-tertiary text-[12px]"
           >{{ connectionTabs.length }} editors found</span
         >
-        <Button variant="primary" :icon="Plus" @click="createNew"> Create New Editor </Button>
+        <Button size="small" @click="createNew">
+          <Plus class="h-4 w-4" />
+          New
+        </Button>
       </div>
     </div>
   </div>
