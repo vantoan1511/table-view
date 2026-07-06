@@ -3,7 +3,6 @@ import type { GridColumn } from '@/types';
 
 import { Check, X } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
-import Tooltip from '@/components/ui/Tooltip.vue';
 
 import { formatGridCellValue } from '@/stores/grid/valueConversion';
 
@@ -108,13 +107,19 @@ const toggleNewRowBooleanValue = () => {
         <div
           class="edit-actions-floating bg-surface border-primary absolute -top-0.5 left-full z-20 flex h-[calc(100%+4px)] items-center gap-1 rounded-r border-2 border-l-0 px-1.5 shadow-2xl"
         >
-          <button @mousedown.prevent="onEnter" class="text-success hover:bg-success/10 rounded p-1">
+          <button
+            @mousedown.prevent="onEnter"
+            v-tooltip.top="'Save'"
+            class="text-success hover:bg-success/10 rounded p-1"
+          >
             <Check :size="12" />
-            <Tooltip text="Save" position="top" />
           </button>
-          <button @mousedown.prevent="onEsc" class="text-danger hover:bg-danger/10 rounded p-1">
+          <button
+            @mousedown.prevent="onEsc"
+            v-tooltip.top="'Discard'"
+            class="text-danger hover:bg-danger/10 rounded p-1"
+          >
             <X :size="12" />
-            <Tooltip text="Discard" position="top" />
           </button>
         </div>
       </div>

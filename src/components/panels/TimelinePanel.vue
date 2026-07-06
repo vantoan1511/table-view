@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import Button from '@/components/ui/Button.vue';
-import Tooltip from '@/components/ui/Tooltip.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 import { useGridStore } from '@/stores/grid';
@@ -254,40 +253,36 @@ const getFlagColorClass = (colorName?: string) => {
               class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
             >
               <template v-if="entry.type === 'sql' && entry.query">
-                <Tooltip text="Copy SQL" position="top">
-                  <button
-                    class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded p-1"
-                    @click.stop="handleCopy(entry.query)"
-                  >
-                    <Copy :size="12" />
-                  </button>
-                </Tooltip>
-                <Tooltip text="Open in SQL Editor" position="top">
-                  <button
-                    class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded p-1"
-                    @click.stop="openInEditor(entry)"
-                  >
-                    <ExternalLink :size="12" />
-                  </button>
-                </Tooltip>
-                <Tooltip text="Re-run Query" position="top">
-                  <button
-                    class="text-primary hover:text-primary-hover hover:bg-hover rounded p-1"
-                    @click.stop="reRunQuery(entry)"
-                  >
-                    <Play :size="12" />
-                  </button>
-                </Tooltip>
+                <button
+                  v-tooltip.top="'Copy SQL'"
+                  class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded p-1"
+                  @click.stop="handleCopy(entry.query)"
+                >
+                  <Copy :size="12" />
+                </button>
+                <button
+                  v-tooltip.top="'Open in SQL Editor'"
+                  class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded p-1"
+                  @click.stop="openInEditor(entry)"
+                >
+                  <ExternalLink :size="12" />
+                </button>
+                <button
+                  v-tooltip.top="'Re-run Query'"
+                  class="text-primary hover:text-primary-hover hover:bg-hover rounded p-1"
+                  @click.stop="reRunQuery(entry)"
+                >
+                  <Play :size="12" />
+                </button>
               </template>
               <template v-else-if="entry.type === 'table' && entry.tableName">
-                <Tooltip text="Copy Table Name" position="top">
-                  <button
-                    class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded p-1"
-                    @click.stop="handleCopy(entry.tableName)"
-                  >
-                    <Copy :size="12" />
-                  </button>
-                </Tooltip>
+                <button
+                  v-tooltip.top="'Copy Table Name'"
+                  class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded p-1"
+                  @click.stop="handleCopy(entry.tableName)"
+                >
+                  <Copy :size="12" />
+                </button>
               </template>
             </div>
           </div>

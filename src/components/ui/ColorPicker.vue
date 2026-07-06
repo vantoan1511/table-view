@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ConnectionColor } from '@/types';
-import Tooltip from '@/components/ui/Tooltip.vue';
 
 const props = defineProps<{
   modelValue: ConnectionColor;
@@ -34,6 +33,7 @@ const colors: { key: ConnectionColor; value: string }[] = [
       v-for="color in colors"
       :key="color.key"
       type="button"
+      v-tooltip.top="color.key"
       class="relative h-8 w-8 cursor-pointer rounded-full border-2 transition-all duration-150 hover:scale-110 focus:outline-none"
       :class="
         modelValue === color.key ? 'scale-110 border-current shadow-md' : 'border-transparent'
@@ -41,7 +41,6 @@ const colors: { key: ConnectionColor; value: string }[] = [
       :style="{ backgroundColor: color.value, color: color.value }"
       @click="emit('update:modelValue', color.key)"
     >
-      <Tooltip :text="color.key" position="top" />
       <!-- Checkmark -->
       <svg
         v-if="modelValue === color.key"

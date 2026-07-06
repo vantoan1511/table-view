@@ -3,7 +3,6 @@ import { useGridStore } from '@/stores/grid';
 import { formatGridCellValue } from '@/stores/grid/valueConversion';
 import { Check, Clipboard, Edit3, FileText, X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
-import Tooltip from '@/components/ui/Tooltip.vue';
 
 const gridStore = useGridStore();
 const localValue = ref('');
@@ -125,11 +124,11 @@ const setBooleanLocal = (valStr: string) => {
               <Edit3 :size="13" /> Edit
             </button>
             <button
+              v-tooltip.top="'Copy to clipboard'"
               class="text-text-tertiary hover:text-text-primary hover:bg-hover cursor-pointer rounded p-1.5 transition-colors"
               @click="copyToClipboard"
             >
               <Clipboard :size="14" />
-              <Tooltip text="Copy to clipboard" position="top" />
             </button>
           </template>
         </template>

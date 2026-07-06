@@ -70,9 +70,11 @@ declare module 'vue' {
     ToastContainer: typeof import('./src/components/ui/ToastContainer.vue')['default']
     ToastMessage: typeof import('./src/components/ui/ToastMessage.vue')['default']
     ToggleSwitch: typeof import('./src/components/ui/ToggleSwitch.vue')['default']
-    Tooltip: typeof import('./src/components/ui/Tooltip.vue')['default']
     UpdaterDialog: typeof import('./src/components/ui/UpdaterDialog.vue')['default']
     ValueViewer: typeof import('./src/components/panels/ValueViewer.vue')['default']
     WorkspaceContainer: typeof import('./src/components/layout/WorkspaceContainer.vue')['default']
+  }
+  export interface GlobalDirectives {
+    Tooltip: typeof import('primevue/tooltip')['default']
   }
 }

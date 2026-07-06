@@ -3,7 +3,6 @@
 import Button from '@/components/ui/Button.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import ResizeHandle from '@/components/ui/ResizeHandle.vue';
-import Tooltip from '@/components/ui/Tooltip.vue';
 import ResultsGrid from './ResultsGrid.vue';
 
 // Composables
@@ -244,17 +243,23 @@ onMounted(() => {
             </Button>
           </template>
 
-          <span class="relative">
-            <Button variant="secondary" size="sm" :icon="Save" @click="saveQuery" />
-            <Tooltip text="Save (Ctrl+S)" position="top" />
-          </span>
+          <Button
+            v-tooltip.top="'Save (Ctrl+S)'"
+            variant="secondary"
+            size="sm"
+            :icon="Save"
+            @click="saveQuery"
+          />
 
-          <span class="relative">
-            <Button variant="secondary" size="sm" :icon="Download" @click="exportQuery">
-              Export
-            </Button>
-            <Tooltip text="Export to .sql file" position="top" />
-          </span>
+          <Button
+            v-tooltip.top="'Export to .sql file'"
+            variant="secondary"
+            size="sm"
+            :icon="Download"
+            @click="exportQuery"
+          >
+            Export
+          </Button>
 
           <label
             class="hover:bg-hover text-text-secondary border-border bg-surface ml-1 flex cursor-pointer items-center gap-1.5 rounded border px-2 py-1 text-[11px] font-medium transition-colors select-none"

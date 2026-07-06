@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import ContextMenu from '@/components/ui/ContextMenu.vue';
-import Tooltip from '@/components/ui/Tooltip.vue';
 
 import { useAboutStore } from '@/stores/about';
 import { useConnectionsStore } from '@/stores/connections';
@@ -239,45 +238,42 @@ const openSettings = () => {
 
     <!-- Right: Panel Toggles -->
     <div class="border-border ml-3 flex shrink-0 items-center gap-1.5 border-l pl-3">
-      <Tooltip text="Toggle Sidebar (Ctrl+B)" preferred-position="left">
-        <button
-          class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
-          :class="
-            layoutStore.isSidebarVisible
-              ? 'text-primary bg-primary/10'
-              : 'text-text-tertiary hover:text-text-secondary'
-          "
-          @click="layoutStore.toggleSidebar()"
-        >
-          <PanelLeft :size="14" />
-        </button>
-      </Tooltip>
-      <Tooltip text="Toggle Console (Ctrl+J)" preferred-position="left">
-        <button
-          class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
-          :class="
-            layoutStore.isBottomVisible
-              ? 'text-primary bg-primary/10'
-              : 'text-text-tertiary hover:text-text-secondary'
-          "
-          @click="layoutStore.togglePanel('console')"
-        >
-          <PanelBottom :size="14" />
-        </button>
-      </Tooltip>
-      <Tooltip text="Toggle Inspector (Ctrl+I)" preferred-position="top">
-        <button
-          class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
-          :class="
-            layoutStore.isRightVisible
-              ? 'text-primary bg-primary/10'
-              : 'text-text-tertiary hover:text-text-secondary'
-          "
-          @click="layoutStore.togglePanel('inspector')"
-        >
-          <PanelRight :size="14" />
-        </button>
-      </Tooltip>
+      <button
+        v-tooltip.left="'Toggle Sidebar (Ctrl+B)'"
+        class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
+        :class="
+          layoutStore.isSidebarVisible
+            ? 'text-primary bg-primary/10'
+            : 'text-text-tertiary hover:text-text-secondary'
+        "
+        @click="layoutStore.toggleSidebar()"
+      >
+        <PanelLeft :size="14" />
+      </button>
+      <button
+        v-tooltip.left="'Toggle Console (Ctrl+J)'"
+        class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
+        :class="
+          layoutStore.isBottomVisible
+            ? 'text-primary bg-primary/10'
+            : 'text-text-tertiary hover:text-text-secondary'
+        "
+        @click="layoutStore.togglePanel('console')"
+      >
+        <PanelBottom :size="14" />
+      </button>
+      <button
+        v-tooltip.top="'Toggle Inspector (Ctrl+I)'"
+        class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
+        :class="
+          layoutStore.isRightVisible
+            ? 'text-primary bg-primary/10'
+            : 'text-text-tertiary hover:text-text-secondary'
+        "
+        @click="layoutStore.togglePanel('inspector')"
+      >
+        <PanelRight :size="14" />
+      </button>
     </div>
   </footer>
 </template>
