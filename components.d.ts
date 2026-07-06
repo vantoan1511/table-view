@@ -54,7 +54,6 @@ declare module 'vue' {
     SchemaContextMenu: typeof import('./src/components/sidebar/SchemaContextMenu.vue')['default']
     SchemaDiagram: typeof import('./src/components/layout/SchemaDiagram.vue')['default']
     SchemaNode: typeof import('./src/components/sidebar/SchemaNode.vue')['default']
-    SelectButton: typeof import('primevue/selectbutton')['default']
     Sidebar: typeof import('./src/components/layout/Sidebar.vue')['default']
     SidebarDialogs: typeof import('./src/components/sidebar/SidebarDialogs.vue')['default']
     Skeleton: typeof import('./src/components/ui/Skeleton.vue')['default']

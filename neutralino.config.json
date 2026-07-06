@@ -59,7 +59,7 @@
       "icon.png"
     ],
     "extensionsPath": "/extensions/",
-    "extensionsExclude": "node_modules|internal|drivers|vendor|.*\\.go$|.*\\.js$|.*\\.mod$|.*\\.sum$|.*\\.log$|package.*\\.json|target|.*\\.rs$|Cargo.*",
+    "extensionsExclude": "node_modules|src|internal|drivers|vendor|.*\\.go$|.*\\.js$|.*\\.mod$|.*\\.sum$|.*\\.log$|package.*\\.json|target|.*\\.rs$|Cargo.*",
     "binaryVersion": "6.7.0",
     "clientVersion": "6.7.0",
     "frontendLibrary": {
