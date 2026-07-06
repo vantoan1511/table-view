@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import DataGrid from '@/components/grid/DataGrid.vue';
-import SqlEditor from '@/components/sql/SqlEditor.vue';
-import SchemaDiagram from '@/components/layout/SchemaDiagram.vue';
-import IndexDetails from '@/components/layout/IndexDetails.vue';
 import type { Tab } from '@/types';
+import { defineAsyncComponent } from 'vue';
+
+const DataGrid = defineAsyncComponent(() => import('@/components/grid/DataGrid.vue'));
+const SqlEditor = defineAsyncComponent(() => import('@/components/sql/SqlEditor.vue'));
+const SchemaDiagram = defineAsyncComponent(() => import('@/components/layout/SchemaDiagram.vue'));
+const IndexDetails = defineAsyncComponent(() => import('@/components/layout/IndexDetails.vue'));
 
 defineProps<{
   tab: Tab | null;
