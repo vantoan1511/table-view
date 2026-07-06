@@ -96,7 +96,7 @@ const handleRun = useDebounce(
   { delay: 300 }
 );
 
-const handleFormat = () => {
+const handleFormat = async () => {
   if (!editorView) return;
   const { from, to } = editorView.state.selection.main;
   const hasSelection = from !== to;
@@ -111,7 +111,7 @@ const handleFormat = () => {
   const connection = connId ? connectionsStore.connections.find((c) => c.id === connId) : undefined;
   const dbType = connection?.type;
 
-  const formatted = formatSql(textToFormat, dbType);
+  const formatted = await formatSql(textToFormat, dbType);
 
   if (formatted && formatted !== textToFormat) {
     editorView.dispatch({
