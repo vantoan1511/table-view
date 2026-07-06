@@ -1,4 +1,5 @@
-import { format } from 'sql-formatter';
+// sql-formatter is large (~180 kB) and only needed on explicit format action.
+// Loaded lazily on first call so it stays out of the SqlEditor initial chunk.
 
 import { DbType } from '@/types';
 
@@ -23,12 +24,13 @@ export const getFormatterDialect = (dbType?: DbType): string => {
   }
 };
 
-export const formatSql = (sql: string, dbType?: DbType): string => {
+export const formatSql = async (sql: string, dbType?: DbType): Promise<string> => {
   if (!sql || sql.trim() === '') return '';
 
   const dialect = getFormatterDialect(dbType);
 
   try {
+    const { format } = await import('sql-formatter');
     return format(sql, {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       language: dialect as any,

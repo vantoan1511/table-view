@@ -38,16 +38,12 @@ export default defineConfig({
           if (id.includes('node_modules/pinia')) {
             return 'vendor-vue';
           }
-          // CodeMirror editor — largest dependency, always isolated
+          // CodeMirror editor — isolated, only loads when SQL tab is first opened
           if (
             id.includes('node_modules/codemirror') ||
             id.includes('node_modules/@codemirror') ||
             id.includes('node_modules/@lezer')
           ) {
-            return 'vendor-codemirror';
-          }
-          // sql-formatter ships with many sub-modules; keep with codemirror chunk
-          if (id.includes('node_modules/sql-formatter')) {
             return 'vendor-codemirror';
           }
           // PrimeVue UI library + icons + themes
