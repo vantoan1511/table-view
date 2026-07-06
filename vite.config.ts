@@ -15,6 +15,7 @@ export default defineConfig({
     vue(),
     tailwindcss(),
     Components({
+      include: [/\.vue$/, /\.vue\?vue/],
       resolvers: [PrimeVueResolver()]
     }),
     // Exclude devtools from production bundle
