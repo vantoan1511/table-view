@@ -18,7 +18,7 @@ body {
   font-family: var(--font-sans);
   background-color: var(--bg-dark);
   color: var(--text-primary);
-  background-image: 
+  background-image:
     radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
     radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.12) 0%, transparent 40%);
   background-attachment: fixed;
@@ -47,7 +47,12 @@ body {
 }
 
 .bg-gradient-accent {
-  background: linear-gradient(135deg, var(--accent-indigo) 0%, var(--accent-violet) 50%, var(--accent-fuchsia) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-indigo) 0%,
+    var(--accent-violet) 50%,
+    var(--accent-fuchsia) 100%
+  );
 }
 
 .border-gradient-glow {
@@ -58,7 +63,12 @@ body {
   content: '';
   position: absolute;
   inset: -1.5px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(139, 92, 246, 0.5), rgba(217, 70, 239, 0.5));
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.5),
+    rgba(139, 92, 246, 0.5),
+    rgba(217, 70, 239, 0.5)
+  );
   border-radius: inherit;
   z-index: -1;
   opacity: 0.8;
@@ -73,7 +83,8 @@ body {
 
 /* Custom Animations */
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
   }
   50% {
@@ -113,10 +124,19 @@ body {
   padding: 16px;
 }
 
-.sql-keyword { color: #f472b6; }
-.sql-string { color: #34d399; }
-.sql-identifier { color: #60a5fa; }
-.sql-comment { color: #64748b; font-style: italic; }
+.sql-keyword {
+  color: #f472b6;
+}
+.sql-string {
+  color: #34d399;
+}
+.sql-identifier {
+  color: #60a5fa;
+}
+.sql-comment {
+  color: #64748b;
+  font-style: italic;
+}
 
 /* Custom grid result table style */
 .result-table th {
@@ -184,13 +204,7 @@ html {
   overflow: hidden;
   width: 100%;
   /* Creates a smooth fade-out gradient mask on the edges */
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 15%,
-    black 85%,
-    transparent 100%
-  );
+  mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0%,
