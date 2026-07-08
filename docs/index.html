@@ -129,89 +129,141 @@
       <div class="mb-12 space-y-4 text-center">
         <h2 class="text-3xl font-extrabold tracking-tight">Performance Benchmark</h2>
         <p class="mx-auto max-w-xl text-sm text-slate-400">
-          Compare Table View (Rust Extension) speed and efficiency directly against heavy, Chromium/Node-based Electron database clients.
+          Compare Table View (Rust Extension) speed and efficiency directly against heavy,
+          Chromium/Node-based Electron database clients.
         </p>
       </div>
 
       <!-- Benchmark Window -->
-      <div class="terminal-window border border-white/10 flex flex-col bg-slate-900/20 max-w-3xl mx-auto">
-        
+      <div
+        class="terminal-window mx-auto flex max-w-3xl flex-col border border-white/10 bg-slate-900/20"
+      >
         <!-- Visual Benchmark Comparison (Right Panel) -->
-        <div class="flex flex-col bg-slate-900/40 p-8 justify-between gap-6">
-          
+        <div class="flex flex-col justify-between gap-6 bg-slate-900/40 p-8">
           <div class="space-y-6">
-            <div class="flex justify-between items-center text-xs font-mono text-slate-400">
+            <div class="flex items-center justify-between font-mono text-xs text-slate-400">
               <span>METRICS COMPARISON: Table View vs Electron</span>
               <span id="benchmark-status" class="text-indigo-300">Auto-updating...</span>
             </div>
 
             <!-- Metric 1: Startup Time -->
             <div class="space-y-2">
-              <div class="flex justify-between items-end text-sm">
-                <span class="font-bold flex items-center gap-2">🚀 App Startup Time</span>
-                <div class="flex gap-4 text-xs font-mono">
-                  <span class="text-indigo-400">Table View: <strong id="startup-tv-label">0.18s</strong></span>
-                  <span class="text-slate-450">Electron: <strong id="startup-el-label">3.40s</strong></span>
+              <div class="flex items-end justify-between text-sm">
+                <span class="flex items-center gap-2 font-bold">🚀 App Startup Time</span>
+                <div class="flex gap-4 font-mono text-xs">
+                  <span class="text-indigo-400"
+                    >Table View: <strong id="startup-tv-label">0.18s</strong></span
+                  >
+                  <span class="text-slate-450"
+                    >Electron: <strong id="startup-el-label">3.40s</strong></span
+                  >
                 </div>
               </div>
-              <div class="h-4 w-full bg-slate-950/80 rounded-md overflow-hidden border border-white/5 relative">
-                <div id="startup-el-bar" class="absolute left-0 top-0 h-full bg-slate-700 w-0 transition-all duration-1000 ease-out z-10"></div>
-                <div id="startup-tv-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-0 transition-all duration-500 ease-out z-20"></div>
+              <div
+                class="relative h-4 w-full overflow-hidden rounded-md border border-white/5 bg-slate-950/80"
+              >
+                <div
+                  id="startup-el-bar"
+                  class="absolute top-0 left-0 z-10 h-full w-0 bg-slate-700 transition-all duration-1000 ease-out"
+                ></div>
+                <div
+                  id="startup-tv-bar"
+                  class="absolute top-0 left-0 z-20 h-full w-0 bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500 ease-out"
+                ></div>
               </div>
             </div>
 
             <!-- Metric 2: Memory Consumption -->
             <div class="space-y-2">
-              <div class="flex justify-between items-end text-sm">
-                <span class="font-bold flex items-center gap-2">💾 RAM Memory Consumption</span>
-                <div class="flex gap-4 text-xs font-mono">
-                  <span class="text-indigo-400">Table View: <strong id="ram-tv-label">35MB</strong></span>
-                  <span class="text-slate-450">Electron: <strong id="ram-el-label">320MB</strong></span>
+              <div class="flex items-end justify-between text-sm">
+                <span class="flex items-center gap-2 font-bold">💾 RAM Memory Consumption</span>
+                <div class="flex gap-4 font-mono text-xs">
+                  <span class="text-indigo-400"
+                    >Table View: <strong id="ram-tv-label">35MB</strong></span
+                  >
+                  <span class="text-slate-450"
+                    >Electron: <strong id="ram-el-label">320MB</strong></span
+                  >
                 </div>
               </div>
-              <div class="h-4 w-full bg-slate-950/80 rounded-md overflow-hidden border border-white/5 relative">
-                <div id="ram-el-bar" class="absolute left-0 top-0 h-full bg-slate-700 w-0 transition-all duration-1000 ease-out z-10"></div>
-                <div id="ram-tv-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-0 transition-all duration-500 ease-out z-20"></div>
+              <div
+                class="relative h-4 w-full overflow-hidden rounded-md border border-white/5 bg-slate-950/80"
+              >
+                <div
+                  id="ram-el-bar"
+                  class="absolute top-0 left-0 z-10 h-full w-0 bg-slate-700 transition-all duration-1000 ease-out"
+                ></div>
+                <div
+                  id="ram-tv-bar"
+                  class="absolute top-0 left-0 z-20 h-full w-0 bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500 ease-out"
+                ></div>
               </div>
             </div>
 
             <!-- Metric 3: CPU Consumption -->
             <div class="space-y-2">
-              <div class="flex justify-between items-end text-sm">
-                <span class="font-bold flex items-center gap-2">⚡ CPU Consumption</span>
-                <div class="flex gap-4 text-xs font-mono">
-                  <span class="text-indigo-400">Table View: <strong id="cpu-tv-label">0.8%</strong></span>
-                  <span class="text-slate-450">Electron: <strong id="cpu-el-label">12.5%</strong></span>
+              <div class="flex items-end justify-between text-sm">
+                <span class="flex items-center gap-2 font-bold">⚡ CPU Consumption</span>
+                <div class="flex gap-4 font-mono text-xs">
+                  <span class="text-indigo-400"
+                    >Table View: <strong id="cpu-tv-label">0.8%</strong></span
+                  >
+                  <span class="text-slate-450"
+                    >Electron: <strong id="cpu-el-label">12.5%</strong></span
+                  >
                 </div>
               </div>
-              <div class="h-4 w-full bg-slate-950/80 rounded-md overflow-hidden border border-white/5 relative">
-                <div id="cpu-el-bar" class="absolute left-0 top-0 h-full bg-slate-700 w-0 transition-all duration-1000 ease-out z-10"></div>
-                <div id="cpu-tv-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-0 transition-all duration-500 ease-out z-20"></div>
+              <div
+                class="relative h-4 w-full overflow-hidden rounded-md border border-white/5 bg-slate-950/80"
+              >
+                <div
+                  id="cpu-el-bar"
+                  class="absolute top-0 left-0 z-10 h-full w-0 bg-slate-700 transition-all duration-1000 ease-out"
+                ></div>
+                <div
+                  id="cpu-tv-bar"
+                  class="absolute top-0 left-0 z-20 h-full w-0 bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500 ease-out"
+                ></div>
               </div>
             </div>
 
             <!-- Metric 4: Render Time -->
             <div class="space-y-2">
-              <div class="flex justify-between items-end text-sm">
-                <span class="font-bold flex items-center gap-2">🎨 Grid UI Render Time (10k rows)</span>
-                <div class="flex gap-4 text-xs font-mono">
-                  <span class="text-indigo-400">Table View: <strong id="render-tv-label">8ms</strong></span>
-                  <span class="text-slate-450">Electron: <strong id="render-el-label">180ms</strong></span>
+              <div class="flex items-end justify-between text-sm">
+                <span class="flex items-center gap-2 font-bold"
+                  >🎨 Grid UI Render Time (10k rows)</span
+                >
+                <div class="flex gap-4 font-mono text-xs">
+                  <span class="text-indigo-400"
+                    >Table View: <strong id="render-tv-label">8ms</strong></span
+                  >
+                  <span class="text-slate-450"
+                    >Electron: <strong id="render-el-label">180ms</strong></span
+                  >
                 </div>
               </div>
-              <div class="h-4 w-full bg-slate-950/80 rounded-md overflow-hidden border border-white/5 relative">
-                <div id="render-el-bar" class="absolute left-0 top-0 h-full bg-slate-700 w-0 transition-all duration-1000 ease-out z-10"></div>
-                <div id="render-tv-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-0 transition-all duration-500 ease-out z-20"></div>
+              <div
+                class="relative h-4 w-full overflow-hidden rounded-md border border-white/5 bg-slate-950/80"
+              >
+                <div
+                  id="render-el-bar"
+                  class="absolute top-0 left-0 z-10 h-full w-0 bg-slate-700 transition-all duration-1000 ease-out"
+                ></div>
+                <div
+                  id="render-tv-bar"
+                  class="absolute top-0 left-0 z-20 h-full w-0 bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500 ease-out"
+                ></div>
               </div>
             </div>
-
           </div>
 
           <!-- Bottom description info -->
-          <div class="border-t border-white/5 pt-4 text-xs text-slate-500 leading-relaxed text-center md:text-left">
-            * Benchmarks simulate app launch runtime footprint, idle resource limits, and UI layout paint performance. Selecting different engines above triggers a live recalculation.
+          <div
+            class="border-t border-white/5 pt-4 text-center text-xs leading-relaxed text-slate-500 md:text-left"
+          >
+            * Benchmarks simulate app launch runtime footprint, idle resource limits, and UI layout
+            paint performance. Selecting different engines above triggers a live recalculation.
           </div>
-
         </div>
       </div>
     </section>
@@ -396,10 +448,14 @@
     <script>
       // Benchmark Simulation Database (PostgreSQL default)
       const metrics = {
-        tvStartup: 0.18, elStartup: 3.40,
-        tvRam: 35, elRam: 320,
-        tvCpu: 0.8, elCpu: 12.5,
-        tvRender: 8, elRender: 180
+        tvStartup: 0.18,
+        elStartup: 3.4,
+        tvRam: 35,
+        elRam: 320,
+        tvCpu: 0.8,
+        elCpu: 12.5,
+        tvRender: 8,
+        elRender: 180
       };
 
       let benchmarkTimeout = null;
@@ -424,79 +480,81 @@
           clearTimeout(benchmarkTimeout);
         }
         clearAllIntervals();
-        
+
         // Reset widths to 0 immediately to visually indicate reload
-        document.getElementById("startup-tv-bar").style.width = "0%";
-        document.getElementById("startup-el-bar").style.width = "0%";
-        document.getElementById("ram-tv-bar").style.width = "0%";
-        document.getElementById("ram-el-bar").style.width = "0%";
-        document.getElementById("cpu-tv-bar").style.width = "0%";
-        document.getElementById("cpu-el-bar").style.width = "0%";
-        document.getElementById("render-tv-bar").style.width = "0%";
-        document.getElementById("render-el-bar").style.width = "0%";
-        
-        document.getElementById("startup-tv-label").innerText = "0.00s";
-        document.getElementById("startup-el-label").innerText = "0.00s";
-        document.getElementById("ram-tv-label").innerText = "0MB";
-        document.getElementById("ram-el-label").innerText = "0MB";
-        document.getElementById("cpu-tv-label").innerText = "0.0%";
-        document.getElementById("cpu-el-label").innerText = "0.0%";
-        document.getElementById("render-tv-label").innerText = "0ms";
-        document.getElementById("render-el-label").innerText = "0ms";
-        
-        document.getElementById("benchmark-status").innerText = "Recalculating...";
+        document.getElementById('startup-tv-bar').style.width = '0%';
+        document.getElementById('startup-el-bar').style.width = '0%';
+        document.getElementById('ram-tv-bar').style.width = '0%';
+        document.getElementById('ram-el-bar').style.width = '0%';
+        document.getElementById('cpu-tv-bar').style.width = '0%';
+        document.getElementById('cpu-el-bar').style.width = '0%';
+        document.getElementById('render-tv-bar').style.width = '0%';
+        document.getElementById('render-el-bar').style.width = '0%';
+
+        document.getElementById('startup-tv-label').innerText = '0.00s';
+        document.getElementById('startup-el-label').innerText = '0.00s';
+        document.getElementById('ram-tv-label').innerText = '0MB';
+        document.getElementById('ram-el-label').innerText = '0MB';
+        document.getElementById('cpu-tv-label').innerText = '0.0%';
+        document.getElementById('cpu-el-label').innerText = '0.0%';
+        document.getElementById('render-tv-label').innerText = '0ms';
+        document.getElementById('render-el-label').innerText = '0ms';
+
+        document.getElementById('benchmark-status').innerText = 'Recalculating...';
 
         benchmarkTimeout = setTimeout(runBenchmark, 300);
       }
 
       function runBenchmark() {
-        document.getElementById("benchmark-status").innerText = "Auto-updated";
-        
+        document.getElementById('benchmark-status').innerText = 'Auto-updated';
+
         // --- 1. Startup Time ---
         setTimeout(() => {
-          document.getElementById("startup-tv-bar").style.width = `${(metrics.tvStartup / 4.0) * 100}%`;
-          document.getElementById("startup-el-bar").style.width = `${(metrics.elStartup / 4.0) * 100}%`;
-          
-          animateValue("startup-tv-label", 0, metrics.tvStartup, 300, 2, "s");
-          animateValue("startup-el-label", 0, metrics.elStartup, 600, 2, "s");
+          document.getElementById('startup-tv-bar').style.width =
+            `${(metrics.tvStartup / 4.0) * 100}%`;
+          document.getElementById('startup-el-bar').style.width =
+            `${(metrics.elStartup / 4.0) * 100}%`;
+
+          animateValue('startup-tv-label', 0, metrics.tvStartup, 300, 2, 's');
+          animateValue('startup-el-label', 0, metrics.elStartup, 600, 2, 's');
         }, 50);
 
         // --- 2. RAM Memory Consumption ---
         setTimeout(() => {
           const tvRamPercent = (metrics.tvRam / 500) * 100;
           const elRamPercent = (metrics.elRam / 500) * 100;
-          document.getElementById("ram-tv-bar").style.width = `${tvRamPercent}%`;
-          document.getElementById("ram-el-bar").style.width = `${elRamPercent}%`;
-          
-          animateValue("ram-tv-label", 0, metrics.tvRam, 400, 0, "MB");
-          animateValue("ram-el-label", 0, metrics.elRam, 700, 0, "MB");
+          document.getElementById('ram-tv-bar').style.width = `${tvRamPercent}%`;
+          document.getElementById('ram-el-bar').style.width = `${elRamPercent}%`;
+
+          animateValue('ram-tv-label', 0, metrics.tvRam, 400, 0, 'MB');
+          animateValue('ram-el-label', 0, metrics.elRam, 700, 0, 'MB');
         }, 120);
 
         // --- 3. CPU Consumption ---
         setTimeout(() => {
           const tvCpuPercent = (metrics.tvCpu / 20) * 100;
           const elCpuPercent = (metrics.elCpu / 20) * 100;
-          document.getElementById("cpu-tv-bar").style.width = `${tvCpuPercent}%`;
-          document.getElementById("cpu-el-bar").style.width = `${elCpuPercent}%`;
-          
-          animateValue("cpu-tv-label", 0, metrics.tvCpu, 400, 1, "%");
-          animateValue("cpu-el-label", 0, metrics.elCpu, 800, 1, "%");
+          document.getElementById('cpu-tv-bar').style.width = `${tvCpuPercent}%`;
+          document.getElementById('cpu-el-bar').style.width = `${elCpuPercent}%`;
+
+          animateValue('cpu-tv-label', 0, metrics.tvCpu, 400, 1, '%');
+          animateValue('cpu-el-label', 0, metrics.elCpu, 800, 1, '%');
         }, 180);
 
         // --- 4. Render Time ---
         setTimeout(() => {
           const tvRenderPercent = (metrics.tvRender / 250) * 100;
           const elRenderPercent = (metrics.elRender / 250) * 100;
-          document.getElementById("render-tv-bar").style.width = `${tvRenderPercent}%`;
-          document.getElementById("render-el-bar").style.width = `${elRenderPercent}%`;
-          
-          animateValue("render-tv-label", 0, metrics.tvRender, 300, 0, "ms");
-          animateValue("render-el-label", 0, metrics.elRender, 900, 0, "ms");
+          document.getElementById('render-tv-bar').style.width = `${tvRenderPercent}%`;
+          document.getElementById('render-el-bar').style.width = `${elRenderPercent}%`;
+
+          animateValue('render-tv-label', 0, metrics.tvRender, 300, 0, 'ms');
+          animateValue('render-el-label', 0, metrics.elRender, 900, 0, 'ms');
         }, 240);
       }
 
       // Generic Number Counter Animator
-      function animateValue(id, start, end, duration, decimals, suffix = "") {
+      function animateValue(id, start, end, duration, decimals, suffix = '') {
         const obj = document.getElementById(id);
         if (!obj) return;
         const range = end - start;
@@ -510,11 +568,11 @@
           }
           obj.innerText = `${current.toFixed(decimals)}${suffix}`;
         }, 16);
-        
-        if (id.includes("startup")) startupIntervals.push(timer);
-        else if (id.includes("ram")) ramIntervals.push(timer);
-        else if (id.includes("cpu")) cpuIntervals.push(timer);
-        else if (id.includes("render")) renderIntervals.push(timer);
+
+        if (id.includes('startup')) startupIntervals.push(timer);
+        else if (id.includes('ram')) ramIntervals.push(timer);
+        else if (id.includes('cpu')) cpuIntervals.push(timer);
+        else if (id.includes('render')) renderIntervals.push(timer);
       }
 
       // Copy Winget command clipboard logic
@@ -541,7 +599,7 @@
       });
 
       // Restart benchmark on click on the container
-      document.querySelector(".terminal-window").addEventListener("click", () => {
+      document.querySelector('.terminal-window').addEventListener('click', () => {
         triggerAutoBenchmark();
       });
 
