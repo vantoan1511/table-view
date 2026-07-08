@@ -174,62 +174,76 @@
         </div>
 
         <!-- Visual Benchmark Comparison (Right Panel) -->
-        <div class="flex flex-col bg-slate-900/40 md:col-span-2 p-6 justify-between gap-8">
+        <div class="flex flex-col bg-slate-900/40 md:col-span-2 p-6 justify-between gap-6">
           
           <div class="space-y-6">
             <div class="flex justify-between items-center text-xs font-mono text-slate-400">
-              <span>SIMULATION ENVIRONMENT: Node.js vs Rust Core</span>
-              <span class="text-indigo-300">Run to test</span>
+              <span>METRICS COMPARISON: Table View vs Electron</span>
+              <span id="benchmark-status" class="text-indigo-300">Auto-updating...</span>
             </div>
 
-            <!-- Bar 1: Table View -->
+            <!-- Metric 1: Startup Time -->
             <div class="space-y-2">
               <div class="flex justify-between items-end text-sm">
-                <span class="font-bold flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-400 to-violet-500"></span>
-                  Table View <span class="text-xs font-light text-slate-500">(Rust + Neutralino)</span>
-                </span>
-                <span id="tableview-time" class="font-mono font-black text-indigo-400 text-lg">0ms</span>
+                <span class="font-bold flex items-center gap-2">🚀 App Startup Time</span>
+                <div class="flex gap-4 text-xs font-mono">
+                  <span class="text-indigo-400">Table View: <strong id="startup-tv-label">0.18s</strong></span>
+                  <span class="text-slate-450">Electron: <strong id="startup-el-label">3.40s</strong></span>
+                </div>
               </div>
-              <div class="h-6 w-full bg-slate-950/80 rounded-lg overflow-hidden border border-white/5 relative">
-                <div id="tableview-bar" class="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 w-0 transition-all duration-300 ease-out"></div>
-              </div>
-              <div class="flex justify-between text-[11px] font-mono text-slate-500">
-                <span id="tableview-memory">Memory: ~35 MB</span>
-                <span>CPU Usage: ~0.8%</span>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="h-4 w-full bg-slate-950/80 rounded-md overflow-hidden border border-white/5 relative">
+                  <div id="startup-tv-bar" class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-0 transition-all duration-500 ease-out"></div>
+                </div>
+                <div class="h-4 w-full bg-slate-950/80 rounded-md overflow-hidden border border-white/5 relative">
+                  <div id="startup-el-bar" class="h-full bg-slate-700 w-0 transition-all duration-1000 ease-out"></div>
+                </div>
               </div>
             </div>
 
-            <!-- Bar 2: Electron Client -->
+            <!-- Metric 2: Memory Footprint -->
             <div class="space-y-2">
               <div class="flex justify-between items-end text-sm">
-                <span class="font-bold flex items-center gap-2 text-slate-400">
-                  <span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
-                  Typical Electron Client <span class="text-xs font-light text-slate-600">(DBeaver / pgAdmin / GitGlove)</span>
-                </span>
-                <span id="electron-time" class="font-mono font-bold text-slate-400 text-lg">0ms</span>
+                <span class="font-bold flex items-center gap-2">💾 RAM Memory Footprint</span>
+                <div class="flex gap-4 text-xs font-mono">
+                  <span class="text-indigo-400">Table View: <strong id="ram-tv-label">35MB</strong></span>
+                  <span class="text-slate-450">Electron: <strong id="ram-el-label">320MB</strong></span>
+                </div>
               </div>
-              <div class="h-6 w-full bg-slate-950/80 rounded-lg overflow-hidden border border-white/5">
-                <div id="electron-bar" class="h-full bg-slate-700 w-0 transition-all duration-1000 ease-out"></div>
-              </div>
-              <div class="flex justify-between text-[11px] font-mono text-slate-500">
-                <span id="electron-memory">Memory: ~340 MB</span>
-                <span>CPU Usage: ~12.5%</span>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="h-4 w-full bg-slate-950/80 rounded-md overflow-hidden border border-white/5 relative">
+                  <div id="ram-tv-bar" class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-0 transition-all duration-500 ease-out"></div>
+                </div>
+                <div class="h-4 w-full bg-slate-950/80 rounded-md overflow-hidden border border-white/5 relative">
+                  <div id="ram-el-bar" class="h-full bg-slate-700 w-0 transition-all duration-1000 ease-out"></div>
+                </div>
               </div>
             </div>
+
+            <!-- Metric 3: Query Time -->
+            <div class="space-y-2">
+              <div class="flex justify-between items-end text-sm">
+                <span class="font-bold flex items-center gap-2">⏱️ Query Execution Time</span>
+                <div class="flex gap-4 text-xs font-mono">
+                  <span class="text-indigo-400">Table View: <strong id="query-tv-label">0ms</strong></span>
+                  <span class="text-slate-450">Electron: <strong id="query-el-label">0ms</strong></span>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="h-4 w-full bg-slate-950/80 rounded-md overflow-hidden border border-white/5 relative">
+                  <div id="query-tv-bar" class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-0 transition-all duration-500 ease-out"></div>
+                </div>
+                <div class="h-4 w-full bg-slate-950/80 rounded-md overflow-hidden border border-white/5 relative">
+                  <div id="query-el-bar" class="h-full bg-slate-700 w-0 transition-all duration-1000 ease-out"></div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          <!-- Bottom trigger action -->
-          <div class="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span class="text-xs text-slate-400 text-center sm:text-left leading-relaxed max-w-sm">
-              * Based on local testing. Table View leverages the Rust-based extension to process raw query data in parallel.
-            </span>
-            <button id="run-benchmark" class="bg-gradient-accent border-gradient-glow hover:scale-[1.02] active:scale-[0.98] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center">
-              <svg class="w-4 h-4 fill-current animate-pulse" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5zm4 4h-2v-5h2v5zm0-7h-2V7h2v2z"/>
-              </svg>
-              Run Benchmark Test
-            </button>
+          <!-- Bottom description info -->
+          <div class="border-t border-white/5 pt-4 text-xs text-slate-500 leading-relaxed text-center md:text-left">
+            * Benchmarks simulate app launch, runtime process footprint, and database fetch speeds using local driver pools. Selecting different engines or datasets above triggers a live reload.
           </div>
 
         </div>
@@ -435,10 +449,11 @@
 
       let currentDataset = 10000;
       let currentEngine = 'postgresql';
-      let benchmarkRunning = false;
+      let benchmarkTimeout = null;
+      let tvInterval = null;
+      let elInterval = null;
 
       function setDataset(size) {
-        if (benchmarkRunning) return;
         currentDataset = size;
         
         // Reset styles and selections
@@ -451,11 +466,10 @@
         selectedBtn.classList.add("border-indigo-500/30", "bg-indigo-500/10", "text-indigo-300");
         selectedBtn.classList.remove("border-white/5", "bg-slate-900/20", "text-slate-400");
         
-        resetBars();
+        triggerAutoBenchmark();
       }
 
       function setEngine(engine) {
-        if (benchmarkRunning) return;
         currentEngine = engine;
         
         // Reset styles and selections
@@ -468,67 +482,84 @@
         selectedBtn.classList.add("border-indigo-500/30", "bg-indigo-500/10", "text-indigo-300");
         selectedBtn.classList.remove("border-white/5", "bg-slate-900/20", "text-slate-400");
         
-        resetBars();
+        triggerAutoBenchmark();
       }
 
-      function resetBars() {
-        document.getElementById("tableview-bar").style.width = "0%";
-        document.getElementById("electron-bar").style.width = "0%";
-        document.getElementById("tableview-time").innerText = "0ms";
-        document.getElementById("electron-time").innerText = "0ms";
+      function triggerAutoBenchmark() {
+        if (benchmarkTimeout) {
+          clearTimeout(benchmarkTimeout);
+        }
+        if (tvInterval) clearInterval(tvInterval);
+        if (elInterval) clearInterval(elInterval);
         
-        const metrics = benchmarkData[currentDataset][currentEngine];
-        document.getElementById("tableview-memory").innerText = `Memory: ~${metrics.tvMem} MB`;
-        document.getElementById("electron-memory").innerText = `Memory: ~${metrics.elMem} MB`;
+        // Reset widths to 0 immediately to visually indicate reload
+        document.getElementById("startup-tv-bar").style.width = "0%";
+        document.getElementById("startup-el-bar").style.width = "0%";
+        document.getElementById("ram-tv-bar").style.width = "0%";
+        document.getElementById("ram-el-bar").style.width = "0%";
+        document.getElementById("query-tv-bar").style.width = "0%";
+        document.getElementById("query-el-bar").style.width = "0%";
+        
+        document.getElementById("query-tv-label").innerText = "0ms";
+        document.getElementById("query-el-label").innerText = "0ms";
+        document.getElementById("benchmark-status").innerText = "Recalculating...";
+
+        benchmarkTimeout = setTimeout(runBenchmark, 300);
       }
 
       function runBenchmark() {
-        if (benchmarkRunning) return;
-        benchmarkRunning = true;
-        
-        // Disable buttons
-        const runBtn = document.getElementById("run-benchmark");
-        runBtn.classList.add("opacity-50", "cursor-not-allowed");
-        
-        resetBars();
-        
+        document.getElementById("benchmark-status").innerText = "Auto-updated";
         const metrics = benchmarkData[currentDataset][currentEngine];
-        const tvTime = metrics.tableview;
-        const elTime = metrics.electron;
         
-        // Animate Table View bar (very fast)
+        // Animate App Startup (Static comparison)
+        // TableView: 0.18s (4.5%), Electron: 3.40s (85%)
         setTimeout(() => {
-          document.getElementById("tableview-bar").style.width = "100%";
+          document.getElementById("startup-tv-bar").style.width = "4.5%";
+          document.getElementById("startup-el-bar").style.width = "85%";
+        }, 50);
+
+        // Animate RAM footprint
+        // TableView: 35MB (7%), Electron: 320MB (64%) -> scaled to max 500MB
+        setTimeout(() => {
+          const tvRamPercent = Math.min((metrics.tvMem / 500) * 100, 100);
+          const elRamPercent = Math.min((metrics.elMem / 500) * 100, 100);
+          document.getElementById("ram-tv-bar").style.width = `${tvRamPercent}%`;
+          document.getElementById("ram-el-bar").style.width = `${elRamPercent}%`;
+          document.getElementById("ram-tv-label").innerText = `${metrics.tvMem}MB`;
+          document.getElementById("ram-el-label").innerText = `${metrics.elMem}MB`;
+        }, 120);
+
+        // Animate Query Execution
+        // Max query time is ~1200ms
+        setTimeout(() => {
+          const tvQueryPercent = Math.min((metrics.tableview / 1200) * 100, 100);
+          const elQueryPercent = Math.min((metrics.electron / 1200) * 100, 100);
+          document.getElementById("query-tv-bar").style.width = `${tvQueryPercent}%`;
+          document.getElementById("query-el-bar").style.width = `${elQueryPercent}%`;
+          
+          // Animate text numbers
           let currentTv = 0;
-          const tvInterval = setInterval(() => {
-            currentTv += Math.ceil(tvTime / 5);
-            if (currentTv >= tvTime) {
-              currentTv = tvTime;
+          tvInterval = setInterval(() => {
+            currentTv += Math.ceil(metrics.tableview / 5);
+            if (currentTv >= metrics.tableview) {
+              currentTv = metrics.tableview;
               clearInterval(tvInterval);
             }
-            document.getElementById("tableview-time").innerText = `${currentTv}ms`;
+            document.getElementById("query-tv-label").innerText = `${currentTv}ms`;
           }, 30);
-        }, 100);
 
-        // Animate Electron bar (slower, staggered)
-        setTimeout(() => {
-          document.getElementById("electron-bar").style.width = "100%";
           let currentEl = 0;
-          const elInterval = setInterval(() => {
-            currentEl += Math.ceil(elTime / 20);
-            if (currentEl >= elTime) {
-              currentEl = elTime;
+          elInterval = setInterval(() => {
+            currentEl += Math.ceil(metrics.electron / 20);
+            if (currentEl >= metrics.electron) {
+              currentEl = metrics.electron;
               clearInterval(elInterval);
-              // Benchmark complete
-              benchmarkRunning = false;
-              runBtn.classList.remove("opacity-50", "cursor-not-allowed");
             }
-            document.getElementById("electron-time").innerText = `${currentEl}ms`;
+            document.getElementById("query-el-label").innerText = `${currentEl}ms`;
           }, 40);
-        }, 150);
-      }
 
-      document.getElementById("run-benchmark").addEventListener("click", runBenchmark);
+        }, 200);
+      }
 
       // Copy Winget command clipboard logic
       const copyBtn = document.getElementById('copy-btn');
@@ -554,7 +585,7 @@
       });
 
       // Initial state
-      resetBars();
+      triggerAutoBenchmark();
     </script>
   </body>
 </html>
