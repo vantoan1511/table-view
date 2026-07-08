@@ -137,3 +137,11 @@ jobs:
           git add manifest.json
           git commit -m "chore: update manifest.json for release v$VERSION [skip ci]" || echo "No changes to commit"
           git push origin main || echo "Failed to push to main"
+
+      - name: Submit to WinGet Community Repository
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: vantoan1511.TableView
+          installers-regex: 'setup\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
+
