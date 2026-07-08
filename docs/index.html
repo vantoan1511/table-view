@@ -134,32 +134,10 @@
       </div>
 
       <!-- Benchmark Window -->
-      <div class="terminal-window border border-white/10 flex flex-col md:grid md:grid-cols-3 bg-slate-900/20">
+      <div class="terminal-window border border-white/10 flex flex-col bg-slate-900/20 max-w-3xl mx-auto">
         
-        <!-- Controls (Left Panel) -->
-        <div class="flex flex-col gap-6 border-b border-white/5 bg-slate-950/60 p-6 md:border-r md:border-b-0">
-          <div>
-            <label class="mb-2 block text-xs font-semibold tracking-wider text-slate-400 uppercase">Database Engine</label>
-            <div class="flex flex-col gap-2">
-              <button onclick="setEngine('postgresql')" id="btn-pg" class="engine-btn text-left p-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-xs font-semibold text-indigo-300 transition-all">
-                🐘 PostgreSQL
-              </button>
-              <button onclick="setEngine('mysql')" id="btn-mysql" class="engine-btn text-left p-3 rounded-lg border border-white/5 bg-slate-900/20 text-xs font-semibold text-slate-400 hover:bg-slate-900/50 transition-all">
-                🐬 MySQL
-              </button>
-              <button onclick="setEngine('sqlite')" id="btn-sqlite" class="engine-btn text-left p-3 rounded-lg border border-white/5 bg-slate-900/20 text-xs font-semibold text-slate-400 hover:bg-slate-900/50 transition-all">
-                🪶 SQLite
-              </button>
-            </div>
-          </div>
-
-          <div class="mt-auto border-t border-white/5 pt-6 text-xs leading-relaxed text-slate-500">
-            Table View offloads connections to pure Rust drivers, avoiding JavaScript overhead and Chromium engine memory leaks.
-          </div>
-        </div>
-
         <!-- Visual Benchmark Comparison (Right Panel) -->
-        <div class="flex flex-col bg-slate-900/40 md:col-span-2 p-6 justify-between gap-6">
+        <div class="flex flex-col bg-slate-900/40 p-8 justify-between gap-6">
           
           <div class="space-y-6">
             <div class="flex justify-between items-center text-xs font-mono text-slate-400">
@@ -416,50 +394,19 @@
 
     <!-- Performance Benchmark Script Logic -->
     <script>
-      // Benchmark Simulation Database per Engine
-      const benchmarkData = {
-        postgresql: {
-          tvStartup: 0.18, elStartup: 3.40,
-          tvRam: 35, elRam: 320,
-          tvCpu: 0.8, elCpu: 12.5,
-          tvRender: 8, elRender: 180
-        },
-        mysql: {
-          tvStartup: 0.18, elStartup: 3.40,
-          tvRam: 36, elRam: 345,
-          tvCpu: 0.9, elCpu: 14.2,
-          tvRender: 9, elRender: 195
-        },
-        sqlite: {
-          tvStartup: 0.18, elStartup: 3.40,
-          tvRam: 28, elRam: 295,
-          tvCpu: 0.4, elCpu: 8.7,
-          tvRender: 6, elRender: 145
-        }
+      // Benchmark Simulation Database (PostgreSQL default)
+      const metrics = {
+        tvStartup: 0.18, elStartup: 3.40,
+        tvRam: 35, elRam: 320,
+        tvCpu: 0.8, elCpu: 12.5,
+        tvRender: 8, elRender: 180
       };
 
-      let currentEngine = 'postgresql';
       let benchmarkTimeout = null;
       let startupIntervals = [];
       let ramIntervals = [];
       let cpuIntervals = [];
       let renderIntervals = [];
-
-      function setEngine(engine) {
-        currentEngine = engine;
-        
-        // Reset styles and selections
-        document.querySelectorAll(".engine-btn").forEach(btn => {
-          btn.classList.remove("border-indigo-500/30", "bg-indigo-500/10", "text-indigo-300");
-          btn.classList.add("border-white/5", "bg-slate-900/20", "text-slate-400");
-        });
-        
-        const selectedBtn = document.getElementById(`btn-${engine === 'postgresql' ? 'pg' : engine === 'mysql' ? 'mysql' : 'sqlite'}`);
-        selectedBtn.classList.add("border-indigo-500/30", "bg-indigo-500/10", "text-indigo-300");
-        selectedBtn.classList.remove("border-white/5", "bg-slate-900/20", "text-slate-400");
-        
-        triggerAutoBenchmark();
-      }
 
       function clearAllIntervals() {
         startupIntervals.forEach(clearInterval);
@@ -504,9 +451,8 @@
 
       function runBenchmark() {
         document.getElementById("benchmark-status").innerText = "Auto-updated";
-        const metrics = benchmarkData[currentEngine];
         
-        // --- 1. Startup Time (Table View: 0.18s vs Electron: 3.40s) ---
+        // --- 1. Startup Time ---
         setTimeout(() => {
           document.getElementById("startup-tv-bar").style.width = `${(metrics.tvStartup / 4.0) * 100}%`;
           document.getElementById("startup-el-bar").style.width = `${(metrics.elStartup / 4.0) * 100}%`;
@@ -555,7 +501,7 @@
         if (!obj) return;
         const range = end - start;
         let current = start;
-        const increment = range / (duration / 16); // ~60fps
+        const increment = range / (duration / 16);
         const timer = setInterval(() => {
           current += increment;
           if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
@@ -592,6 +538,11 @@
             );
           }, 2000);
         });
+      });
+
+      // Restart benchmark on click on the container
+      document.querySelector(".terminal-window").addEventListener("click", () => {
+        triggerAutoBenchmark();
       });
 
       // Initial state
