@@ -282,165 +282,343 @@
         <div class="marquee-container w-full py-4">
           <!-- Carousel Track -->
           <div class="marquee-track flex gap-6">
-            
             <!-- --- SET 1 --- -->
             <!-- Card 1: Rust Core -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">Rust Extension Core</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                Database queries are managed directly by a high-performance native Rust core, bypassing slow JavaScript wrappers.
+                Database queries are managed directly by a high-performance native Rust core,
+                bypassing slow JavaScript wrappers.
               </p>
             </div>
 
             <!-- Card 2: Inline Editing -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">Inline Cell Editing</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                Double-click table cells to modify data directly in place, validating constraints and schema rules in transactional scopes.
+                Double-click table cells to modify data directly in place, validating constraints
+                and schema rules in transactional scopes.
               </p>
             </div>
 
             <!-- Card 3: Persistent Workspace -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">Persistent Workspace</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                Panel dimensions, column widths, editor history, and open query tabs are automatically restored across workspace sessions.
+                Panel dimensions, column widths, editor history, and open query tabs are
+                automatically restored across workspace sessions.
               </p>
             </div>
 
             <!-- Card 4: Offline First Connection -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">100% Offline-First</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                All connection details, credentials, logs, and database schema mappings stay 100% locally encrypted on your device.
+                All connection details, credentials, logs, and database schema mappings stay 100%
+                locally encrypted on your device.
               </p>
             </div>
 
             <!-- Card 5: Beautiful Polished UI -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">Polished Dark Aesthetics</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                A premium, dark-mode visual interface with beautiful micro-interactions, custom fonts, and smooth layout transitions.
+                A premium, dark-mode visual interface with beautiful micro-interactions, custom
+                fonts, and smooth layout transitions.
               </p>
             </div>
 
             <!-- Card 6: Smart SQL editor -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">Smart SQL Editor</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                Integrated SQL helper query editor featuring query history log, and responsive paginated results drawing millions of rows.
+                Integrated SQL helper query editor featuring query history log, and responsive
+                paginated results drawing millions of rows.
               </p>
             </div>
 
             <!-- --- SET 2 (DUPLICATED FOR LOOP) --- -->
             <!-- Card 1: Rust Core -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">Rust Extension Core</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                Database queries are managed directly by a high-performance native Rust core, bypassing slow JavaScript wrappers.
+                Database queries are managed directly by a high-performance native Rust core,
+                bypassing slow JavaScript wrappers.
               </p>
             </div>
 
             <!-- Card 2: Inline Editing -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">Inline Cell Editing</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                Double-click table cells to modify data directly in place, validating constraints and schema rules in transactional scopes.
+                Double-click table cells to modify data directly in place, validating constraints
+                and schema rules in transactional scopes.
               </p>
             </div>
 
             <!-- Card 3: Persistent Workspace -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">Persistent Workspace</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                Panel dimensions, column widths, editor history, and open query tabs are automatically restored across workspace sessions.
+                Panel dimensions, column widths, editor history, and open query tabs are
+                automatically restored across workspace sessions.
               </p>
             </div>
 
             <!-- Card 4: Offline First Connection -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">100% Offline-First</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                All connection details, credentials, logs, and database schema mappings stay 100% locally encrypted on your device.
+                All connection details, credentials, logs, and database schema mappings stay 100%
+                locally encrypted on your device.
               </p>
             </div>
 
             <!-- Card 5: Beautiful Polished UI -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">Polished Dark Aesthetics</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                A premium, dark-mode visual interface with beautiful micro-interactions, custom fonts, and smooth layout transitions.
+                A premium, dark-mode visual interface with beautiful micro-interactions, custom
+                fonts, and smooth layout transitions.
               </p>
             </div>
 
             <!-- Card 6: Smart SQL editor -->
-            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-[300px] md:w-[350px] shrink-0 select-none">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <div
+              class="glass glass-interactive flex w-[300px] shrink-0 flex-col gap-4 rounded-2xl p-8 transition-all select-none md:w-[350px]"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+              >
+                <svg
+                  class="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
               <h3 class="text-lg font-bold text-slate-100">Smart SQL Editor</h3>
               <p class="text-sm leading-relaxed font-light text-slate-400">
-                Integrated SQL helper query editor featuring query history log, and responsive paginated results drawing millions of rows.
+                Integrated SQL helper query editor featuring query history log, and responsive
+                paginated results drawing millions of rows.
               </p>
             </div>
-
           </div>
         </div>
       </div>
