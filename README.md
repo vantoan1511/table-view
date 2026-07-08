@@ -41,7 +41,30 @@
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### Download & Installation (End Users)
+
+For the easiest setup, you can install **Table View** directly using one of the methods below:
+
+#### Method A: Via Windows Package Manager (WinGet)
+You can install the official release directly from your command line:
+```bash
+winget install vantoan1511.TableView
+```
+
+#### Method B: Direct Installer
+1. Download the latest `setup.exe` from the [GitHub Releases](https://github.com/vantoan1511/table-view/releases) page.
+2. Run the installer and follow the prompt.
+
+> [!NOTE]
+> **Microsoft Defender SmartScreen Warning:** 
+> Because this is an open-source application and is not signed with a paid developer certificate, Windows might show a "Windows protected your PC" popup. 
+> To bypass this, click **"More info"** and then click **"Run anyway"**.
+
+---
+
+### Development Setup (Build from Source)
+
+#### Prerequisites
 
 - [Node.js](https://nodejs.org/) (v20 or later)
 - [Neutralinojs CLI](https://neutralino.js.org/docs/cli/neu-cli) (`npm install -g @neutralinojs/neu`)
