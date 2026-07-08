@@ -177,3 +177,46 @@ html {
     background-position: 200% center;
   }
 }
+
+/* Infinite Marquee Loop styling */
+.marquee-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  /* Creates a smooth fade-out gradient mask on the edges */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 15%,
+    black 85%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 15%,
+    black 85%,
+    transparent 100%
+  );
+}
+
+.marquee-track {
+  display: flex;
+  gap: 24px;
+  width: max-content;
+  animation: marquee-scroll 30s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    /* Translate by exactly -50% because the track contains Set A + Set B (duplicated) */
+    transform: translateX(calc(-50% - 12px));
+  }
+}
