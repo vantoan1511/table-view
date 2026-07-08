@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Table View - Lightweight Desktop Database Manager</title>
+    <!-- SEO Meta Tags -->
+    <meta
+      name="description"
+      content="Table View is a lightweight, high-performance desktop database client for PostgreSQL, MySQL, SQLite, and Oracle databases. Built with Vue 3 and Rust."
+    />
+    <meta
+      name="keywords"
+      content="database client, postgresql GUI, mysql client, sqlite client, oracle gui, rust database manager, neutralinojs"
+    />
+    <meta name="author" content="Toan Nguyen (vantoan1511)" />
+
+    <!-- Tailwind CSS 4 Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom Style System -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body
+    class="flex min-h-screen flex-col text-slate-100 selection:bg-indigo-500/30 selection:text-indigo-200"
+  >
+    <!-- Header / Navbar -->
+    <header
+      class="glass sticky top-0 z-50 flex items-center justify-between border-b border-white/5 px-6 py-4 transition-all duration-300 md:px-12"
+    >
+      <div class="flex items-center gap-3">
+        <img src="icon.png" alt="Table View Logo" class="h-8 w-8 rounded-lg shadow-lg" />
+        <span
+          class="bg-gradient-to-r from-indigo-300 via-violet-300 to-pink-300 bg-clip-text text-lg font-extrabold tracking-tight text-transparent"
+          >Table View</span
+        >
+      </div>
+
+      <nav class="hidden items-center gap-8 text-sm font-medium text-slate-400 md:flex">
+        <a href="#features" class="transition-colors hover:text-slate-100">Features</a>
+        <a href="#playground" class="transition-colors hover:text-slate-100">Performance Benchmark</a>
+        <a href="#install" class="transition-colors hover:text-slate-100">Get Started</a>
+      </nav>
+
+      <div class="flex items-center gap-4">
+        <a
+          href="https://github.com/vantoan1511/table-view"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="glass glass-interactive flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all"
+        >
+          <!-- GitHub SVG Icon -->
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              fill-rule="evenodd"
+              d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.193 22 16.435 22 12.017 22 6.484 17.522 2 12 2z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          Star on GitHub
+        </a>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section
+      class="relative flex flex-col items-center justify-center overflow-hidden px-6 py-24 text-center md:px-12"
+    >
+      <!-- Background Blur Decorative Circles -->
+      <div
+        class="animate-pulse-glow absolute top-1/4 left-1/4 -z-10 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl"
+      ></div>
+      <div
+        class="animate-pulse-glow absolute right-1/4 bottom-1/4 -z-10 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl"
+        style="animation-delay: 2s"
+      ></div>
+
+      <div class="mx-auto flex max-w-4xl flex-col items-center space-y-8">
+        <!-- Main Title -->
+        <h1 class="text-4xl leading-tight font-black tracking-tight sm:text-5xl md:text-6xl">
+          Lightweight Database Client,<br />
+          <span class="text-gradient">Lightning-Fast Experience</span>
+        </h1>
+
+        <!-- Description -->
+        <p class="max-w-2xl text-base leading-relaxed font-light text-slate-400 md:text-lg">
+          Table View is a modern, high-performance desktop database manager for PostgreSQL, MySQL,
+          SQLite, and Oracle. By combining a <strong>Rust backend extension</strong> with a fluid
+          <strong>Vue 3</strong> design, it launches instantly and queries dynamically.
+        </p>
+
+        <!-- WinGet Copy Widget -->
+        <div
+          class="glass flex w-full max-w-md items-center justify-between gap-4 rounded-xl border border-white/10 bg-slate-950/40 p-1.5 pl-4 font-mono text-xs md:text-sm"
+        >
+          <span class="text-indigo-300/90 select-none">$</span>
+          <span id="winget-cmd" class="flex-1 text-left text-slate-300 select-all"
+            >winget install vantoan1511.TableView</span
+          >
+          <button
+            id="copy-btn"
+            class="glass-interactive flex cursor-pointer items-center gap-2 rounded-lg border border-indigo-500/20 bg-indigo-600/20 px-3.5 py-2 font-sans text-xs font-semibold text-indigo-200 transition-all hover:border-indigo-500/40 hover:bg-indigo-600/30"
+          >
+            <span id="copy-text">Copy</span>
+          </button>
+        </div>
+
+        <!-- Primary & Secondary CTAs -->
+        <div class="flex flex-wrap items-center justify-center gap-4 pt-2">
+          <a
+            href="https://github.com/vantoan1511/table-view/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="bg-gradient-accent border-gradient-glow cursor-pointer rounded-xl px-8 py-3.5 text-sm font-bold shadow-xl shadow-indigo-900/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            Download Installer (.exe)
+          </a>
+          <a
+            href="#playground"
+            class="glass glass-interactive cursor-pointer rounded-xl px-8 py-3.5 text-sm font-bold text-slate-300 transition-all hover:text-white"
+          >
+            View Benchmark
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Performance Benchmark Section -->
+    <section id="playground" class="mx-auto w-full max-w-6xl px-6 py-20 md:px-12">
+      <div class="mb-12 space-y-4 text-center">
+        <h2 class="text-3xl font-extrabold tracking-tight">Performance Benchmark</h2>
+        <p class="mx-auto max-w-xl text-sm text-slate-400">
+          Compare Table View (Rust Extension) speed and efficiency directly against heavy, Chromium/Node-based Electron database clients.
+        </p>
+      </div>
+
+      <!-- Benchmark Window -->
+      <div class="terminal-window border border-white/10 flex flex-col md:grid md:grid-cols-3 bg-slate-900/20">
+        
+        <!-- Controls (Left Panel) -->
+        <div class="flex flex-col gap-6 border-b border-white/5 bg-slate-950/60 p-6 md:border-r md:border-b-0">
+          <div>
+            <label class="mb-2 block text-xs font-semibold tracking-wider text-slate-400 uppercase">Dataset Size</label>
+            <div class="flex gap-2">
+              <button onclick="setDataset(10000)" id="btn-10k" class="dataset-btn flex-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-300">
+                10k Rows
+              </button>
+              <button onclick="setDataset(50000)" id="btn-50k" class="dataset-btn flex-1 rounded-lg border border-white/5 bg-slate-900/20 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-slate-900/50">
+                50k Rows
+              </button>
+              <button onclick="setDataset(100000)" id="btn-100k" class="dataset-btn flex-1 rounded-lg border border-white/5 bg-slate-900/20 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-slate-900/50">
+                100k Rows
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-xs font-semibold tracking-wider text-slate-400 uppercase">Database Engine</label>
+            <div class="flex flex-col gap-2">
+              <button onclick="setEngine('postgresql')" id="btn-pg" class="engine-btn text-left p-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-xs font-semibold text-indigo-300 transition-all">
+                🐘 PostgreSQL
+              </button>
+              <button onclick="setEngine('mysql')" id="btn-mysql" class="engine-btn text-left p-3 rounded-lg border border-white/5 bg-slate-900/20 text-xs font-semibold text-slate-400 hover:bg-slate-900/50 transition-all">
+                🐬 MySQL
+              </button>
+              <button onclick="setEngine('sqlite')" id="btn-sqlite" class="engine-btn text-left p-3 rounded-lg border border-white/5 bg-slate-900/20 text-xs font-semibold text-slate-400 hover:bg-slate-900/50 transition-all">
+                🪶 SQLite
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-auto border-t border-white/5 pt-6 text-xs leading-relaxed text-slate-500">
+            Table View offloads connections to pure Rust drivers, avoiding JavaScript overhead and Chromium engine memory leaks.
+          </div>
+        </div>
+
+        <!-- Visual Benchmark Comparison (Right Panel) -->
+        <div class="flex flex-col bg-slate-900/40 md:col-span-2 p-6 justify-between gap-8">
+          
+          <div class="space-y-6">
+            <div class="flex justify-between items-center text-xs font-mono text-slate-400">
+              <span>SIMULATION ENVIRONMENT: Node.js vs Rust Core</span>
+              <span class="text-indigo-300">Run to test</span>
+            </div>
+
+            <!-- Bar 1: Table View -->
+            <div class="space-y-2">
+              <div class="flex justify-between items-end text-sm">
+                <span class="font-bold flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-400 to-violet-500"></span>
+                  Table View <span class="text-xs font-light text-slate-500">(Rust + Neutralino)</span>
+                </span>
+                <span id="tableview-time" class="font-mono font-black text-indigo-400 text-lg">0ms</span>
+              </div>
+              <div class="h-6 w-full bg-slate-950/80 rounded-lg overflow-hidden border border-white/5 relative">
+                <div id="tableview-bar" class="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 w-0 transition-all duration-300 ease-out"></div>
+              </div>
+              <div class="flex justify-between text-[11px] font-mono text-slate-500">
+                <span id="tableview-memory">Memory: ~35 MB</span>
+                <span>CPU Usage: ~0.8%</span>
+              </div>
+            </div>
+
+            <!-- Bar 2: Electron Client -->
+            <div class="space-y-2">
+              <div class="flex justify-between items-end text-sm">
+                <span class="font-bold flex items-center gap-2 text-slate-400">
+                  <span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                  Typical Electron Client <span class="text-xs font-light text-slate-600">(DBeaver / pgAdmin / GitGlove)</span>
+                </span>
+                <span id="electron-time" class="font-mono font-bold text-slate-400 text-lg">0ms</span>
+              </div>
+              <div class="h-6 w-full bg-slate-950/80 rounded-lg overflow-hidden border border-white/5">
+                <div id="electron-bar" class="h-full bg-slate-700 w-0 transition-all duration-1000 ease-out"></div>
+              </div>
+              <div class="flex justify-between text-[11px] font-mono text-slate-500">
+                <span id="electron-memory">Memory: ~340 MB</span>
+                <span>CPU Usage: ~12.5%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom trigger action -->
+          <div class="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span class="text-xs text-slate-400 text-center sm:text-left leading-relaxed max-w-sm">
+              * Based on local testing. Table View leverages the Rust-based extension to process raw query data in parallel.
+            </span>
+            <button id="run-benchmark" class="bg-gradient-accent border-gradient-glow hover:scale-[1.02] active:scale-[0.98] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center">
+              <svg class="w-4 h-4 fill-current animate-pulse" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5zm4 4h-2v-5h2v5zm0-7h-2V7h2v2z"/>
+              </svg>
+              Run Benchmark Test
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section id="features" class="border-y border-white/5 bg-slate-950/40 px-6 py-24 md:px-12">
+      <div class="mx-auto max-w-6xl">
+        <div class="mb-16 space-y-4 text-center">
+          <h2 class="text-3xl font-extrabold tracking-tight">Key Features</h2>
+          <p class="mx-auto max-w-xl text-sm text-slate-400">
+            Everything you need in a modern, lightweight database management workspace.
+          </p>
+        </div>
+
+        <!-- Feature Grid Cards -->
+        <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <!-- Speed Card -->
+          <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all">
+            <div
+              class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+            >
+              <!-- Zap SVG Icon -->
+              <svg
+                class="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-100">Rust Extension Core</h3>
+            <p class="text-sm leading-relaxed font-light text-slate-400">
+              Connections and queries are offloaded directly to a high-performance Rust core,
+              bypassing slow JavaScript database wrappers.
+            </p>
+          </div>
+
+          <!-- Premium Grid Card -->
+          <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all">
+            <div
+              class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+            >
+              <!-- Edit SVG Icon -->
+              <svg
+                class="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-100">Inline Cell Editing</h3>
+            <p class="text-sm leading-relaxed font-light text-slate-400">
+              Double-click cells to modify data in place, validate types and constraints instantly,
+              and save updates within transactional scopes.
+            </p>
+          </div>
+
+          <!-- Layout Persistence Card -->
+          <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all">
+            <div
+              class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
+            >
+              <!-- Columns/Layout SVG Icon -->
+              <svg
+                class="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-100">Persistent Workspace</h3>
+            <p class="text-sm leading-relaxed font-light text-slate-400">
+              Panel placements, column widths, editor history, and open query tabs are automatically
+              restored across sessions for seamless workflow continuity.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Get Started / Installation Section -->
+    <section id="install" class="mx-auto w-full max-w-4xl px-6 py-24 md:px-12">
+      <div
+        class="glass flex flex-col items-center gap-10 rounded-3xl border border-white/10 bg-slate-900/20 p-10 md:flex-row md:p-16"
+      >
+        <div class="flex-1 space-y-6">
+          <h2 class="text-3xl font-extrabold tracking-tight">Ready to query?</h2>
+          <p class="text-sm leading-relaxed font-light text-slate-400">
+            Get up and running with Table View in under a minute using Windows Package Manager, or
+            download the direct executable package.
+          </p>
+          <div class="flex gap-4">
+            <a
+              href="https://github.com/vantoan1511/table-view/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="bg-gradient-accent inline-block cursor-pointer rounded-xl px-6 py-3 text-center text-sm font-bold shadow-xl shadow-indigo-900/20"
+            >
+              Get Installer (.exe)
+            </a>
+            <a
+              href="https://github.com/vantoan1511/table-view"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="glass glass-interactive inline-block cursor-pointer rounded-xl px-6 py-3 text-center text-sm font-bold text-slate-300"
+            >
+              View Source Code
+            </a>
+          </div>
+        </div>
+
+        <!-- Copy command visualization panel -->
+        <div
+          class="flex w-full flex-col gap-4 rounded-2xl border border-white/5 bg-slate-950 p-6 font-mono text-xs md:w-80"
+        >
+          <span class="text-[10px] font-semibold tracking-wider text-slate-500 uppercase"
+            >Fast CLI Installation</span
+          >
+          <div class="flex flex-col gap-1 text-slate-300">
+            <span class="text-slate-600"># Install via WinGet</span>
+            <span>winget install vantoan1511.TableView</span>
+          </div>
+          <div class="flex flex-col gap-1 text-slate-300">
+            <span class="text-slate-600"># Launch directly</span>
+            <span>table-view</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer
+      class="mt-auto border-t border-white/5 bg-slate-950/80 px-6 py-12 text-center text-xs text-slate-500 md:flex md:items-center md:justify-between md:px-12"
+    >
+      <div class="mb-4 flex items-center justify-center gap-2 md:mb-0">
+        <img src="icon.png" alt="Table View" class="h-5 w-5 rounded-md" />
+        <span
+          >Table View © 2026. Made by
+          <a href="https://github.com/vantoan1511" class="transition-colors hover:text-indigo-400"
+            >Toan Nguyen</a
+          >.</span
+        >
+      </div>
+      <div class="flex justify-center gap-6">
+        <span
+          >Licensed under
+          <a
+            href="https://github.com/vantoan1511/table-view/blob/main/LICENSE"
+            class="transition-colors hover:text-slate-400"
+            >MIT</a
+          ></span
+        >
+        <a
+          href="https://github.com/vantoan1511/table-view"
+          class="transition-colors hover:text-slate-400"
+          >GitHub Repository</a
+        >
+      </div>
+    </footer>
+
+    <!-- Performance Benchmark Script Logic -->
+    <script>
+      // Benchmark Simulation Database
+      const benchmarkData = {
+        10000: {
+          postgresql: { tableview: 4, electron: 85, tvMem: 32, elMem: 310 },
+          mysql: { tableview: 6, electron: 110, tvMem: 33, elMem: 312 },
+          sqlite: { tableview: 2, electron: 45, tvMem: 28, elMem: 295 }
+        },
+        50000: {
+          postgresql: { tableview: 18, electron: 420, tvMem: 35, elMem: 340 },
+          mysql: { tableview: 24, electron: 530, tvMem: 36, elMem: 345 },
+          sqlite: { tableview: 8, electron: 210, tvMem: 30, elMem: 320 }
+        },
+        100000: {
+          postgresql: { tableview: 32, electron: 890, tvMem: 38, elMem: 390 },
+          mysql: { tableview: 45, electron: 1120, tvMem: 40, elMem: 395 },
+          sqlite: { tableview: 15, electron: 410, tvMem: 32, elMem: 350 }
+        }
+      };
+
+      let currentDataset = 10000;
+      let currentEngine = 'postgresql';
+      let benchmarkRunning = false;
+
+      function setDataset(size) {
+        if (benchmarkRunning) return;
+        currentDataset = size;
+        
+        // Reset styles and selections
+        document.querySelectorAll(".dataset-btn").forEach(btn => {
+          btn.classList.remove("border-indigo-500/30", "bg-indigo-500/10", "text-indigo-300");
+          btn.classList.add("border-white/5", "bg-slate-900/20", "text-slate-400");
+        });
+        
+        const selectedBtn = document.getElementById(`btn-${size === 10000 ? '10k' : size === 50000 ? '50k' : '100k'}`);
+        selectedBtn.classList.add("border-indigo-500/30", "bg-indigo-500/10", "text-indigo-300");
+        selectedBtn.classList.remove("border-white/5", "bg-slate-900/20", "text-slate-400");
+        
+        resetBars();
+      }
+
+      function setEngine(engine) {
+        if (benchmarkRunning) return;
+        currentEngine = engine;
+        
+        // Reset styles and selections
+        document.querySelectorAll(".engine-btn").forEach(btn => {
+          btn.classList.remove("border-indigo-500/30", "bg-indigo-500/10", "text-indigo-300");
+          btn.classList.add("border-white/5", "bg-slate-900/20", "text-slate-400");
+        });
+        
+        const selectedBtn = document.getElementById(`btn-${engine === 'postgresql' ? 'pg' : engine === 'mysql' ? 'mysql' : 'sqlite'}`);
+        selectedBtn.classList.add("border-indigo-500/30", "bg-indigo-500/10", "text-indigo-300");
+        selectedBtn.classList.remove("border-white/5", "bg-slate-900/20", "text-slate-400");
+        
+        resetBars();
+      }
+
+      function resetBars() {
+        document.getElementById("tableview-bar").style.width = "0%";
+        document.getElementById("electron-bar").style.width = "0%";
+        document.getElementById("tableview-time").innerText = "0ms";
+        document.getElementById("electron-time").innerText = "0ms";
+        
+        const metrics = benchmarkData[currentDataset][currentEngine];
+        document.getElementById("tableview-memory").innerText = `Memory: ~${metrics.tvMem} MB`;
+        document.getElementById("electron-memory").innerText = `Memory: ~${metrics.elMem} MB`;
+      }
+
+      function runBenchmark() {
+        if (benchmarkRunning) return;
+        benchmarkRunning = true;
+        
+        // Disable buttons
+        const runBtn = document.getElementById("run-benchmark");
+        runBtn.classList.add("opacity-50", "cursor-not-allowed");
+        
+        resetBars();
+        
+        const metrics = benchmarkData[currentDataset][currentEngine];
+        const tvTime = metrics.tableview;
+        const elTime = metrics.electron;
+        
+        // Animate Table View bar (very fast)
+        setTimeout(() => {
+          document.getElementById("tableview-bar").style.width = "100%";
+          let currentTv = 0;
+          const tvInterval = setInterval(() => {
+            currentTv += Math.ceil(tvTime / 5);
+            if (currentTv >= tvTime) {
+              currentTv = tvTime;
+              clearInterval(tvInterval);
+            }
+            document.getElementById("tableview-time").innerText = `${currentTv}ms`;
+          }, 30);
+        }, 100);
+
+        // Animate Electron bar (slower, staggered)
+        setTimeout(() => {
+          document.getElementById("electron-bar").style.width = "100%";
+          let currentEl = 0;
+          const elInterval = setInterval(() => {
+            currentEl += Math.ceil(elTime / 20);
+            if (currentEl >= elTime) {
+              currentEl = elTime;
+              clearInterval(elInterval);
+              // Benchmark complete
+              benchmarkRunning = false;
+              runBtn.classList.remove("opacity-50", "cursor-not-allowed");
+            }
+            document.getElementById("electron-time").innerText = `${currentEl}ms`;
+          }, 40);
+        }, 150);
+      }
+
+      document.getElementById("run-benchmark").addEventListener("click", runBenchmark);
+
+      // Copy Winget command clipboard logic
+      const copyBtn = document.getElementById('copy-btn');
+      const copyText = document.getElementById('copy-text');
+      const wingetCmd = document.getElementById('winget-cmd').innerText;
+
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(wingetCmd).then(() => {
+          copyText.innerText = 'Copied!';
+          copyBtn.classList.remove('bg-indigo-600/20', 'border-indigo-500/20');
+          copyBtn.classList.add('bg-emerald-600/20', 'border-emerald-500/30', 'text-emerald-200');
+
+          setTimeout(() => {
+            copyText.innerText = 'Copy';
+            copyBtn.classList.add('bg-indigo-600/20', 'border-indigo-500/20');
+            copyBtn.classList.remove(
+              'bg-emerald-600/20',
+              'border-emerald-500/30',
+              'text-emerald-200'
+            );
+          }, 2000);
+        });
+      });
+
+      // Initial state
+      resetBars();
+    </script>
+  </body>
+</html>
