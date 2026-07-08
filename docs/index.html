@@ -278,87 +278,108 @@
           </p>
         </div>
 
-        <!-- Feature Grid Cards -->
-        <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
-          <!-- Speed Card -->
-          <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all">
-            <div
-              class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
-            >
-              <!-- Zap SVG Icon -->
-              <svg
-                class="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
+        <!-- Feature Carousel -->
+        <div class="relative overflow-hidden w-full px-2 py-4">
+          <!-- Carousel Track -->
+          <div id="carousel-track" class="flex gap-6 transition-transform duration-500 ease-in-out">
+            
+            <!-- Card 1: Rust Core -->
+            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-full sm:w-[calc((100%-24px)/2)] md:w-[calc((100%-48px)/3)] shrink-0 select-none">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-slate-100">Rust Extension Core</h3>
+              <p class="text-sm leading-relaxed font-light text-slate-400">
+                Database queries are managed directly by a high-performance native Rust core, bypassing slow JavaScript wrappers.
+              </p>
             </div>
-            <h3 class="text-lg font-bold text-slate-100">Rust Extension Core</h3>
-            <p class="text-sm leading-relaxed font-light text-slate-400">
-              Connections and queries are offloaded directly to a high-performance Rust core,
-              bypassing slow JavaScript database wrappers.
-            </p>
+
+            <!-- Card 2: Inline Editing -->
+            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-full sm:w-[calc((100%-24px)/2)] md:w-[calc((100%-48px)/3)] shrink-0 select-none">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-slate-100">Inline Cell Editing</h3>
+              <p class="text-sm leading-relaxed font-light text-slate-400">
+                Double-click table cells to modify data directly in place, validating constraints and schema rules in transactional scopes.
+              </p>
+            </div>
+
+            <!-- Card 3: Persistent Workspace -->
+            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-full sm:w-[calc((100%-24px)/2)] md:w-[calc((100%-48px)/3)] shrink-0 select-none">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-slate-100">Persistent Workspace</h3>
+              <p class="text-sm leading-relaxed font-light text-slate-400">
+                Panel dimensions, column widths, editor history, and open query tabs are automatically restored across workspace sessions.
+              </p>
+            </div>
+
+            <!-- Card 4: Offline First Connection -->
+            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-full sm:w-[calc((100%-24px)/2)] md:w-[calc((100%-48px)/3)] shrink-0 select-none">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-slate-100">100% Offline-First</h3>
+              <p class="text-sm leading-relaxed font-light text-slate-400">
+                All connection details, credentials, logs, and database schema mappings stay 100% locally encrypted on your device.
+              </p>
+            </div>
+
+            <!-- Card 5: Beautiful Polished UI -->
+            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-full sm:w-[calc((100%-24px)/2)] md:w-[calc((100%-48px)/3)] shrink-0 select-none">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-slate-100">Polished Dark Aesthetics</h3>
+              <p class="text-sm leading-relaxed font-light text-slate-400">
+                A premium, dark-mode visual interface with beautiful micro-interactions, custom fonts, and smooth layout transitions.
+              </p>
+            </div>
+
+            <!-- Card 6: Smart SQL editor -->
+            <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all w-full sm:w-[calc((100%-24px)/2)] md:w-[calc((100%-48px)/3)] shrink-0 select-none">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-slate-100">Smart SQL Editor</h3>
+              <p class="text-sm leading-relaxed font-light text-slate-400">
+                Integrated SQL helper query editor featuring query history log, and responsive paginated results drawing millions of rows.
+              </p>
+            </div>
+
           </div>
 
-          <!-- Premium Grid Card -->
-          <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all">
-            <div
-              class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
-            >
-              <!-- Edit SVG Icon -->
-              <svg
-                class="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
+          <!-- Carousel Controls -->
+          <div class="flex justify-between items-center mt-10 px-2">
+            <div class="flex gap-2" id="carousel-dots">
+              <!-- Dots added dynamically by script -->
             </div>
-            <h3 class="text-lg font-bold text-slate-100">Inline Cell Editing</h3>
-            <p class="text-sm leading-relaxed font-light text-slate-400">
-              Double-click cells to modify data in place, validate types and constraints instantly,
-              and save updates within transactional scopes.
-            </p>
-          </div>
-
-          <!-- Layout Persistence Card -->
-          <div class="glass glass-interactive flex flex-col gap-4 rounded-2xl p-8 transition-all">
-            <div
-              class="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300"
-            >
-              <!-- Columns/Layout SVG Icon -->
-              <svg
-                class="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
-                />
-              </svg>
+            <div class="flex gap-3">
+              <button id="prev-feat-btn" class="glass glass-interactive flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-slate-400 hover:text-white transition-all select-none">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button id="next-feat-btn" class="glass glass-interactive flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-slate-400 hover:text-white transition-all select-none">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
-            <h3 class="text-lg font-bold text-slate-100">Persistent Workspace</h3>
-            <p class="text-sm leading-relaxed font-light text-slate-400">
-              Panel placements, column widths, editor history, and open query tabs are automatically
-              restored across sessions for seamless workflow continuity.
-            </p>
           </div>
         </div>
       </div>
@@ -603,8 +624,134 @@
         triggerAutoBenchmark();
       });
 
+      // Carousel slider logic for Key Features
+      const track = document.getElementById('carousel-track');
+      const prevBtn = document.getElementById('prev-feat-btn');
+      const nextBtn = document.getElementById('next-feat-btn');
+      const dotsContainer = document.getElementById('carousel-dots');
+      
+      let currentIndex = 0;
+      const totalItems = track.children.length;
+      
+      function getVisibleItems() {
+        if (window.innerWidth >= 768) return 3;
+        if (window.innerWidth >= 640) return 2;
+        return 1;
+      }
+      
+      function getMaxIndex() {
+        return Math.max(0, totalItems - getVisibleItems());
+      }
+      
+      function updateCarousel() {
+        const visible = getVisibleItems();
+        const maxIdx = getMaxIndex();
+        
+        if (currentIndex > maxIdx) {
+          currentIndex = maxIdx;
+        }
+        
+        const cardWidth = track.firstElementChild.getBoundingClientRect().width;
+        const gap = 24; // Tailwind gap-6 is 24px
+        const translateX = -currentIndex * (cardWidth + gap);
+        track.style.transform = `translateX(${translateX}px)`;
+        
+        // Update dots highlight
+        const dots = dotsContainer.children;
+        for (let i = 0; i < dots.length; i++) {
+          if (i === currentIndex) {
+            dots[i].classList.remove('bg-white/20');
+            dots[i].classList.add('bg-indigo-500', 'w-6');
+          } else {
+            dots[i].classList.remove('bg-indigo-500', 'w-6');
+            dots[i].classList.add('bg-white/20');
+          }
+        }
+        
+        // Disable/enable arrows
+        prevBtn.style.opacity = currentIndex === 0 ? '0.3' : '1';
+        prevBtn.style.pointerEvents = currentIndex === 0 ? 'none' : 'auto';
+        
+        nextBtn.style.opacity = currentIndex === maxIdx ? '0.3' : '1';
+        nextBtn.style.pointerEvents = currentIndex === maxIdx ? 'none' : 'auto';
+      }
+      
+      function buildDots() {
+        dotsContainer.innerHTML = '';
+        const maxIdx = getMaxIndex();
+        
+        // Only show dots if there's actually a sliding range
+        for (let i = 0; i <= maxIdx; i++) {
+          const dot = document.createElement('button');
+          dot.className = 'h-1.5 w-1.5 rounded-full bg-white/20 transition-all duration-300';
+          dot.addEventListener('click', () => {
+            currentIndex = i;
+            updateCarousel();
+          });
+          dotsContainer.appendChild(dot);
+        }
+      }
+      
+      // Events
+      prevBtn.addEventListener('click', () => {
+        if (currentIndex > 0) {
+          currentIndex--;
+          updateCarousel();
+        }
+      });
+      
+      nextBtn.addEventListener('click', () => {
+        if (currentIndex < getMaxIndex()) {
+          currentIndex++;
+          updateCarousel();
+        }
+      });
+      
+      window.addEventListener('resize', () => {
+        buildDots();
+        updateCarousel();
+      });
+      
+      // Swipe/touch support
+      let startX = 0;
+      let isDragging = false;
+      
+      track.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+      });
+      
+      track.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const currentX = e.touches[0].clientX;
+        const diff = currentX - startX;
+        // visual hint of drag (capped)
+        if (Math.abs(diff) < 100) {
+          const cardWidth = track.firstElementChild.getBoundingClientRect().width;
+          const gap = 24;
+          const baseTranslate = -currentIndex * (cardWidth + gap);
+          track.style.transform = `translateX(${baseTranslate + diff}px)`;
+        }
+      });
+      
+      track.addEventListener('touchend', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        const endX = e.changedTouches[0].clientX;
+        const diff = endX - startX;
+        
+        if (diff < -50 && currentIndex < getMaxIndex()) {
+          currentIndex++;
+        } else if (diff > 50 && currentIndex > 0) {
+          currentIndex--;
+        }
+        updateCarousel();
+      });
+      
       // Initial state
       triggerAutoBenchmark();
+      buildDots();
+      updateCarousel();
     </script>
   </body>
 </html>
