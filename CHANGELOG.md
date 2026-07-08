@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-07-08
+
+### Added
+
+- **Landing Page & UI**: Added performance benchmark widget with auto-run, startup/resource metrics, unified comparison panel, features slider carousel, infinite loop marquee, shining text shimmer animation, and format/lint cleanups.
+- **CI/CD**: Added custom GitHub Actions workflow for Pages deployment, and automated WinGet submission to release workflow.
+- **Database & Query**: Added SQL Editor safety guards, destructive query checks, transaction management, multi-query execution support, and DDL drop guards.
+- **UI & Theme**: Integrated PrimeVue v4, migrated legacy controls (Button, Checkbox, Tooltip) to PrimeVue, added TableViewTheme preset, and connection sidebar toggle.
+- **Preferences**: Added General Preferences persistence/sync, and preferences modal prototype.
+
+### Fixed
+
+- **Editor**: Fixed destructive query guard false positives and reset transaction state on query failure.
+
 ## [0.4.4] - 2026-07-04
 
 ### Added
