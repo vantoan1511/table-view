@@ -144,10 +144,18 @@ impl OracleDriver {
 
         log::info!("oracle: executing query: {}", cleaned_sql);
         let start = std::time::Instant::now();
-        let result = conn
-            .execute(&cleaned_sql, &bind_values)
-            .await
-            .map_err(|e| e.to_string())?;
+        let lower = cleaned_sql.trim().to_ascii_lowercase();
+        let is_query = lower.starts_with("select") || lower.starts_with("with");
+
+        let result = if is_query {
+            conn.query(&cleaned_sql, &bind_values)
+                .await
+                .map_err(|e| e.to_string())?
+        } else {
+            conn.execute(&cleaned_sql, &bind_values)
+                .await
+                .map_err(|e| e.to_string())?
+        };
         let elapsed = start.elapsed().as_millis() as u64;
         log::info!("oracle: query finished in {}ms", elapsed);
 
