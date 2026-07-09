@@ -360,14 +360,19 @@ export const useGridStore = defineStore('grid', () => {
     }
   };
 
-  const createDatabase = async (connectionId: string, dbName: string): Promise<void> => {
+  const createDatabase = async (
+    connectionId: string,
+    dbName: string,
+    password?: string
+  ): Promise<void> => {
     if (!window.NL_PORT) return;
 
     try {
       isLoading.value = true;
       await BridgeService.request('dbBridge.createDatabase', 'dbBridge.createDatabaseResult', {
         connectionId,
-        dbName
+        dbName,
+        password
       });
 
       // Refresh schema

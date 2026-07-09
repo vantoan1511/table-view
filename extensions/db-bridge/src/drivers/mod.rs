@@ -249,7 +249,7 @@ pub trait DatabaseDriver: Send + Sync {
     async fn create_schema(&self, schema_name: &str) -> Result<(), String>;
     async fn drop_schema(&self, schema_name: &str) -> Result<(), String>;
     async fn drop_database(&self, db_name: &str) -> Result<(), String>;
-    async fn create_database(&self, db_name: &str) -> Result<(), String>;
+    async fn create_database(&self, db_name: &str, password: Option<&str>) -> Result<(), String>;
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String>;
     async fn get_schema_details(&self, schema_name: &str) -> Result<SchemaDetails, String>;
     async fn get_table_indexes(&self, table_name: &str) -> Result<Vec<DbIndex>, String>;
