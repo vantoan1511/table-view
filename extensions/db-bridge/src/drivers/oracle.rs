@@ -47,6 +47,18 @@ impl OracleDriver {
         format!(" OFFSET {} ROWS FETCH NEXT {} ROWS ONLY", offset.max(0), limit.max(0))
     }
 
+    fn clean_sql(sql: &str) -> String {
+        let mut cleaned = sql.trim().to_string();
+        let lower = cleaned.to_ascii_lowercase();
+        if !lower.starts_with("declare") && !lower.starts_with("begin") {
+            while cleaned.ends_with(';') {
+                cleaned.pop();
+                cleaned = cleaned.trim().to_string();
+            }
+        }
+        cleaned
+    }
+
     fn json_to_oracle_value(value: &JsonValue) -> OracleValue {
         match value {
             JsonValue::Null => OracleValue::Null,
@@ -128,11 +140,12 @@ impl OracleDriver {
         params: &[JsonValue],
     ) -> Result<(Vec<HashMap<String, JsonValue>>, Vec<ColumnInfo>, u64), String> {
         let bind_values: Vec<OracleValue> = params.iter().map(Self::json_to_oracle_value).collect();
+        let cleaned_sql = Self::clean_sql(sql);
 
-        log::info!("oracle: executing query: {}", sql);
+        log::info!("oracle: executing query: {}", cleaned_sql);
         let start = std::time::Instant::now();
         let result = conn
-            .execute(sql, &bind_values)
+            .execute(&cleaned_sql, &bind_values)
             .await
             .map_err(|e| e.to_string())?;
         let elapsed = start.elapsed().as_millis() as u64;
@@ -154,7 +167,8 @@ impl OracleDriver {
     async fn execute_dml(pool: &Pool, sql: &str, params: &[JsonValue]) -> Result<(), String> {
         let conn = pool.get().await.map_err(|e| e.to_string())?;
         let bind_values: Vec<OracleValue> = params.iter().map(Self::json_to_oracle_value).collect();
-        conn.execute(sql, &bind_values)
+        let cleaned_sql = Self::clean_sql(sql);
+        conn.execute(&cleaned_sql, &bind_values)
             .await
             .map_err(|e| e.to_string())?;
         conn.commit().await.map_err(|e| e.to_string())?;
