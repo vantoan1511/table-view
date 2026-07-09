@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://vantoan1511.github.io/table-view/sitemap.xml
