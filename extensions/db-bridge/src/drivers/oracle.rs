@@ -132,7 +132,7 @@ impl OracleDriver {
         log::info!("oracle: executing query: {}", sql);
         let start = std::time::Instant::now();
         let result = conn
-            .query(sql, &bind_values)
+            .execute(sql, &bind_values)
             .await
             .map_err(|e| e.to_string())?;
         let elapsed = start.elapsed().as_millis() as u64;
