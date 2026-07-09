@@ -61,6 +61,8 @@ struct Payload {
     level: String,
     #[serde(default)]
     cascade: bool,
+    #[serde(default)]
+    password: Option<String>,
 }
 
 pub async fn handle_message(
@@ -463,7 +465,7 @@ pub async fn handle_message(
                     handle_result_void(&writer, &token, "dbBridge.dropSchemaResult", &payload.req_id, result).await;
                 }
                 "createDatabase" => {
-                    let result = driver.create_database(&payload.db_name).await;
+                    let result = driver.create_database(&payload.db_name, payload.password.as_deref()).await;
                     handle_result_void(&writer, &token, "dbBridge.createDatabaseResult", &payload.req_id, result).await;
                 }
                 "exportCSV" => {

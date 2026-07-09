@@ -768,7 +768,7 @@ impl DatabaseDriver for MysqlDriver {
         Ok(())
     }
 
-    async fn create_database(&self, db_name: &str) -> Result<(), String> {
+    async fn create_database(&self, db_name: &str, _password: Option<&str>) -> Result<(), String> {
         let pool = self.pool()?;
         let sql = format!("CREATE DATABASE {}", Self::quote(db_name));
         sqlx::query(&sql)

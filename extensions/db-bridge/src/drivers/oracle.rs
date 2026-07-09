@@ -739,12 +739,22 @@ impl DatabaseDriver for OracleDriver {
         Ok(())
     }
 
-    async fn drop_database(&self, _db_name: &str) -> Result<(), String> {
-        Err("Dropping database via SQL is not supported in Oracle. Please use database management tools.".to_string())
+    async fn drop_database(&self, db_name: &str) -> Result<(), String> {
+        let pool = self.pool()?;
+        let sql = format!("DROP USER {} CASCADE", Self::quote(db_name));
+        Self::execute_dml(pool, &sql, &[]).await?;
+        Ok(())
     }
 
-    async fn create_database(&self, _db_name: &str) -> Result<(), String> {
-        Err("Creating database via SQL is not supported in Oracle. Please use database management tools.".to_string())
+    async fn create_database(&self, db_name: &str, password: Option<&str>) -> Result<(), String> {
+        let pool = self.pool()?;
+        let pass = password.unwrap_or(db_name);
+        let sql_create = format!("CREATE USER {} IDENTIFIED BY {}", Self::quote(db_name), Self::quote(pass));
+        Self::execute_dml(pool, &sql_create, &[]).await?;
+
+        let sql_grant = format!("GRANT CONNECT, RESOURCE TO {}", Self::quote(db_name));
+        Self::execute_dml(pool, &sql_grant, &[]).await?;
+        Ok(())
     }
 
     async fn export_to_csv(&self, table_name: &str, export_path: &str) -> Result<(), String> {

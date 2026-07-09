@@ -582,7 +582,7 @@ impl DatabaseDriver for SqliteDriver {
         Err("Dropping database via SQL is not supported in SQLite. Please delete the file manually.".to_string())
     }
 
-    async fn create_database(&self, _db_name: &str) -> Result<(), String> {
+    async fn create_database(&self, _db_name: &str, _password: Option<&str>) -> Result<(), String> {
         Err("Creating database via SQL is not supported in SQLite. Please create a new connection to a new file.".to_string())
     }
 
