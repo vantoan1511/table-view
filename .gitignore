@@ -71,3 +71,4 @@ scratch/
 mockups/
 test/
 /.codegraph
+/winget*
