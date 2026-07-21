@@ -3241,7 +3241,7 @@ impl Connection {
         // Read type OID
         let toid_len = buf.read_ub4()?;
         let _toid = if toid_len > 0 {
-            Some(buf.read_bytes_vec(toid_len as usize)?)
+            buf.read_bytes_with_length()?
         } else {
             None
         };
@@ -3249,7 +3249,7 @@ impl Connection {
         // Read OID
         let oid_len = buf.read_ub4()?;
         let _oid = if oid_len > 0 {
-            Some(buf.read_bytes_vec(oid_len as usize)?)
+            buf.read_bytes_with_length()?
         } else {
             None
         };
