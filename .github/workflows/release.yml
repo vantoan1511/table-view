@@ -97,13 +97,14 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v0.4.6
           files: |
             dist/table-view/resources.neu
             extensions/db-bridge/db-bridge.exe
             scripts/Output/setup.exe
           body_path: release_notes.md
           generate_release_notes: false
-          update_only_if_already_exists: true
+          make_latest: true
 
       - name: Update manifest.json for Auto-Updater
         shell: bash
