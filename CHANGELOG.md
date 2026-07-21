@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-07-21
+
+### Added
+
+- **Database**: Added support for database creation and dropping in Oracle driver.
+
+### Fixed
+
+- **Database**: Fixed a protocol desynchronization and buffer underflow error when parsing Named Object (UDT) values in the Oracle driver.
+
 ## [0.4.5] - 2026-07-08
 
 ### Added
