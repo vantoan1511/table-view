@@ -26,8 +26,10 @@ const isOracle = computed(() => connection.value?.type === DbType.ORACLE);
 
 const dbName = ref('');
 const password = ref('');
+const submitted = ref(false);
 
 const handleCreate = async () => {
+  submitted.value = true;
   if (!dbName.value.trim()) return;
   if (isOracle.value && !password.value.trim()) return;
 
@@ -69,7 +71,7 @@ const handleCreate = async () => {
               {{ isOracle ? 'Schema / User Name' : 'Database Name' }}
             </label>
             <span
-              v-if="!dbName.trim()"
+              v-if="submitted && !dbName.trim()"
               class="text-danger animate-fade-in-scale flex items-center gap-1 text-[11px] font-medium"
             >
               <AlertCircle :size="12" />
@@ -81,7 +83,7 @@ const handleCreate = async () => {
             type="text"
             placeholder="Enter name..."
             class="bg-muted border-border text-text-primary focus:border-primary w-full rounded-lg border px-4 py-2 text-[14px] transition-colors outline-none"
-            :class="{ 'border-danger! !focus:border-danger': !dbName.trim() }"
+            :class="{ 'border-danger! !focus:border-danger': submitted && !dbName.trim() }"
             @keyup.enter="handleCreate"
             autofocus
           />
@@ -99,7 +101,7 @@ const handleCreate = async () => {
               />
             </div>
             <span
-              v-if="!password.trim()"
+              v-if="submitted && !password.trim()"
               class="text-danger animate-fade-in-scale flex items-center gap-1 text-[11px] font-medium"
             >
               <AlertCircle :size="12" />
@@ -111,7 +113,7 @@ const handleCreate = async () => {
             type="password"
             placeholder="Enter password for the new schema user..."
             class="bg-muted border-border text-text-primary focus:border-primary w-full rounded-lg border px-4 py-2 text-[14px] transition-colors outline-none"
-            :class="{ 'border-danger! !focus:border-danger': !password.trim() }"
+            :class="{ 'border-danger! !focus:border-danger': submitted && !password.trim() }"
             @keyup.enter="handleCreate"
           />
           <p class="text-text-tertiary mt-1.5 flex items-start gap-1.5 text-[12px] leading-relaxed">
@@ -135,7 +137,6 @@ const handleCreate = async () => {
         <button
           @click="handleCreate"
           class="bg-primary hover:bg-primary-hover rounded-lg px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-colors"
-          :disabled="!dbName.trim() || (isOracle && !password.trim())"
         >
           Create Database
         </button>
