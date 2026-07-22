@@ -4,6 +4,15 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'src/**'
+      - 'extensions/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'package*.json'
+      - 'neutralino.config.json'
+      - 'vite.config.ts'
+      - 'tsconfig*.json'
   workflow_dispatch:
 
 jobs:
