@@ -323,5 +323,50 @@ describe('useTableData', () => {
       expect(tableData.filterText.value).toBe('age > 18');
       expect(tableData.sortColumn.value).toBeUndefined();
     });
+
+    it('restores cached table data when switching between tabs without re-querying bridge', async () => {
+      const tabsStore = useTabsStore();
+      const tableData = useTableData(connectionsStore);
+
+      const usersTab = {
+        id: 'tab-users',
+        type: TabType.TABLE,
+        title: 'users',
+        tableName: 'users',
+        connectionId: 'conn-1'
+      };
+
+      const productsTab = {
+        id: 'tab-products',
+        type: TabType.TABLE,
+        title: 'products',
+        tableName: 'products',
+        connectionId: 'conn-1'
+      };
+
+      tabsStore.tabs = [usersTab, productsTab];
+
+      vi.mocked(BridgeService.request)
+        .mockResolvedValueOnce({ rows: [{ id: 1, name: 'Alice' }], fields: [{ name: 'id', dataTypeID: 23 }], totalCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ id: 2, name: 'Widget' }], fields: [{ name: 'id', dataTypeID: 23 }], totalCount: 1 });
+
+      // 1. Load users tab
+      tabsStore.activeTabId = usersTab.id;
+      await tableData.loadTable('users', isLoading, 'conn-1');
+      expect(tableData.rows.value).toEqual([{ id: 1, name: 'Alice' }]);
+      expect(BridgeService.request).toHaveBeenCalledTimes(1);
+
+      // 2. Load products tab
+      tabsStore.activeTabId = productsTab.id;
+      await tableData.loadTable('products', isLoading, 'conn-1');
+      expect(tableData.rows.value).toEqual([{ id: 2, name: 'Widget' }]);
+      expect(BridgeService.request).toHaveBeenCalledTimes(2);
+
+      // 3. Switch back to users tab (cached, should not call BridgeService.request again)
+      tabsStore.activeTabId = usersTab.id;
+      await tableData.loadTable('users', isLoading, 'conn-1');
+      expect(tableData.rows.value).toEqual([{ id: 1, name: 'Alice' }]);
+      expect(BridgeService.request).toHaveBeenCalledTimes(2);
+    });
   });
 });

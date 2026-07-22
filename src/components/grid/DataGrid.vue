@@ -12,6 +12,7 @@ import { useGridResizing } from '@/composables/useGridResizing';
 
 import { useGridStore } from '@/stores/grid';
 import { useLayoutStore } from '@/stores/layout';
+import { useTabsStore } from '@/stores/tabs';
 
 import type { GridColumn } from '@/types';
 
@@ -22,6 +23,7 @@ import { NativeService } from '@/services/native';
 
 const gridStore = useGridStore();
 const layoutStore = useLayoutStore();
+const tabsStore = useTabsStore();
 
 const visibleColumns = computed(() =>
   gridStore.columns.filter((column) => gridStore.columnVisibility[column.name] !== false)
@@ -153,14 +155,23 @@ const handleScroll = (event: Event) => {
   scrollTop.value = target.scrollTop;
 };
 
+const maxScrollTop = computed(() => Math.max(0, (gridStore.rows.length - 1) * ROW_HEIGHT));
+
+const effectiveScrollTop = computed(() => {
+  if (gridStore.rows.length === 0) return 0;
+  return Math.min(scrollTop.value, maxScrollTop.value);
+});
+
 const startIndex = computed(() => {
-  return Math.max(0, Math.floor(scrollTop.value / ROW_HEIGHT) - BUFFER_ROWS);
+  if (gridStore.rows.length === 0) return 0;
+  return Math.max(0, Math.floor(effectiveScrollTop.value / ROW_HEIGHT) - BUFFER_ROWS);
 });
 
 const endIndex = computed(() => {
+  if (gridStore.rows.length === 0) return 0;
   return Math.min(
     gridStore.rows.length,
-    Math.ceil((scrollTop.value + viewportHeight.value) / ROW_HEIGHT) + BUFFER_ROWS
+    Math.ceil((effectiveScrollTop.value + viewportHeight.value) / ROW_HEIGHT) + BUFFER_ROWS
   );
 });
 
@@ -176,15 +187,22 @@ const bottomSpacerHeight = computed(() => {
   return (gridStore.rows.length - endIndex.value) * ROW_HEIGHT;
 });
 
-// Reset scroll on table data changes
-watch(
-  () => gridStore.rows,
-  () => {
-    scrollTop.value = 0;
-    if (scrollContainerRef.value) {
-      scrollContainerRef.value.scrollTop = 0;
-    }
+// Reset scroll on table data, table selection, page, or active tab changes
+const resetScroll = () => {
+  scrollTop.value = 0;
+  if (scrollContainerRef.value) {
+    scrollContainerRef.value.scrollTop = 0;
   }
+};
+
+watch(
+  [
+    () => gridStore.rows,
+    () => gridStore.activeTableName,
+    () => gridStore.currentPage,
+    () => tabsStore.activeTabId
+  ],
+  resetScroll
 );
 
 onMounted(() => {
