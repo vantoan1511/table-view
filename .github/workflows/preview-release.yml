@@ -115,3 +115,29 @@ jobs:
           git add manifest-preview.json
           git commit -m "chore: update manifest-preview.json for preview v$VERSION [skip ci]" || echo "No changes to commit"
           git push origin main || echo "Failed to push to main"
+
+      - name: Prune Old Preview Releases
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $KEEP_COUNT = 5
+          Write-Host "Fetching list of preview releases..."
+          $releasesRaw = gh release list --limit 100 --json tagName,isPrerelease
+          if (-not $releasesRaw) { return }
+
+          $previewReleases = @($releasesRaw | ConvertFrom-Json | Where-Object { $_.isPrerelease -and $_.tagName -like "*preview*" })
+
+          Write-Host "Found $($previewReleases.Count) preview release(s)."
+          if ($previewReleases.Count -gt $KEEP_COUNT) {
+            $toDelete = $previewReleases | Select-Object -Skip $KEEP_COUNT
+            foreach ($rel in $toDelete) {
+              $tag = $rel.tagName
+              Write-Host "Deleting old preview release and tag: $tag"
+              gh release delete $tag --yes --cleanup-tag
+            }
+          } else {
+            Write-Host "Preview release count is within the limit ($KEEP_COUNT)."
+          }
+
