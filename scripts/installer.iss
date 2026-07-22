@@ -16,6 +16,8 @@ AppPublisher={#AppPublisher}
 AppPublisherURL={#AppURL}
 AppSupportURL={#AppURL}
 AppUpdatesURL={#AppURL}
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 DefaultDirName={localappdata}\{#AppName}
 DisableProgramGroupPage=yes
 ; The following line allows the user to change the installation path

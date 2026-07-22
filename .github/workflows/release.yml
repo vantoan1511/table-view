@@ -143,4 +143,3 @@ jobs:
           git add manifest.json
           git commit -m "chore: update manifest.json for release v$VERSION [skip ci]" || echo "No changes to commit"
           git push origin main || echo "Failed to push to main"
-
