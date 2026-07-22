@@ -7,6 +7,7 @@ export interface Preferences {
   theme: 'light' | 'dark' | 'system';
   language: 'en' | 'vi';
   autoUpdate: boolean;
+  optInPreview?: boolean;
   startMinimized: boolean;
   maxRows: number;
   autoSaveHistory: boolean;
@@ -21,6 +22,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
     theme: 'dark',
     language: 'en',
     autoUpdate: true,
+    optInPreview: false,
     startMinimized: false,
     maxRows: 1000,
     autoSaveHistory: true,

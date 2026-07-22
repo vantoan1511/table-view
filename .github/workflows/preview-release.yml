@@ -1,0 +1,108 @@
+name: Preview Release Table View
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-preview-release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: 'extensions/db-bridge'
+          cache-all-crates: true
+
+      - name: Install Dependencies
+        run: npm install --no-fund --no-audit --legacy-peer-deps
+
+      - name: Install Tools
+        run: |
+          npm install -g @neutralinojs/neu
+          neu update
+
+      - name: Build Backend and Frontend
+        shell: bash
+        run: |
+          cd extensions/db-bridge
+          cargo build --release &
+          RUST_PID=$!
+          cd ../..
+          neu build --release
+          wait $RUST_PID
+          cp extensions/db-bridge/target/release/db-bridge.exe extensions/db-bridge/
+
+      - name: Compute Preview Version & Build Installer
+        shell: pwsh
+        run: |
+          $BASE_VERSION = node -p "require('./neutralino.config.json').version"
+          $PREVIEW_VERSION = "$BASE_VERSION-preview.${{ github.run_number }}"
+          Write-Host "Building installer for preview version $PREVIEW_VERSION"
+          "PREVIEW_VERSION=$PREVIEW_VERSION" >> $env:GITHUB_ENV
+          ./scripts/build-installer.ps1 -Version $PREVIEW_VERSION
+
+      - name: Create GitHub Pre-Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.PREVIEW_VERSION }}
+          name: Table View v${{ env.PREVIEW_VERSION }} (Preview)
+          prerelease: true
+          files: |
+            dist/table-view/resources.neu
+            extensions/db-bridge/db-bridge.exe
+            scripts/Output/setup.exe
+          body: "Automated preview release from latest main branch (commit ${{ github.sha }})."
+          generate_release_notes: false
+
+      - name: Update manifest-preview.json for Preview Auto-Updater
+        shell: bash
+        run: |
+          VERSION="${{ env.PREVIEW_VERSION }}"
+          TAG_NAME="v${VERSION}"
+          echo "Updating manifest-preview.json version to $VERSION and tag $TAG_NAME"
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]"
+
+          git reset --hard
+          git fetch origin main
+          git checkout main
+          git pull origin main --rebase
+
+          node -e "
+            const fs = require('fs');
+            const manifest = {
+              applicationId: 'com.github.vantoan1511.tableview',
+              version: '${VERSION}',
+              resourcesURL: 'https://github.com/vantoan1511/table-view/releases/download/${TAG_NAME}/resources.neu',
+              data: {
+                extensionUrl: 'https://github.com/vantoan1511/table-view/releases/download/${TAG_NAME}/db-bridge.exe',
+                releaseNotes: 'Automated preview release update.'
+              }
+            };
+            fs.writeFileSync('manifest-preview.json', JSON.stringify(manifest, null, 2));
+          "
+
+          git add manifest-preview.json
+          git commit -m "chore: update manifest-preview.json for preview v$VERSION [skip ci]" || echo "No changes to commit"
+          git push origin main || echo "Failed to push to main"

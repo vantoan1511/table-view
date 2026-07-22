@@ -38,6 +38,7 @@ describe('Preferences Store', () => {
     expect(store.settings.theme).toBe('dark');
     expect(store.settings.language).toBe('en');
     expect(store.settings.autoUpdate).toBe(true);
+    expect(store.settings.optInPreview).toBe(false);
     expect(store.settings.startMinimized).toBe(false);
     expect(store.settings.maxRows).toBe(1000);
     expect(store.settings.autoSaveHistory).toBe(true);
