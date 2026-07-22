@@ -39,6 +39,7 @@ const settings = reactive({
   theme: 'dark' as 'light' | 'dark' | 'system',
   language: 'en' as 'en' | 'vi',
   autoUpdate: true,
+  optInPreview: false,
   startMinimized: false,
   maxRows: 1000,
   autoSaveHistory: true,
@@ -75,6 +76,7 @@ const resetToDefaults = () => {
   settings.theme = 'dark';
   settings.language = 'en';
   settings.autoUpdate = true;
+  settings.optInPreview = false;
   settings.startMinimized = false;
   settings.maxRows = 1000;
   settings.autoSaveHistory = true;
@@ -232,6 +234,16 @@ const savePreferences = async () => {
                       </span>
                     </div>
                     <ToggleSwitch v-model="settings.autoUpdate" />
+                  </div>
+
+                  <div class="flex items-center justify-between py-1">
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-text-primary text-xs font-medium">Preview Channel Updates</span>
+                      <span class="text-text-tertiary text-[11px]">
+                        Opt-in to pre-release preview builds of Table View.
+                      </span>
+                    </div>
+                    <ToggleSwitch v-model="settings.optInPreview" />
                   </div>
                 </div>
 

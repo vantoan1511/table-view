@@ -2,6 +2,7 @@ import * as Neutralino from '@neutralinojs/lib';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
+import { usePreferencesStore } from './preferences';
 import { useToastStore } from './toast';
 
 export interface UpdateManifest {
@@ -23,8 +24,10 @@ export const useUpdaterStore = defineStore('updater', () => {
   const ignoredVersion = ref<string | null>(null);
   const showUpdateDialog = ref(false);
 
-  const MANIFEST_URL =
+  const STABLE_MANIFEST_URL =
     'https://raw.githubusercontent.com/vantoan1511/table-view/main/manifest.json';
+  const PREVIEW_MANIFEST_URL =
+    'https://raw.githubusercontent.com/vantoan1511/table-view/main/manifest-preview.json';
 
   const RELEASE_URL = 'https://api.github.com/repos/vantoan1511/table-view/releases/tags';
 
@@ -61,7 +64,11 @@ export const useUpdaterStore = defineStore('updater', () => {
     error.value = null;
 
     try {
-      const manifest = (await Neutralino.updater.checkForUpdates(MANIFEST_URL)) as UpdateManifest;
+      const preferencesStore = usePreferencesStore();
+      const manifestUrl = preferencesStore.settings.optInPreview
+        ? PREVIEW_MANIFEST_URL
+        : STABLE_MANIFEST_URL;
+      const manifest = (await Neutralino.updater.checkForUpdates(manifestUrl)) as UpdateManifest;
       const currentAppVersion = window.NL_APPVERSION;
       const appNeedsUpdate = isNewerVersion(manifest.version, currentAppVersion);
 
@@ -243,13 +250,39 @@ del "%~f0" & exit
 `;
   };
 
-  const isNewerVersion = (latest: string, current: string) => {
-    const l = latest.split('.').map(Number);
-    const c = current.split('.').map(Number);
-    for (let i = 0; i < 3; i++) {
-      if ((l[i] || 0) > (c[i] || 0)) return true;
-      if ((l[i] || 0) < (c[i] || 0)) return false;
+  const parseVersion = (v: string) => {
+    const clean = v.replace(/^v/, '');
+    const [versionPart, prereleasePart] = clean.split('-');
+    const numParts = (versionPart || '').split('.').map((n) => parseInt(n, 10) || 0);
+    let buildNum = 0;
+    if (prereleasePart) {
+      const match = prereleasePart.match(/\d+/);
+      if (match) buildNum = parseInt(match[0], 10);
     }
+    return {
+      major: numParts[0] || 0,
+      minor: numParts[1] || 0,
+      patch: numParts[2] || 0,
+      isPrerelease: !!prereleasePart,
+      buildNum
+    };
+  };
+
+  const isNewerVersion = (latest: string, current: string) => {
+    const l = parseVersion(latest);
+    const c = parseVersion(current);
+
+    if (l.major !== c.major) return l.major > c.major;
+    if (l.minor !== c.minor) return l.minor > c.minor;
+    if (l.patch !== c.patch) return l.patch > c.patch;
+
+    if (l.isPrerelease && c.isPrerelease) {
+      return l.buildNum > c.buildNum;
+    }
+
+    if (!l.isPrerelease && c.isPrerelease) return true;
+    if (l.isPrerelease && !c.isPrerelease) return false;
+
     return false;
   };
 

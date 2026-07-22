@@ -292,4 +292,54 @@ describe('Updater Store', () => {
     expect(store.showUpdateDialog).toBe(false);
     expect(toastStore.toasts.length).toBe(0);
   });
+
+  it('uses preview manifest URL when optInPreview preference is enabled', async () => {
+    const { usePreferencesStore } = await import('../preferences');
+    const preferencesStore = usePreferencesStore();
+    preferencesStore.settings.optInPreview = true;
+
+    const mockManifest = {
+      applicationId: 'table-view',
+      version: '0.2.11-preview.1',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: { extensionUrl: 'https://example.com/db-bridge.exe' }
+    };
+
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue(mockManifest);
+    global.fetch = vi.fn().mockResolvedValue({ ok: false });
+
+    const store = useUpdaterStore();
+    await store.checkForUpdates();
+
+    expect(Neutralino.updater.checkForUpdates).toHaveBeenCalledWith(
+      'https://raw.githubusercontent.com/vantoan1511/table-view/main/manifest-preview.json'
+    );
+    expect(store.updateAvailable?.version).toBe('0.2.11-preview.1');
+  });
+
+  it('correctly compares prerelease version numbers', async () => {
+    const { usePreferencesStore } = await import('../preferences');
+    const preferencesStore = usePreferencesStore();
+    preferencesStore.settings.optInPreview = true;
+
+    // Current version is a preview
+    // @ts-ignore
+    window.NL_APPVERSION = '0.2.11-preview.1';
+
+    const mockManifest = {
+      applicationId: 'table-view',
+      version: '0.2.11-preview.2',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: { extensionUrl: 'https://example.com/db-bridge.exe' }
+    };
+
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue(mockManifest);
+    global.fetch = vi.fn().mockResolvedValue({ ok: false });
+
+    const store = useUpdaterStore();
+    await store.checkForUpdates();
+
+    expect(store.updateAvailable).not.toBeNull();
+    expect(store.updateAvailable?.version).toBe('0.2.11-preview.2');
+  });
 });
