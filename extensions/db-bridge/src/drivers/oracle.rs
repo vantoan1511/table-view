@@ -73,7 +73,7 @@ impl OracleDriver {
                 }
             }
             JsonValue::String(v) => OracleValue::String(v.clone()),
-            _ => OracleValue::Json(value.clone()),
+            _ => OracleValue::String(value.to_string()),
         }
     }
 
@@ -1119,5 +1119,27 @@ mod tests {
             OracleDriver::pagination_clause(50, 100),
             " OFFSET 100 ROWS FETCH NEXT 50 ROWS ONLY"
         );
+    }
+
+    #[test]
+    fn converts_json_to_oracle_value_string() {
+        use oracle_rs::Value as OracleValue;
+        use serde_json::json;
+
+        let obj = json!({"key": "value"});
+        let oracle_val = OracleDriver::json_to_oracle_value(&obj);
+        if let OracleValue::String(s) = oracle_val {
+            assert_eq!(s, "{\"key\":\"value\"}");
+        } else {
+            panic!("Expected OracleValue::String");
+        }
+
+        let arr = json!([1, 2, 3]);
+        let oracle_val_arr = OracleDriver::json_to_oracle_value(&arr);
+        if let OracleValue::String(s) = oracle_val_arr {
+            assert_eq!(s, "[1,2,3]");
+        } else {
+            panic!("Expected OracleValue::String");
+        }
     }
 }

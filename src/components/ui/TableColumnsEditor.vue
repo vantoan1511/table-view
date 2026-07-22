@@ -66,7 +66,7 @@ const getSupportedDataTypes = (type: DbType) => {
     case DbType.SQLITE:
       return ['integer', 'text', 'real', 'blob', 'numeric'];
     case DbType.ORACLE:
-      return ['NUMBER', 'VARCHAR2(255)', 'DATE', 'TIMESTAMP', 'CLOB', 'BLOB'];
+      return ['NUMBER', 'VARCHAR2(255)', 'DATE', 'TIMESTAMP', 'CLOB', 'NCLOB', 'BLOB'];
     case DbType.SQLSERVER:
       return ['int', 'bigint', 'nvarchar(255)', 'text', 'bit', 'datetime2', 'date', 'decimal'];
     default:

@@ -37,7 +37,7 @@ pub fn is_safe_data_type(s: &str) -> bool {
         "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC",
         "UUID", "JSON", "JSONB", "BYTEA", "BLOB", "CLOB",
         "RAW", "NUMBER", "VARCHAR2", "NVARCHAR2", "NVARCHAR",
-        "SERIAL", "BIGSERIAL", "SMALLSERIAL"
+        "SERIAL", "BIGSERIAL", "SMALLSERIAL", "NCLOB", "BFILE"
     ];
 
     parts.iter().all(|p| {
@@ -61,7 +61,10 @@ pub fn is_safe_default(s: &str) -> bool {
         return !inner.contains('\'') || inner.contains("''"); // Simple escaping check
     }
     // Functions like now(), current_timestamp
-    let allowed_funcs = ["NOW()", "CURRENT_TIMESTAMP", "CURRENT_DATE", "GETDATE()"];
+    let allowed_funcs = [
+        "NOW()", "CURRENT_TIMESTAMP", "CURRENT_DATE", "GETDATE()",
+        "SYSDATE", "EMPTY_CLOB()", "EMPTY_BLOB()", "SYS_GUID()", "LOCALTIMESTAMP"
+    ];
     allowed_funcs.contains(&s.to_uppercase().as_str())
 }
 
@@ -181,5 +184,21 @@ mod tests {
         let input = vec!["id", "name", "id", "created_at", "id", "name"];
         let expected = vec!["id", "name", "id_1", "created_at", "id_2", "name_1"];
         assert_eq!(make_unique_column_names(&input), expected);
+    }
+
+    #[test]
+    fn test_oracle_safe_data_types() {
+        assert!(is_safe_data_type("NCLOB"));
+        assert!(is_safe_data_type("BFILE"));
+        assert!(is_safe_data_type("VARCHAR2(255)"));
+        assert!(is_safe_data_type("CLOB"));
+    }
+
+    #[test]
+    fn test_oracle_safe_defaults() {
+        assert!(is_safe_default("EMPTY_CLOB()"));
+        assert!(is_safe_default("EMPTY_BLOB()"));
+        assert!(is_safe_default("SYSDATE"));
+        assert!(is_safe_default("SYS_GUID()"));
     }
 }
