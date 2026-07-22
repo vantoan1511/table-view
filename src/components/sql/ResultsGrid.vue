@@ -7,12 +7,14 @@ import { useClickOutside } from '@/composables/useClickOutside';
 import { useGridResizing } from '@/composables/useGridResizing';
 
 import { useGridStore } from '@/stores/grid';
+import { useTabsStore } from '@/stores/tabs';
 
 import type { GridColumn } from '@/types';
 
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 
 const gridStore = useGridStore();
+const tabsStore = useTabsStore();
 
 const selectedCell = ref<{ rowIndex: number; columnName: string } | null>(null);
 const selectedRowIndices = ref<Set<number>>(new Set());
@@ -128,14 +130,23 @@ const handleScroll = (event: Event) => {
   scrollTop.value = target.scrollTop;
 };
 
+const maxScrollTop = computed(() => Math.max(0, (gridStore.sqlRows.length - 1) * ROW_HEIGHT));
+
+const effectiveScrollTop = computed(() => {
+  if (gridStore.sqlRows.length === 0) return 0;
+  return Math.min(scrollTop.value, maxScrollTop.value);
+});
+
 const startIndex = computed(() => {
-  return Math.max(0, Math.floor(scrollTop.value / ROW_HEIGHT) - BUFFER_ROWS);
+  if (gridStore.sqlRows.length === 0) return 0;
+  return Math.max(0, Math.floor(effectiveScrollTop.value / ROW_HEIGHT) - BUFFER_ROWS);
 });
 
 const endIndex = computed(() => {
+  if (gridStore.sqlRows.length === 0) return 0;
   return Math.min(
     gridStore.sqlRows.length,
-    Math.ceil((scrollTop.value + viewportHeight.value) / ROW_HEIGHT) + BUFFER_ROWS
+    Math.ceil((effectiveScrollTop.value + viewportHeight.value) / ROW_HEIGHT) + BUFFER_ROWS
   );
 });
 
@@ -151,16 +162,15 @@ const bottomSpacerHeight = computed(() => {
   return (gridStore.sqlRows.length - endIndex.value) * ROW_HEIGHT;
 });
 
-// Reset scroll on table data changes
-watch(
-  () => gridStore.sqlRows,
-  () => {
-    scrollTop.value = 0;
-    if (scrollContainerRef.value) {
-      scrollContainerRef.value.scrollTop = 0;
-    }
+// Reset scroll on table data or active tab changes
+const resetScroll = () => {
+  scrollTop.value = 0;
+  if (scrollContainerRef.value) {
+    scrollContainerRef.value.scrollTop = 0;
   }
-);
+};
+
+watch([() => gridStore.sqlRows, () => tabsStore.activeTabId], resetScroll);
 
 onMounted(() => {
   if (scrollContainerRef.value) {

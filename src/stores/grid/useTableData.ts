@@ -34,7 +34,8 @@ export function useTableData(connectionsStore: any) {
   const tabCache = ref<Map<string, TableCacheEntry>>(new Map());
 
   watch(rows, () => {
-    if (currentTabId.value) {
+    const activeTab = tabsStore.activeTab;
+    if (currentTabId.value && activeTab && currentTabId.value === activeTab.id) {
       const cached = tabCache.value.get(currentTabId.value);
       if (cached) {
         tabCache.value.set(currentTabId.value, {
