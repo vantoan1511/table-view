@@ -233,14 +233,20 @@ impl DatabaseDriver for PostgresDriver {
                 .map_err(|e| e.to_string())?;
             connect_options = connect_options.statement_cache_capacity(0);
 
-            PgPoolOptions::new()
-                .max_connections(5)
-                .acquire_timeout(std::time::Duration::from_secs(
-                    config.connection_timeout as u64,
-                ))
-                .connect_with(connect_options)
-                .await
-                .map_err(|e| e.to_string())
+            let timeout_secs = if config.connection_timeout > 0 { config.connection_timeout as u64 } else { 10 };
+            let duration = std::time::Duration::from_secs(timeout_secs);
+
+            match tokio::time::timeout(
+                duration,
+                PgPoolOptions::new()
+                    .max_connections(5)
+                    .acquire_timeout(duration)
+                    .connect_with(connect_options)
+            ).await {
+                Ok(Ok(pool)) => Ok(pool),
+                Ok(Err(e)) => Err(e.to_string()),
+                Err(_) => Err(format!("Connection attempt timed out after {} seconds. Please check host, port, firewall, or SSL settings.", timeout_secs)),
+            }
         }
 
         let pool = match connect_pool(config, &host, ssl_mode).await {
