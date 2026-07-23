@@ -243,7 +243,7 @@ const handleTestConnection = () => {
         );
         cleanup();
       }
-    }, 15000);
+    }, 30000);
 
     Neutralino.events.on('dbBridge.testConnectionResult', onTestResult);
     Neutralino.extensions.dispatch(
