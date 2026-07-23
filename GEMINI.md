@@ -1,37 +1,330 @@
 # Gemini CLI Mandates - Table View Project
 
-**Your code will be reviewed by Codex and Claude Code**
+# Project
 
-## Core Engineering Standards
+Table View is a lightweight, native desktop database management tool.
 
-- **Backend Architecture**: All backend bridge logic must reside in the `extensions/db-bridge` directory and be written in **Rust**.
-- **Database Driver Guidelines**:
-  - Use `sqlx` or dedicated Rust drivers (like `rusqlite`, `tokio-postgres`, `mysql_async`) to maintain high performance and safety.
-  - For PostgreSQL, ensure proper connection pooling and error handling. Always cast both operands of dynamic comparisons (e.g., column comparisons with dynamic placeholders) to the same explicit type (e.g. `col::text = $1::text` or `col::text IN ($1::text)`) to prevent prepared statement type mismatch errors (e.g. `operator does not exist: text = bigint`).
-  - For Oracle, use `oracle-rs` with `deadpool-oracle` for pure Rust thin-driver connectivity without Oracle Instant Client or OCI/ODPI-C dependencies.
-- **Frontend State**: Use Pinia for global state. Ensure WebSocket response handling in stores matches the expected payload structures (e.g., `payload.schema` vs direct flattening).
-- **Styling**: Maintain the established dark-mode aesthetic using Tailwind CSS 4.
-- **Bundling**: Always update `neutralino.config.json` exclusion patterns when adding new source files or directories to keep the production bundle lean.
-- **Auto-Update**:
-  - For extension updates, use the `dbBridge.updateExtension` event to trigger the custom "Fresh Updater" logic in the Rust backend.
-  - For frontend updates, use the standard `Neutralino.updater.install()` method.
-  - Maintain the update manifest URL in the `updater` store pointing to the `main` branch on GitHub (`https://raw.githubusercontent.com/vantoan1511/table-view/main/manifest.json`).
-  - Ensure version strings follow Semantic Versioning (SemVer).
+Technology stack:
 
-## Workflow Mandates
+- Rust (backend)
+- Neutralinojs (desktop runtime)
+- Vue 3
+- Tailwindcss v4
+- PrimeVue v4
+- TypeScript
+- Vite
+
+The frontend communicates with the Rust backend exclusively through Neutralinojs IPC and the db-bridge Extension WebSocket. Rust is responsible for all privileged operations, including direct database connections and query execution, while Vue is responsible for presenting data and handling user interactions.
+
+---
+
+# Coding Rules
+
+Before generating code:
+
+1. Inspect the existing architecture.
+2. Follow established project conventions.
+3. Reuse existing modules whenever possible.
+4. Keep changes focused and minimal.
+5. Avoid unrelated refactoring.
+6. Explain trade-offs when multiple implementations are reasonable.
+7. Always check-out to another branch for features implementing or bugs fixing, never work on main/master.
+
+Never invent APIs that do not exist.
+
+If a required API is missing, propose adding it rather than assuming it already exists.
+
+---
+
+# Mission
+
+Table View should be:
+
+- Lightweight
+- Fast
+- Native-feeling
+- Reliable
+- Secure
+- Cross-platform
+- Easy to maintain
+- Production ready
+
+Every implementation should favor simplicity, predictability, and long-term maintainability.
+
+---
+
+# Architecture
+
+Table View is divided into two layers.
+
+## Backend (Rust)
+
+The Rust backend owns:
+
+- Database connections and pooling
+- Query execution
+- File system access
+- Network access
+- Background tasks
+- Business logic
+- Performance-critical operations
+- System integration
+
+The backend should not contain UI concerns.
+
+## Frontend (Vue)
+
+The frontend owns:
+
+- Rendering
+- User interactions
+- View state
+- Routing
+- Local UI state
+- Animations
+
+The frontend should avoid implementing business logic.
+
+Whenever logic requires database knowledge or system access, it belongs in Rust.
+
+---
+
+# Communications (IPC & WebSockets)
+
+The IPC/WebSocket boundary is the contract between frontend and backend.
+
+Always:
+
+- keep commands small
+- use strongly typed request/response models
+- return structured errors
+- avoid sending unnecessary data
+- keep payloads versionable
+
+Do not expose internal backend implementation details through the bridge.
+
+Treat the extension communication layer as a stable public API.
+
+---
+
+# Single Source of Truth
+
+Business rules must exist in one place only.
+
+Avoid duplicating logic between Rust and TypeScript.
+
+If validation or calculations are required, prefer implementing them in Rust and exposing the results through the backend bridge.
+
+---
+
+# Rust Guidelines
+
+Prefer:
+
+- ownership over unnecessary cloning
+- explicit error handling
+- Result<T, E>
+- idiomatic Rust
+- modular crates
+- strong typing
+
+Avoid:
+
+- unwrap()
+- expect() outside tests
+- panic! for recoverable errors
+- unnecessary Arc<Mutex<T>>
+- global mutable state
+
+Prefer immutable data structures whenever practical.
+
+---
+
+# Vue Guidelines
+
+Use:
+
+- Composition API
+- script setup
+- TypeScript
+- composables
+- reusable components
+
+Avoid:
+
+- Options API
+- large components
+- business logic inside views
+- direct bridge/IPC calls scattered across components
+
+Components should remain focused on rendering.
+
+---
+
+# Workflow Mandates
 
 - **Validation**: After modifying the Rust extension, always perform a `cargo build` to ensure the binary compiles correctly before testing with NeutralinoJS.
 - **Logging**: Maintain a centralized log file in a writable system directory (e.g., `%LOCALAPPDATA%` on Windows), capturing both backend (Rust) and frontend (UI) diagnostic information for unified troubleshooting.
 - **Pathing**: Use Windows-compatible backslash paths (`\\`) in `neutralino.config.json` for extension commands.
 
-## UI/UX Standards
+---
+
+# UI/UX Standards
 
 - **Icons**: Use Lucide Vue Next. Always import icons explicitly in the `<script setup>` block.
 - **Feedback**: Use the existing `toast` and `error` stores to provide immediate user feedback for all background operations.
 
-## Coding Conventions
+---
 
-- **Branches**: Always check out a new git branch before starting work on a new feature or bug fix.
+# Services
+
+Frontend services should only wrap bridge/IPC calls.
+
+Example flow:
+
+View
+↓
+Composable
+↓
+Frontend Service (e.g., `bridge.ts` or `native.ts`)
+↓
+Neutralino IPC / Extension WebSocket
+↓
+Rust Backend
+↓
+Database
+
+Components should never call IPC or WebSockets directly.
+
+---
+
+# State Management
+
+Keep state local whenever possible.
+
+Shared state should only exist when genuinely shared across multiple views.
+
+Do not duplicate backend state inside multiple frontend stores.
+
+---
+
+# Database Operations
+
+The Rust backend owns every interaction with the databases.
+
+Never access a database directly from the frontend.
+
+Support:
+
+- multiple connection profiles
+- multiple database engines (PostgreSQL, MySQL, SQLite, Oracle)
+- schema and table introspection
+- concurrent query execution
+- proper connection pooling
+
+Never assume:
+
+- default schema
+- specific SQL dialects in common abstraction layers
+- specific database version
+
+---
+
+# Security
+
+Sensitive information never belongs in the frontend.
+
+Do not expose:
+
+- database credentials
+- connection strings with passwords
+- private keys
+
+The frontend should only receive the minimum information necessary to render the UI.
+
+---
+
+# Error Handling
+
+Errors returned through the backend bridge should:
+
+- include machine-readable error codes
+- contain user-friendly messages
+- avoid leaking implementation details
+
+Unexpected failures should be logged by the backend.
+
+---
+
+# Performance
+
+Prefer:
+
+- streaming or incremental updates
+- background workers
+- caching
+- lazy loading
+- batching requests
+
+Avoid unnecessary serialization across the backend bridge.
+
+---
+
+# Dependencies
+
+Before adding dependencies:
+
+Evaluate:
+
+- maintenance
+- security
+- compile time
+- binary size
+- community adoption
+
+Prefer standard library functionality whenever practical.
+
+Avoid introducing dependencies for small utilities.
+
+---
+
+# Code Style
+
+Write code that is easy to understand.
+
+Prefer descriptive names.
+
+Avoid abbreviations.
+
+Good:
+
+- databaseConnection
+- activeSchema
+- tableMetadata
+
+Avoid:
+
+- ctx
+- obj
+- tmp
+- data1
+
+Variable Naming in CSS
+
+Good:
+
+- border-(--border)
+- min-w-35
+- shrink-0
+
+Avoid
+
+- border-[var(--border)]
+- min-w-[140px]
+- flex-shrink-0
+
+**Additional Coding Conventions:**
+
 - **Function Syntax**: Use arrow functions for composables, callbacks, and inline handlers. Do not refactor existing standard function declarations unless modifying them.
 - **Import Order**: Group imports into standard categories with blank lines between groups:
   1. Vue core & external libraries
@@ -40,65 +333,49 @@
   4. Types & utilities
 - **Component Reuse**: Check `src/components/ui` and existing modal/panel components before creating new UI primitives.
 - **Confirmation Dialog**: Always use the existing `ConfirmDialog` component. Never use browser native `confirm()` or `alert()`.
-- **Diagnostics**: Always maintain centralized logging via `logger.ts` / Rust `tracing` loggers rather than bare `console.log`.
 
-## Codebase Architecture & Directory Map
+---
 
-To help future agent workflows, here is the complete structural layout of the Table View project:
+# Comments
 
-```text
-table-view/
-├── extensions/                  # Desktop application extension backends
-│   └── db-bridge/               # Rust-based database bridge (Neutralino extension)
-│       ├── Cargo.toml           # Rust package configuration
-│       └── src/
-│           ├── main.rs          # Extension entry point, command dispatch, and event loop
-│           ├── bridge.rs        # Neutralino bridge communication interface
-│           ├── handler.rs       # Client request / database query execution handler
-│           ├── pool.rs          # Database connection pool manager
-│           └── drivers/         # Database-specific connection & query drivers
-│               ├── mod.rs       # Driver manager and common traits
-│               ├── postgres.rs  # PostgreSQL driver (sqlx)
-│               ├── mysql.rs     # MySQL driver (sqlx)
-│               ├── sqlite.rs    # SQLite driver (rusqlite)
-│               ├── oracle.rs    # Oracle driver (oracle-rs / deadpool-oracle)
-│               └── utils.rs     # Shared database utility functions
-│
-├── src/                         # Vue 3 Frontend source code
-│   ├── main.ts                  # Application entry point
-│   ├── App.vue                  # Root Vue component
-│   │
-│   ├── components/              # Vue components, namespaces:
-│   │   ├── grid/                # Data table, Grid cell/header, grid toolbar, pagination
-│   │   ├── layout/              # MinimizedDock, PanelHeader, TitleBar, StatusBar, WorkspaceContainer
-│   │   ├── modals/              # NewConnectionModal and related connection modals
-│   │   ├── panels/              # Properties, indexes, outputs, history, and ValueViewer
-│   │   ├── sidebar/             # SidebarDialogs, DatabaseTree, DatabaseNode, ContextMenus (Schema, Table, etc.)
-│   │   ├── sql/                 # SqlEditor, ResultsGrid (monaco or textarea wrappers)
-│   │   └── ui/                  # UI atoms/dialogs (Button, Dropdown, Checkbox, Dialogs: AlterTable, CreateTable, Toast, Updater)
-│   │
-│   ├── stores/                  # Pinia stores for global application state
-│   │   ├── about.ts             # App information & version metadata
-│   │   ├── connections.ts       # Active and configured database connections state
-│   │   ├── error.ts             # Global application error tracing state
-│   │   ├── grid.ts              # DataGrid rendering, sorting, pagination & active row/cell state
-│   │   ├── layout.ts            # Sidebar, panels, active tab, and modal visibility state
-│   │   ├── schema.ts            # Selected database, schema, table metadata, table columns state
-│   │   ├── tabs.ts              # Active workspace query/table tabs and history state
-│   │   ├── toast.ts             # Transient UI notifications/toast message state
-│   │   └── updater.ts           # Auto-update status, release manifests and changelog state
-│   │
-│   ├── composables/             # Custom Vue composables (useSqlEditor, useGridResizing, useKeyboardShortcuts, useTabSync, etc.)
-│   ├── services/                # Communications (bridge.ts for extension WebSocket, native.ts for Neutralino API)
-│   ├── router/                  # Vue router configuration (index.ts)
-│   ├── types/                   # TypeScript interfaces and global schemas (index.ts)
-│   ├── utils/                   # Frontend helpers (crypto.ts, logger.ts)
-│   └── views/                   # Vue route views (MainView.vue)
-│
-├── public/                      # Static resources (icons, assets)
-├── scripts/                     # Local builds and automated update helper scripts
-├── package.json                 # Node project definition
-├── tsconfig.json                # TypeScript compilation config
-├── vite.config.ts               # Vite configuration
-└── neutralino.config.json       # NeutralinoJS desktop wrapper and extension mappings
-```
+Comments should explain why.
+
+Avoid comments that simply describe what the code is doing.
+
+---
+
+# Logging
+
+Backend:
+
+- log diagnostics
+- log failures
+- avoid sensitive data
+- Always maintain centralized logging via Rust `tracing` loggers rather than bare `println!`.
+
+Frontend:
+
+- avoid excessive console logging
+- never log secrets
+- Always maintain centralized logging via `logger.ts` rather than bare `console.log`.
+
+---
+
+# Documentation
+
+Whenever a public backend bridge command changes:
+
+Update:
+
+- bridge documentation
+- request schema
+- response schema
+- types
+
+Documentation should reflect implementation.
+
+---
+
+# Goal
+
+Every contribution should move Table View closer to being a professional-grade native database management desktop application with a clear separation between the Rust backend and the Vue frontend, connected through a stable, well-defined bridge interface.
