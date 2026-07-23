@@ -31,15 +31,16 @@
 
 ## Coding Conventions
 
-- **Branches** always checkout to new branch before starting new feature or bug fix
-- **Use arrow function** syntax for all functions.
-- **Imports order**: components, composables, Pinia stores, Pinia actions, types, external libraries, other imports, each group separated by a blank line.
-- **Component reuse**: Always reference to existing component at `/components` as the base for creating new components. Do not reinvent the wheel. Try to reuse when possible.
-- **Single responsibility**: Each component should have a single responsibility. Do not create monolithic components.
-- **Props and emits**: Components should use props to receive data from the parent component and emit events to communicate with the parent component.
-- **Testability**: Components should be testable. Do not create components that are hard to test.
-- **Performance**: Components should be performant. Do not create components that are slow to render.
-- **Confirmation Dialog**: Use the existing `ConfirmDialog` component for all confirmation dialogs. Never use browser alerts or native confirmation dialogs.
+- **Branches**: Always check out a new git branch before starting work on a new feature or bug fix.
+- **Function Syntax**: Use arrow functions for composables, callbacks, and inline handlers. Do not refactor existing standard function declarations unless modifying them.
+- **Import Order**: Group imports into standard categories with blank lines between groups:
+  1. Vue core & external libraries
+  2. Pinia stores & composables
+  3. UI & feature components
+  4. Types & utilities
+- **Component Reuse**: Check `src/components/ui` and existing modal/panel components before creating new UI primitives.
+- **Confirmation Dialog**: Always use the existing `ConfirmDialog` component. Never use browser native `confirm()` or `alert()`.
+- **Diagnostics**: Always maintain centralized logging via `logger.ts` / Rust `tracing` loggers rather than bare `console.log`.
 
 ## Codebase Architecture & Directory Map
 
