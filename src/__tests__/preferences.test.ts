@@ -149,4 +149,16 @@ describe('Preferences Store', () => {
     }
     expect(document.documentElement.classList.contains('dark')).toBe(false);
   });
+
+  it('triggers checkForUpdates when optInPreview preference changes during save', async () => {
+    const { useUpdaterStore } = await import('../stores/updater');
+    const store = usePreferencesStore();
+    const updaterStore = useUpdaterStore();
+
+    const spy = vi.spyOn(updaterStore, 'checkForUpdates').mockImplementation(async () => {});
+
+    await store.save({ optInPreview: true });
+
+    expect(spy).toHaveBeenCalledWith(false);
+  });
 });

@@ -2,6 +2,7 @@ import './assets/main.css';
 import 'primeicons/primeicons.css';
 
 import { useErrorStore } from '@/stores/error';
+import { useUpdaterStore } from '@/stores/updater';
 import { initLogger, setupConsoleOverride } from '@/utils/logger';
 import * as Neutralino from '@neutralinojs/lib';
 import { TableViewTheme } from '@/theme/TableViewTheme';
@@ -56,11 +57,17 @@ window.addEventListener('unhandledrejection', (event) => {
 if (window.NL_PORT) {
   Neutralino.init();
 
-  // Set window title with version (non-blocking)
+  // Set window title with active version (non-blocking)
   const setWindowTitle = async () => {
-    const config = await Neutralino.app.getConfig();
-    if (config && config.version) {
-      await Neutralino.window.setTitle(`${config.applicationName} v${config.version}`);
+    try {
+      const config = await Neutralino.app.getConfig();
+      const updaterStore = useUpdaterStore(pinia);
+      await updaterStore.init();
+      const version = updaterStore.getCurrentAppVersion();
+      const appName = config?.applicationName || 'Table View';
+      await Neutralino.window.setTitle(`${appName} v${version}`);
+    } catch (err) {
+      console.warn('Failed to set window title with version:', err);
     }
   };
   setWindowTitle();

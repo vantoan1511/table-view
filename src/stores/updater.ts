@@ -22,6 +22,7 @@ export const useUpdaterStore = defineStore('updater', () => {
   const updateStatus = ref('');
   const error = ref<string | null>(null);
   const ignoredVersion = ref<string | null>(null);
+  const installedVersion = ref<string | null>(null);
   const showUpdateDialog = ref(false);
 
   const STABLE_MANIFEST_URL =
@@ -31,6 +32,18 @@ export const useUpdaterStore = defineStore('updater', () => {
 
   const RELEASE_URL = 'https://api.github.com/repos/vantoan1511/table-view/releases/tags';
 
+  const getCurrentAppVersion = () => {
+    const baseVersion = window.NL_APPVERSION || '0.0.0';
+    if (!installedVersion.value) return baseVersion;
+    if (
+      installedVersion.value === baseVersion ||
+      isNewerVersion(installedVersion.value, baseVersion, true)
+    ) {
+      return installedVersion.value;
+    }
+    return baseVersion;
+  };
+
   const init = async () => {
     // Cleanup update-related files on startup
     if (window.NL_PORT) {
@@ -38,6 +51,7 @@ export const useUpdaterStore = defineStore('updater', () => {
         const data = await Neutralino.storage.getData('updater_config');
         const config = JSON.parse(data);
         ignoredVersion.value = config.ignoredVersion || null;
+        installedVersion.value = config.installedVersion || null;
       } catch {
         // Not found or invalid
       }
@@ -45,11 +59,11 @@ export const useUpdaterStore = defineStore('updater', () => {
       try {
         const platform = window.NL_OS.toLowerCase();
         if (platform === 'windows') {
-          await Neutralino.filesystem.remove('updater.bat').catch(() => {});
-          await Neutralino.filesystem.remove('resources.neu.new').catch(() => {});
+          await Neutralino.filesystem.remove?.('updater.bat')?.catch(() => {});
+          await Neutralino.filesystem.remove?.('resources.neu.new')?.catch(() => {});
           await Neutralino.filesystem
-            .remove('extensions\\db-bridge\\db-bridge.exe.new')
-            .catch(() => {});
+            .remove?.('extensions\\db-bridge\\db-bridge.exe.new')
+            ?.catch(() => {});
         }
       } catch (err) {
         console.warn('Cleanup failed:', err);
@@ -69,8 +83,12 @@ export const useUpdaterStore = defineStore('updater', () => {
         ? PREVIEW_MANIFEST_URL
         : STABLE_MANIFEST_URL;
       const manifest = (await Neutralino.updater.checkForUpdates(manifestUrl)) as UpdateManifest;
-      const currentAppVersion = window.NL_APPVERSION;
-      const appNeedsUpdate = isNewerVersion(manifest.version, currentAppVersion);
+      const currentAppVersion = getCurrentAppVersion();
+      const appNeedsUpdate = isNewerVersion(
+        manifest.version,
+        currentAppVersion,
+        preferencesStore.settings.optInPreview
+      );
 
       if (appNeedsUpdate) {
         try {
@@ -117,6 +135,14 @@ export const useUpdaterStore = defineStore('updater', () => {
             });
           }
         }
+      } else if (manual) {
+        const toastStore = useToastStore();
+        toastStore.addToast({
+          title: 'No Updates Available',
+          message: `You are on the latest version (${currentAppVersion}).`,
+          severity: 'info',
+          ttl: 3000
+        });
       }
     } catch (err: any) {
       console.error('Update check failed:', err);
@@ -173,14 +199,28 @@ export const useUpdaterStore = defineStore('updater', () => {
         }
       }
 
-      // 4. Create Swapper Batch Script
+      // 4. Persist installed version metadata
+      installedVersion.value = manifest.version;
+      try {
+        await Neutralino.storage.setData(
+          'updater_config',
+          JSON.stringify({
+            ignoredVersion: ignoredVersion.value,
+            installedVersion: manifest.version
+          })
+        );
+      } catch (err) {
+        console.warn('Failed to persist installed version in storage:', err);
+      }
+
+      // 5. Create Swapper Batch Script
       updateStatus.value = 'Staging installation...';
       const batContent = createSwapperBat(exeName);
       await Neutralino.filesystem.writeFile('updater.bat', batContent);
 
       updateStatus.value = 'Update staged! Restarting in 3 seconds...';
 
-      // 5. Trigger swapper and exit
+      // 6. Trigger swapper and exit
       setTimeout(async () => {
         await Neutralino.os.execCommand('cmd /c start /min updater.bat');
         await Neutralino.app.exit();
@@ -198,7 +238,10 @@ export const useUpdaterStore = defineStore('updater', () => {
       try {
         await Neutralino.storage.setData(
           'updater_config',
-          JSON.stringify({ ignoredVersion: version })
+          JSON.stringify({
+            ignoredVersion: version,
+            installedVersion: installedVersion.value
+          })
         );
       } catch (err) {
         console.error('Failed to save updater config:', err);
@@ -251,24 +294,37 @@ del "%~f0" & exit
   };
 
   const parseVersion = (v: string) => {
-    const clean = v.replace(/^v/, '');
-    const [versionPart, prereleasePart] = clean.split('-');
-    const numParts = (versionPart || '').split('.').map((n) => parseInt(n, 10) || 0);
-    let buildNum = 0;
-    if (prereleasePart) {
-      const match = prereleasePart.match(/\d+/);
-      if (match) buildNum = parseInt(match[0], 10);
+    const clean = (v || '').trim().replace(/^v/i, '');
+    const withoutBuild = clean.split('+')[0] || '';
+    const dashIndex = withoutBuild.indexOf('-');
+    let versionCore = withoutBuild;
+    let prereleaseStr = '';
+
+    if (dashIndex !== -1) {
+      versionCore = withoutBuild.slice(0, dashIndex);
+      prereleaseStr = withoutBuild.slice(dashIndex + 1);
     }
+
+    const numParts = (versionCore || '').split('.').map((n) => parseInt(n, 10) || 0);
+    const major = numParts[0] || 0;
+    const minor = numParts[1] || 0;
+    const patch = numParts[2] || 0;
+
+    const isPrerelease = prereleaseStr.length > 0;
+    const prereleaseIdentifiers: (string | number)[] = isPrerelease
+      ? prereleaseStr.split('.').map((id) => (/^\d+$/.test(id) ? parseInt(id, 10) : id))
+      : [];
+
     return {
-      major: numParts[0] || 0,
-      minor: numParts[1] || 0,
-      patch: numParts[2] || 0,
-      isPrerelease: !!prereleasePart,
-      buildNum
+      major,
+      minor,
+      patch,
+      isPrerelease,
+      prereleaseIdentifiers
     };
   };
 
-  const isNewerVersion = (latest: string, current: string) => {
+  const isNewerVersion = (latest: string, current: string, optInPreview = false) => {
     const l = parseVersion(latest);
     const c = parseVersion(current);
 
@@ -276,12 +332,36 @@ del "%~f0" & exit
     if (l.minor !== c.minor) return l.minor > c.minor;
     if (l.patch !== c.patch) return l.patch > c.patch;
 
-    if (l.isPrerelease && c.isPrerelease) {
-      return l.buildNum > c.buildNum;
-    }
-
     if (!l.isPrerelease && c.isPrerelease) return true;
-    if (l.isPrerelease && !c.isPrerelease) return false;
+    if (l.isPrerelease && !c.isPrerelease) return optInPreview;
+
+    if (l.isPrerelease && c.isPrerelease) {
+      const len = Math.max(l.prereleaseIdentifiers.length, c.prereleaseIdentifiers.length);
+      for (let i = 0; i < len; i++) {
+        const idL = l.prereleaseIdentifiers[i];
+        const idC = c.prereleaseIdentifiers[i];
+
+        if (idL === undefined) return false;
+        if (idC === undefined) return true;
+        if (idL === idC) continue;
+
+        const typeL = typeof idL;
+        const typeC = typeof idC;
+
+        if (typeL === 'number' && typeC === 'number') {
+          return (idL as number) > (idC as number);
+        }
+        if (typeL === 'number' && typeC === 'string') {
+          return false;
+        }
+        if (typeL === 'string' && typeC === 'number') {
+          return true;
+        }
+        if (typeL === 'string' && typeC === 'string') {
+          return (idL as string).localeCompare(idC as string) > 0;
+        }
+      }
+    }
 
     return false;
   };
@@ -294,6 +374,8 @@ del "%~f0" & exit
     updateStatus,
     error,
     ignoredVersion,
+    installedVersion,
+    getCurrentAppVersion,
     init,
     checkForUpdates,
     installUpdates,
