@@ -238,7 +238,9 @@ const savePreferences = async () => {
 
                   <div class="flex items-center justify-between py-1">
                     <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">Preview Channel Updates</span>
+                      <span class="text-text-primary text-xs font-medium"
+                        >Preview Channel Updates</span
+                      >
                       <span class="text-text-tertiary text-[11px]">
                         Opt-in to pre-release preview builds of Table View.
                       </span>

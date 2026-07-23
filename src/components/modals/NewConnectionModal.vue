@@ -517,7 +517,7 @@ const handleClose = () => {
                   class="border-border bg-surface col-span-2 flex items-center justify-between rounded-lg border p-3.5"
                 >
                   <div>
-                    <label class="text-text-primary text-[13px] font-medium block"
+                    <label class="text-text-primary block text-[13px] font-medium"
                       >Enable SSL / TLS Encryption</label
                     >
                     <p class="text-text-tertiary mt-0.5 text-[11px]">
@@ -539,7 +539,8 @@ const handleClose = () => {
                     class="w-full text-[13px]"
                   />
                   <p class="text-text-tertiary mt-1.5 text-[11px]">
-                    "Prefer" automatically negotiates SSL for cloud databases (Supabase, Neon, AWS RDS, PgBouncer) while working with local databases.
+                    "Prefer" automatically negotiates SSL for cloud databases (Supabase, Neon, AWS
+                    RDS, PgBouncer) while working with local databases.
                   </p>
                 </div>
               </div>

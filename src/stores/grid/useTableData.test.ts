@@ -347,8 +347,16 @@ describe('useTableData', () => {
       tabsStore.tabs = [usersTab, productsTab];
 
       vi.mocked(BridgeService.request)
-        .mockResolvedValueOnce({ rows: [{ id: 1, name: 'Alice' }], fields: [{ name: 'id', dataTypeID: 23 }], totalCount: 1 })
-        .mockResolvedValueOnce({ rows: [{ id: 2, name: 'Widget' }], fields: [{ name: 'id', dataTypeID: 23 }], totalCount: 1 });
+        .mockResolvedValueOnce({
+          rows: [{ id: 1, name: 'Alice' }],
+          fields: [{ name: 'id', dataTypeID: 23 }],
+          totalCount: 1
+        })
+        .mockResolvedValueOnce({
+          rows: [{ id: 2, name: 'Widget' }],
+          fields: [{ name: 'id', dataTypeID: 23 }],
+          totalCount: 1
+        });
 
       // 1. Load users tab
       tabsStore.activeTabId = usersTab.id;
