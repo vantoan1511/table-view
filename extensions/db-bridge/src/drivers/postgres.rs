@@ -201,37 +201,85 @@ impl PostgresDriver {
 #[async_trait]
 impl DatabaseDriver for PostgresDriver {
     async fn connect(&mut self, config: &Config) -> Result<(), String> {
-        let ssl_mode = if config.ssl { "require" } else { "disable" };
+        let default_ssl_mode = if config.ssl {
+            "require"
+        } else {
+            "prefer"
+        };
+        let ssl_mode = config
+            .ssl_mode
+            .as_deref()
+            .unwrap_or(default_ssl_mode);
+
         let host = if config.host.contains(':') && !config.host.starts_with('[') {
             format!("[{}]", config.host)
         } else {
             config.host.clone()
         };
 
-        let dsn = format!(
-            "postgres://{}:{}@{}:{}/{}?sslmode={}&options=-c%20search_path=public&application_name=db_manager&connect_timeout={}&tcp_user_timeout=5000",
-            urlencoding::encode(&config.username),
-            urlencoding::encode(&config.password),
-            host,
-            config.port,
-            urlencoding::encode(&config.database),
-            ssl_mode,
-            config.connection_timeout
-        );
+        async fn connect_pool(config: &Config, host: &str, mode: &str) -> Result<PgPool, String> {
+            let dsn = format!(
+                "postgres://{}:{}@{}:{}/{}?sslmode={}&application_name=db_manager&connect_timeout={}&tcp_user_timeout=5000",
+                urlencoding::encode(&config.username),
+                urlencoding::encode(&config.password),
+                host,
+                config.port,
+                urlencoding::encode(&config.database),
+                mode,
+                config.connection_timeout
+            );
+            use std::str::FromStr;
+            let mut connect_options = sqlx::postgres::PgConnectOptions::from_str(&dsn)
+                .map_err(|e| e.to_string())?;
+            connect_options = connect_options.statement_cache_capacity(0);
 
-        use std::str::FromStr;
-        let mut connect_options = sqlx::postgres::PgConnectOptions::from_str(&dsn)
-            .map_err(|e| e.to_string())?;
-        connect_options = connect_options.statement_cache_capacity(0);
+            PgPoolOptions::new()
+                .max_connections(5)
+                .acquire_timeout(std::time::Duration::from_secs(
+                    config.connection_timeout as u64,
+                ))
+                .connect_with(connect_options)
+                .await
+                .map_err(|e| e.to_string())
+        }
 
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .acquire_timeout(std::time::Duration::from_secs(
-                config.connection_timeout as u64,
-            ))
-            .connect_with(connect_options)
-            .await
-            .map_err(|e| e.to_string())?;
+        let pool = match connect_pool(config, &host, ssl_mode).await {
+            Ok(pool) => pool,
+            Err(err_str) => {
+                let is_eof = err_str.contains("EOF") || err_str.contains("0 bytes");
+
+                if is_eof && ssl_mode == "disable" {
+                    log::warn!("postgres connect failed with sslmode=disable ({}), retrying with sslmode=prefer", err_str);
+                    match connect_pool(config, &host, "prefer").await {
+                        Ok(pool) => pool,
+                        Err(fallback_err) => {
+                            return Err(format!(
+                                "Database connection closed unexpectedly by server (EOF): {}. Please check if SSL/TLS is required by your provider (e.g. AWS RDS, Supabase, Neon) or verify host/port.",
+                                fallback_err
+                            ));
+                        }
+                    }
+                } else if is_eof && ssl_mode == "prefer" {
+                    log::warn!("postgres connect failed with sslmode=prefer ({}), retrying with sslmode=disable", err_str);
+                    match connect_pool(config, &host, "disable").await {
+                        Ok(pool) => pool,
+                        Err(fallback_err) => {
+                            return Err(format!(
+                                "Database connection closed unexpectedly by server (EOF): {}. If connecting to local Docker/PostgreSQL, try using '127.0.0.1' instead of 'localhost', or check port mapping.",
+                                fallback_err
+                            ));
+                        }
+                    }
+                } else if is_eof {
+                    return Err(format!(
+                        "Database connection closed unexpectedly by server (EOF): {}. If connecting to local Docker/PostgreSQL, try using '127.0.0.1' instead of 'localhost' or verify host/port.",
+                        err_str
+                    ));
+                } else {
+                    return Err(err_str);
+                }
+            }
+        };
 
         self.pool = Some(pool);
         Ok(())

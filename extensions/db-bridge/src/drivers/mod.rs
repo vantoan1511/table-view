@@ -27,6 +27,8 @@ pub struct Config {
     pub database: String,
     #[serde(default)]
     pub ssl: bool,
+    #[serde(rename = "sslMode", default)]
+    pub ssl_mode: Option<String>,
     #[serde(rename = "connectionTimeout", default = "default_timeout")]
     pub connection_timeout: u32,
     #[serde(rename = "oracleConnectType", default = "default_oracle_connect_type")]

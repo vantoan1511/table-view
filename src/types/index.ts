@@ -51,6 +51,8 @@ export interface Connection {
   tags?: string;
   savePassword: boolean;
   displayAllDatabases: boolean;
+  ssl?: boolean;
+  sslMode?: string;
   oracleConnectType?: OracleConnectType;
   oracleRole?: OracleRole;
   isConnected: boolean;
