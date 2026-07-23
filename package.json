@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build:backend": "node scripts/build-backend.js",
+    "build:frontend": "run-p type-check \"build-only {@}\" --",
+    "build": "run-s build:backend build:frontend",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
