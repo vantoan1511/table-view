@@ -201,15 +201,11 @@ impl PostgresDriver {
 #[async_trait]
 impl DatabaseDriver for PostgresDriver {
     async fn connect(&mut self, config: &Config) -> Result<(), String> {
-        let default_ssl_mode = if config.ssl {
-            "require"
+        let ssl_mode = if config.ssl {
+            config.ssl_mode.as_deref().unwrap_or("prefer")
         } else {
-            "prefer"
+            "disable"
         };
-        let ssl_mode = config
-            .ssl_mode
-            .as_deref()
-            .unwrap_or(default_ssl_mode);
 
         let host = if config.host.contains(':') && !config.host.starts_with('[') {
             format!("[{}]", config.host)
@@ -218,6 +214,7 @@ impl DatabaseDriver for PostgresDriver {
         };
 
         async fn connect_pool(config: &Config, host: &str, mode: &str) -> Result<PgPool, String> {
+            let timeout_secs = 5u64;
             let dsn = format!(
                 "postgres://{}:{}@{}:{}/{}?sslmode={}&application_name=db_manager&connect_timeout={}&tcp_user_timeout=5000",
                 urlencoding::encode(&config.username),
@@ -226,14 +223,13 @@ impl DatabaseDriver for PostgresDriver {
                 config.port,
                 urlencoding::encode(&config.database),
                 mode,
-                config.connection_timeout
+                timeout_secs
             );
             use std::str::FromStr;
             let mut connect_options = sqlx::postgres::PgConnectOptions::from_str(&dsn)
                 .map_err(|e| e.to_string())?;
             connect_options = connect_options.statement_cache_capacity(0);
 
-            let timeout_secs = if config.connection_timeout > 0 { config.connection_timeout as u64 } else { 10 };
             let duration = std::time::Duration::from_secs(timeout_secs);
 
             match tokio::time::timeout(
