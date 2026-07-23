@@ -27,7 +27,12 @@ const importError = ref('');
 const showImportConfirm = ref(false);
 const pendingImportData = ref<any>(null);
 
-const form = reactive<Omit<Connection, 'id' | 'isConnected'>>({
+interface ConnectionForm extends Omit<Connection, 'id' | 'isConnected'> {
+  ssl: boolean;
+  sslMode: string;
+}
+
+const form = reactive<ConnectionForm>({
   name: 'New connection',
   type: DbType.POSTGRESQL,
   host: 'localhost',
@@ -39,6 +44,8 @@ const form = reactive<Omit<Connection, 'id' | 'isConnected'>>({
   tags: '',
   savePassword: false,
   displayAllDatabases: false,
+  ssl: false,
+  sslMode: 'prefer',
   oracleConnectType: OracleConnectType.SERVICE_NAME,
   oracleRole: OracleRole.NORMAL
 });
@@ -50,6 +57,10 @@ watch(
     if (conn) {
       Object.assign(form, {
         ...conn,
+        savePassword: conn.savePassword ?? false,
+        displayAllDatabases: conn.displayAllDatabases ?? false,
+        ssl: conn.ssl ?? false,
+        sslMode: conn.sslMode || 'prefer',
         oracleConnectType: conn.oracleConnectType || 'serviceName',
         oracleRole: conn.oracleRole || 'normal'
       });
@@ -67,6 +78,8 @@ watch(
         tags: '',
         savePassword: false,
         displayAllDatabases: false,
+        ssl: false,
+        sslMode: 'prefer',
         oracleConnectType: 'serviceName',
         oracleRole: 'normal'
       });
@@ -109,6 +122,8 @@ const confirmImport = () => {
     tags: conn.tags || '',
     savePassword: conn.savePassword ?? false,
     displayAllDatabases: conn.displayAllDatabases ?? false,
+    ssl: conn.ssl ?? false,
+    sslMode: conn.sslMode || 'prefer',
     oracleConnectType: (conn.oracleConnectType || 'serviceName') as OracleConnectType,
     oracleRole: (conn.oracleRole || 'normal') as OracleRole
   });
@@ -460,9 +475,38 @@ const handleClose = () => {
               </div>
 
               <!-- SSL Tab -->
-              <div v-else-if="activeTab === 'ssl'" class="text-text-secondary text-[13px]">
-                <div class="flex h-40 items-center justify-center">
-                  <p class="text-text-tertiary">SSL configuration options will appear here.</p>
+              <div v-else-if="activeTab === 'ssl'" class="grid grid-cols-2 gap-x-6 gap-y-4">
+                <div
+                  class="border-border bg-surface col-span-2 flex items-center justify-between rounded-lg border p-3.5"
+                >
+                  <div>
+                    <label class="text-text-primary text-[13px] font-medium block"
+                      >Enable SSL / TLS Encryption</label
+                    >
+                    <p class="text-text-tertiary mt-0.5 text-[11px]">
+                      Encrypt connection between Table View and your database server.
+                    </p>
+                  </div>
+                  <ToggleSwitch v-model="form.ssl" />
+                </div>
+
+                <div v-if="form.type === 'postgresql'" class="col-span-2">
+                  <label class="text-text-secondary mb-1.5 block text-[12px] font-medium">
+                    SSL Mode (PostgreSQL)
+                  </label>
+                  <select
+                    v-model="form.sslMode"
+                    class="border-border text-text-primary bg-surface focus:border-primary focus:ring-primary/20 w-full cursor-pointer appearance-none rounded-lg border px-3 py-2 text-[13px] transition-all outline-none focus:ring-1"
+                  >
+                    <option value="prefer">Prefer (Auto-detect SSL & fallback to plain TCP)</option>
+                    <option value="require">Require (Mandate SSL connection)</option>
+                    <option value="disable">Disable (Force unencrypted connection)</option>
+                    <option value="verify-ca">Verify CA (Require SSL & verify CA cert)</option>
+                    <option value="verify-full">Verify Full (Require SSL & verify CA and host)</option>
+                  </select>
+                  <p class="text-text-tertiary mt-1.5 text-[11px]">
+                    "Prefer" automatically negotiates SSL for cloud databases (Supabase, Neon, AWS RDS, PgBouncer) while working with local databases.
+                  </p>
                 </div>
               </div>
 

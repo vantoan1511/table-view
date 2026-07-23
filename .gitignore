@@ -72,3 +72,5 @@ mockups/
 test/
 /.codegraph
 /winget*
+
+/tmp-ssl
