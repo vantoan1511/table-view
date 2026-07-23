@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
 
 import { NativeService } from '@/services/native';
+import { useUpdaterStore } from './updater';
 
 export interface Preferences {
   theme: 'light' | 'dark' | 'system';
@@ -69,11 +70,17 @@ export const usePreferencesStore = defineStore('preferences', () => {
   };
 
   const save = async (newSettings?: Partial<Preferences>) => {
+    const prevOptIn = settings.optInPreview;
     if (newSettings) {
       Object.assign(settings, newSettings);
     }
     applyTheme(settings.theme);
     await NativeService.storage.set('preferences', settings);
+
+    if (prevOptIn !== settings.optInPreview) {
+      const updaterStore = useUpdaterStore();
+      updaterStore.checkForUpdates(false);
+    }
   };
 
   const toggle = (val?: boolean) => {

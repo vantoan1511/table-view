@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAboutStore } from '@/stores/about';
+import { useUpdaterStore } from '@/stores/updater';
 import * as Neutralino from '@neutralinojs/lib';
 import { Coffee, Github, Globe, Heart, X } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
@@ -10,10 +11,10 @@ const version = ref('0.1.0');
 onMounted(async () => {
   if (window.NL_PORT) {
     try {
-      const config = await Neutralino.app.getConfig();
-      version.value = config.version;
+      const updaterStore = useUpdaterStore();
+      version.value = updaterStore.getCurrentAppVersion();
     } catch (err) {
-      console.warn('Failed to get app config:', err);
+      console.warn('Failed to get app version:', err);
     }
   }
 });

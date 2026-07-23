@@ -342,4 +342,121 @@ describe('Updater Store', () => {
     expect(store.updateAvailable).not.toBeNull();
     expect(store.updateAvailable?.version).toBe('0.2.11-preview.2');
   });
+
+  it('correctly handles multi-digit and lexical pre-release identifiers', async () => {
+    const { usePreferencesStore } = await import('../preferences');
+    const preferencesStore = usePreferencesStore();
+    preferencesStore.settings.optInPreview = true;
+
+    // Test multi-digit preview upgrade: 0.2.11-preview.10 > 0.2.11-preview.2
+    // @ts-ignore
+    window.NL_APPVERSION = '0.2.11-preview.2';
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue({
+      applicationId: 'table-view',
+      version: '0.2.11-preview.10',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: { extensionUrl: 'https://example.com/db-bridge.exe' }
+    });
+    global.fetch = vi.fn().mockResolvedValue({ ok: false });
+
+    const store = useUpdaterStore();
+    await store.checkForUpdates();
+    expect(store.updateAvailable?.version).toBe('0.2.11-preview.10');
+
+    // Test lexical upgrade: 0.2.11-rc.1 > 0.2.11-preview.5
+    // @ts-ignore
+    window.NL_APPVERSION = '0.2.11-preview.5';
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue({
+      applicationId: 'table-view',
+      version: '0.2.11-rc.1',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: { extensionUrl: 'https://example.com/db-bridge.exe' }
+    });
+    await store.checkForUpdates();
+    expect(store.updateAvailable?.version).toBe('0.2.11-rc.1');
+  });
+
+  it('recognizes preview build over stable when optInPreview is true, and ignores when false', async () => {
+    const { usePreferencesStore } = await import('../preferences');
+    const preferencesStore = usePreferencesStore();
+
+    // @ts-ignore
+    window.NL_APPVERSION = '0.2.11';
+    const previewManifest = {
+      applicationId: 'table-view',
+      version: '0.2.11-preview.1',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: { extensionUrl: 'https://example.com/db-bridge.exe' }
+    };
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue(previewManifest);
+    global.fetch = vi.fn().mockResolvedValue({ ok: false });
+
+    const store = useUpdaterStore();
+
+    // 1. Opt-in preview is true -> update is recognized
+    preferencesStore.settings.optInPreview = true;
+    await store.checkForUpdates();
+    expect(store.updateAvailable?.version).toBe('0.2.11-preview.1');
+
+    // Reset update state
+    store.updateAvailable = null;
+
+    // 2. Opt-in preview is false -> preview update is ignored
+    preferencesStore.settings.optInPreview = false;
+    await store.checkForUpdates();
+    expect(store.updateAvailable).toBeNull();
+  });
+
+  it('shows no updates toast on manual update check when app is up to date', async () => {
+    // @ts-ignore
+    window.NL_APPVERSION = '0.2.11';
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue({
+      applicationId: 'table-view',
+      version: '0.2.11',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: { extensionUrl: 'https://example.com/db-bridge.exe' }
+    });
+
+    const toastStore = useToastStore();
+    const store = useUpdaterStore();
+
+    await store.checkForUpdates(true);
+
+    expect(store.updateAvailable).toBeNull();
+    expect(toastStore.toasts.length).toBe(1);
+    expect(toastStore.toasts[0].title).toBe('No Updates Available');
+    expect(toastStore.toasts[0].message).toContain('0.2.11');
+  });
+
+  it('persists and uses installedVersion from storage if newer than NL_APPVERSION', async () => {
+    // Simulated base binary version
+    // @ts-ignore
+    window.NL_APPVERSION = '0.2.11';
+
+    // Mock storage returning installed preview version
+    vi.mocked(Neutralino.storage.getData).mockResolvedValue(
+      JSON.stringify({
+        installedVersion: '0.2.11-preview.1'
+      })
+    );
+
+    const store = useUpdaterStore();
+    await store.init();
+
+    expect(store.installedVersion).toBe('0.2.11-preview.1');
+    expect(store.getCurrentAppVersion()).toBe('0.2.11-preview.1');
+
+    // When checking updates for preview.2
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue({
+      applicationId: 'table-view',
+      version: '0.2.11-preview.2',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: { extensionUrl: 'https://example.com/db-bridge.exe' }
+    });
+    const { usePreferencesStore } = await import('../preferences');
+    usePreferencesStore().settings.optInPreview = true;
+
+    await store.checkForUpdates();
+    expect(store.updateAvailable?.version).toBe('0.2.11-preview.2');
+  });
 });
