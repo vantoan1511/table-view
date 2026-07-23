@@ -210,10 +210,17 @@ const handleTestConnection = () => {
 
   if (window.NL_PORT) {
     const reqId = Date.now().toString();
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      Neutralino.events.off('dbBridge.testConnectionResult', onTestResult);
+    };
 
     const onTestResult = (evt: any) => {
       const payload = evt.detail;
       if (payload.reqId === reqId) {
+        cleanup();
         if (payload.success) {
           testStatus.value = 'success';
           setTimeout(() => {
@@ -224,9 +231,19 @@ const handleTestConnection = () => {
           errorStore.showError('Connection Test Failed', payload.error);
           console.error('Connection failed:', payload.error);
         }
-        Neutralino.events.off('dbBridge.testConnectionResult', onTestResult);
       }
     };
+
+    timeoutId = setTimeout(() => {
+      if (testStatus.value === 'testing') {
+        testStatus.value = 'error';
+        errorStore.showError(
+          'Connection Test Timeout',
+          'Connection test timed out. Please check host, port, network firewall, or SSL settings.'
+        );
+        cleanup();
+      }
+    }, 15000);
 
     Neutralino.events.on('dbBridge.testConnectionResult', onTestResult);
     Neutralino.extensions.dispatch(
