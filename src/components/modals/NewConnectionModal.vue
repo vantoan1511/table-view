@@ -3,6 +3,7 @@ import DbIcon from '@/components/icons/DbIcon.vue';
 import ColorPicker from '@/components/ui/ColorPicker.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
+import Select from 'primevue/select';
 
 import { useConnectionsStore } from '@/stores/connections';
 import { useErrorStore } from '@/stores/error';
@@ -16,6 +17,25 @@ import { reactive, ref, watch } from 'vue';
 import { DB_TYPES } from '@/lib/dbTypes';
 import { NativeService } from '@/services/native';
 import { decryptPassword } from '@/utils/crypto';
+
+const sslModeOptions = [
+  { label: 'Prefer (Auto-detect SSL & fallback to plain TCP)', value: 'prefer' },
+  { label: 'Require (Mandate SSL connection)', value: 'require' },
+  { label: 'Disable (Force unencrypted connection)', value: 'disable' },
+  { label: 'Verify CA (Require SSL & verify CA cert)', value: 'verify-ca' },
+  { label: 'Verify Full (Require SSL & verify CA and host)', value: 'verify-full' }
+];
+
+const oracleConnectTypeOptions = [
+  { label: 'Service Name', value: 'serviceName' },
+  { label: 'SID', value: 'sid' }
+];
+
+const oracleRoleOptions = [
+  { label: 'Normal', value: 'normal' },
+  { label: 'SYSDBA', value: 'sysdba' },
+  { label: 'SYSOPER', value: 'sysoper' }
+];
 
 const connectionsStore = useConnectionsStore();
 const errorStore = useErrorStore();
@@ -494,16 +514,13 @@ const handleClose = () => {
                   <label class="text-text-secondary mb-1.5 block text-[12px] font-medium">
                     SSL Mode (PostgreSQL)
                   </label>
-                  <select
+                  <Select
                     v-model="form.sslMode"
-                    class="border-border text-text-primary bg-surface focus:border-primary focus:ring-primary/20 w-full cursor-pointer appearance-none rounded-lg border px-3 py-2 text-[13px] transition-all outline-none focus:ring-1"
-                  >
-                    <option value="prefer">Prefer (Auto-detect SSL & fallback to plain TCP)</option>
-                    <option value="require">Require (Mandate SSL connection)</option>
-                    <option value="disable">Disable (Force unencrypted connection)</option>
-                    <option value="verify-ca">Verify CA (Require SSL & verify CA cert)</option>
-                    <option value="verify-full">Verify Full (Require SSL & verify CA and host)</option>
-                  </select>
+                    :options="sslModeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    class="w-full text-[13px]"
+                  />
                   <p class="text-text-tertiary mt-1.5 text-[11px]">
                     "Prefer" automatically negotiates SSL for cloud databases (Supabase, Neon, AWS RDS, PgBouncer) while working with local databases.
                   </p>
@@ -517,27 +534,26 @@ const handleClose = () => {
                     <label class="text-text-secondary mb-1.5 block text-[12px] font-medium"
                       >Connect Type</label
                     >
-                    <select
+                    <Select
                       v-model="form.oracleConnectType"
-                      class="border-border text-text-primary bg-surface focus:border-primary focus:ring-primary/20 w-full cursor-pointer appearance-none rounded-lg border px-3 py-2 text-[13px] transition-all outline-none focus:ring-1"
-                    >
-                      <option value="serviceName">Service Name</option>
-                      <option value="sid">SID</option>
-                    </select>
+                      :options="oracleConnectTypeOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      class="w-full text-[13px]"
+                    />
                   </div>
 
                   <div>
                     <label class="text-text-secondary mb-1.5 block text-[12px] font-medium"
                       >Role</label
                     >
-                    <select
+                    <Select
                       v-model="form.oracleRole"
-                      class="border-border text-text-primary bg-surface focus:border-primary focus:ring-primary/20 w-full cursor-pointer appearance-none rounded-lg border px-3 py-2 text-[13px] transition-all outline-none focus:ring-1"
-                    >
-                      <option value="normal">Normal</option>
-                      <option value="sysdba">SYSDBA</option>
-                      <option value="sysoper">SYSOPER</option>
-                    </select>
+                      :options="oracleRoleOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      class="w-full text-[13px]"
+                    />
                   </div>
                 </div>
                 <div v-else class="flex h-40 items-center justify-center">
