@@ -34,6 +34,7 @@ async-trait = "0.1"
 urlencoding = "2"
 oracle-rs = "0.1"
 deadpool-oracle = "0.1"
+rustls = { version = "0.23", features = ["ring"] }
 
 [patch.crates-io]
 oracle-rs = { path = "vendor/oracle-rs" }

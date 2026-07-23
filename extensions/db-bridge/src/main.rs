@@ -12,6 +12,8 @@ use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     // 1. Process command line arguments for standalone mode
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|arg| arg == "--standalone" || arg == "-s" || arg == "--help" || arg == "-h") {
