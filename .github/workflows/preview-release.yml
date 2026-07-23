@@ -58,7 +58,8 @@ jobs:
         shell: bash
         run: |
           BASE_VERSION=$(node -p "require('./neutralino.config.json').version")
-          PREVIEW_VERSION="$BASE_VERSION-preview.${{ github.run_number }}"
+          NEXT_VERSION=$(node -e "const parts = '$BASE_VERSION'.split('.'); parts[2] = parseInt(parts[2] || 0) + 1; console.log(parts.join('.'));")
+          PREVIEW_VERSION="$NEXT_VERSION-preview.${{ github.run_number }}"
           echo "Building installer for preview version $PREVIEW_VERSION"
           echo "PREVIEW_VERSION=$PREVIEW_VERSION" >> $GITHUB_ENV
           node scripts/build-installer.js $PREVIEW_VERSION

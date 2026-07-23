@@ -133,3 +133,24 @@ jobs:
           git add manifest.json
           git commit -m "chore: update manifest.json for release v$VERSION [skip ci]" || echo "No changes to commit"
           git push origin main || echo "Failed to push to main"
+
+      - name: Clean Up Preview Releases for this Version
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          if ("${{ github.ref }}" -match "refs/tags/v(.*)") {
+            $VERSION = $matches[1]
+            Write-Host "Cleaning up preview releases for version $VERSION..."
+            $releasesRaw = gh release list --limit 100 --json tagName,isPrerelease
+            if ($releasesRaw) {
+              $previewReleases = @($releasesRaw | ConvertFrom-Json | Where-Object { $_.isPrerelease -and ($_.tagName -like "v$VERSION-preview.*" -or $_.tagName -like "v$VERSION.preview-*") })
+              Write-Host "Found $($previewReleases.Count) preview release(s) for version $VERSION to clean up."
+              foreach ($rel in $previewReleases) {
+                $tag = $rel.tagName
+                Write-Host "Deleting preview release and tag: $tag"
+                gh release delete $tag --yes --cleanup-tag
+              }
+            }
+          }
