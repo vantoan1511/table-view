@@ -44,29 +44,19 @@ jobs:
 
       - name: Build Backend and Frontend
         shell: bash
-        run: |
-          # Start Rust build in background
-          cd extensions/db-bridge
-          cargo build --release &
-          RUST_PID=$!
-          cd ../..
-          # Build Frontend
-          neu build --release
-          # Wait for Rust build to finish
-          wait $RUST_PID
-          cp extensions/db-bridge/target/release/db-bridge.exe extensions/db-bridge/
+        run: npm run neu:build
 
       - name: Build Windows Installer
-        shell: pwsh
+        shell: bash
         run: |
           # Extract version for the installer
-          if ("${{ github.ref }}" -like "refs/tags/v*") {
-            $VERSION = "${{ github.ref }}".Replace("refs/tags/v", "")
-          } else {
-            $VERSION = node -p "require('./neutralino.config.json').version"
-          }
-          Write-Host "Building installer for version $VERSION"
-          ./scripts/build-installer.ps1 -Version $VERSION
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(node -p "require('./neutralino.config.json').version")
+          fi
+          echo "Building installer for version $VERSION"
+          node scripts/build-installer.js $VERSION
 
       - name: Extract Release Notes
         id: extract_notes
@@ -100,8 +90,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           files: |
             dist/table-view/resources.neu
-            extensions/db-bridge/db-bridge.exe
-            scripts/Output/setup.exe
+            bin/db-bridge.exe
+            Output/setup.exe
           body_path: release_notes.md
           generate_release_notes: false
 

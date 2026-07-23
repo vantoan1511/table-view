@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-23
+
+### Changed
+
+- **Build System**: Consolidated build pipeline so `neu build` automatically compiles frontend and backend, cleans unnecessary distribution artifacts, and generates Windows installers with Inno Setup.
+- **CI/CD**: Updated release workflows to build and publish clean target binaries for release and preview release streams.
+
 ## [0.4.9] - 2026-07-22
 
 ### Added

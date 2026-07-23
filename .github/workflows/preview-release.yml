@@ -52,23 +52,16 @@ jobs:
 
       - name: Build Backend and Frontend
         shell: bash
-        run: |
-          cd extensions/db-bridge
-          cargo build --release &
-          RUST_PID=$!
-          cd ../..
-          neu build --release
-          wait $RUST_PID
-          cp extensions/db-bridge/target/release/db-bridge.exe extensions/db-bridge/
+        run: npm run neu:build
 
       - name: Compute Preview Version & Build Installer
-        shell: pwsh
+        shell: bash
         run: |
-          $BASE_VERSION = node -p "require('./neutralino.config.json').version"
-          $PREVIEW_VERSION = "$BASE_VERSION-preview.${{ github.run_number }}"
-          Write-Host "Building installer for preview version $PREVIEW_VERSION"
-          "PREVIEW_VERSION=$PREVIEW_VERSION" >> $env:GITHUB_ENV
-          ./scripts/build-installer.ps1 -Version $PREVIEW_VERSION
+          BASE_VERSION=$(node -p "require('./neutralino.config.json').version")
+          PREVIEW_VERSION="$BASE_VERSION-preview.${{ github.run_number }}"
+          echo "Building installer for preview version $PREVIEW_VERSION"
+          echo "PREVIEW_VERSION=$PREVIEW_VERSION" >> $GITHUB_ENV
+          node scripts/build-installer.js $PREVIEW_VERSION
 
       - name: Create GitHub Pre-Release
         uses: softprops/action-gh-release@v2
@@ -78,8 +71,8 @@ jobs:
           prerelease: true
           files: |
             dist/table-view/resources.neu
-            extensions/db-bridge/db-bridge.exe
-            scripts/Output/setup.exe
+            bin/db-bridge.exe
+            Output/setup.exe
           body: "Automated preview release from latest main branch (commit ${{ github.sha }})."
           generate_release_notes: false
 

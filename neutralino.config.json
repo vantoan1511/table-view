@@ -2,9 +2,9 @@
   "applicationId": "com.github.vantoan1511.tableview",
   "applicationName": "Table View",
   "author": "Toan Nguyen",
-  "applicationIcon": "icon.png",
+  "applicationIcon": "public/icon.png",
   "description": "Lightweight, high-performance desktop database management tool for PostgreSQL, MySQL, SQLite, and Oracle.",
-  "version": "0.4.9",
+  "version": "0.5.0",
   "copyright": "Copyright © Table View 2026. All rights reserved.",
   "documentRoot": "/build/",
   "defaultMode": "window",
@@ -35,7 +35,7 @@
   "extensions": [
     {
       "id": "com.github.vantoan1511.tableview.db-bridge",
-      "command": "extensions\\db-bridge\\db-bridge.exe"
+      "command": "bin\\db-bridge.exe"
     }
   ],
   "modes": {
@@ -46,29 +46,28 @@
       "minWidth": 1024,
       "minHeight": 720,
       "center": true,
-      "icon": "/icon.png",
+      "icon": "/public/icon.png",
       "enableInspector": false
     }
   },
   "cli": {
     "binaryName": "table-view",
+    "targets": [
+      "win_x64"
+    ],
     "resourcesPath": "/build/",
     "resourcesExclude": ".*\\.ts$|.*\\.tsx$|.*\\.map$",
-    "copyItems": [
-      "icon.ico",
-      "icon.png"
-    ],
-    "extensionsPath": "/extensions/",
-    "extensionsExclude": "node_modules|src|internal|drivers|vendor|.*\\.go$|.*\\.js$|.*\\.mod$|.*\\.sum$|.*\\.log$|package.*\\.json|target|.*\\.rs$|Cargo.*",
-    "binaryVersion": "6.7.0",
-    "clientVersion": "6.7.0",
+    "extensionsPath": "/bin/",
+    "extensionsExclude": "",
+    "binaryVersion": "6.8.0",
+    "clientVersion": "6.8.0",
     "frontendLibrary": {
       "patchFile": "/index.html",
       "devUrl": "http://localhost:5173",
       "projectPath": "/",
       "initCommand": "npm install",
       "devCommand": "npm run dev",
-      "buildCommand": "npm run build"
+      "buildCommand": "npm run build && node scripts/build-ext.js"
     }
   }
 }
