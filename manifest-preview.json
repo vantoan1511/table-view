@@ -1,9 +1,9 @@
 {
   "applicationId": "com.github.vantoan1511.tableview",
-  "version": "0.4.9-preview.9",
-  "resourcesURL": "https://github.com/vantoan1511/table-view/releases/download/v0.4.9-preview.9/resources.neu",
+  "version": "0.4.9-preview.10",
+  "resourcesURL": "https://github.com/vantoan1511/table-view/releases/download/v0.4.9-preview.10/resources.neu",
   "data": {
-    "extensionUrl": "https://github.com/vantoan1511/table-view/releases/download/v0.4.9-preview.9/db-bridge.exe",
+    "extensionUrl": "https://github.com/vantoan1511/table-view/releases/download/v0.4.9-preview.10/db-bridge.exe",
     "releaseNotes": "Automated preview release update."
   }
 }
