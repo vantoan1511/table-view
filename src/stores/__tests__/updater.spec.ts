@@ -187,7 +187,13 @@ describe('Updater Store', () => {
 
     // Verify download calls
     expect(Neutralino.os.execCommand).toHaveBeenCalledWith(
+      expect.stringContaining("Split-Path -Path 'resources.neu.new'")
+    );
+    expect(Neutralino.os.execCommand).toHaveBeenCalledWith(
       expect.stringContaining("Invoke-WebRequest -Uri 'https://example.com/resources.neu'")
+    );
+    expect(Neutralino.os.execCommand).toHaveBeenCalledWith(
+      expect.stringContaining("Split-Path -Path 'bin\\db-bridge.exe.new'")
     );
     expect(Neutralino.os.execCommand).toHaveBeenCalledWith(
       expect.stringContaining("Invoke-WebRequest -Uri 'https://example.com/db-bridge.exe'")

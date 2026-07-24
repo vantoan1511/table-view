@@ -254,7 +254,7 @@ export const useUpdaterStore = defineStore('updater', () => {
 
   const downloadFileNative = async (url: string, dest: string) => {
     // Use PowerShell to bypass CORS and handle redirects reliably
-    const cmd = `powershell -Command "Invoke-WebRequest -Uri '${url}' -OutFile '${dest}'"`;
+    const cmd = `powershell -Command "$dir = Split-Path -Path '${dest}'; if ($dir -and !(Test-Path -Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }; Invoke-WebRequest -Uri '${url}' -OutFile '${dest}'"`;
     const res = await Neutralino.os.execCommand(cmd);
     if (res.exitCode !== 0) {
       throw new Error(`Download failed (PowerShell): ${res.stdErr}`);
@@ -272,7 +272,12 @@ taskkill /f /im ${exeName} >nul 2>&1
 timeout /t 2 /nobreak > nul
 
 :retry_ext
-move /y "bin\\db-bridge.exe.new" "bin\\db-bridge.exe" > nul
+if not exist "bin" mkdir "bin"
+if exist "bin\\db-bridge.exe.new" (
+    move /y "bin\\db-bridge.exe.new" "bin\\db-bridge.exe" > nul
+) else if exist "extensions\\db-bridge\\db-bridge.exe.new" (
+    move /y "extensions\\db-bridge\\db-bridge.exe.new" "bin\\db-bridge.exe" > nul
+)
 if errorlevel 1 (
     echo Waiting for engine to release lock...
     taskkill /f /im db-bridge.exe >nul 2>&1
