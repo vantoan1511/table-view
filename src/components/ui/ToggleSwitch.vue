@@ -20,4 +20,3 @@ const emit = defineEmits<{
     <span v-if="label" class="text-text-secondary text-sm">{{ label }}</span>
   </label>
 </template>
-

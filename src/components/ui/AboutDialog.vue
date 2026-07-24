@@ -140,4 +140,3 @@ const openLink = (url: string) => {
     </div>
   </Dialog>
 </template>
-

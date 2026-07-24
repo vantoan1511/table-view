@@ -62,7 +62,11 @@ const colorMap = {
     :header="title"
     :style="{ width: '24rem' }"
     :closable="true"
-    @update:visible="(val) => { if (!val) emit('cancel'); }"
+    @update:visible="
+      (val) => {
+        if (!val) emit('cancel');
+      }
+    "
   >
     <div class="flex items-start gap-3 py-2">
       <div :class="['shrink-0 rounded-lg p-2', colorMap[variant].bg]">
@@ -101,4 +105,3 @@ const colorMap = {
     </template>
   </Dialog>
 </template>
-
