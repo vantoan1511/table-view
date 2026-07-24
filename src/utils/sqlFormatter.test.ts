@@ -39,21 +39,21 @@ describe('SQL Formatter Utility', () => {
   });
 
   describe('formatSql', () => {
-    it('formats a simple query with uppercase keywords', () => {
+    it('formats a simple query with uppercase keywords', async () => {
       const sql = 'select * from users where id = 1';
       const expected = 'SELECT\n  *\nFROM\n  users\nWHERE\n  id = 1';
-      expect(formatSql(sql, DbType.POSTGRESQL)).toBe(expected);
+      expect(await formatSql(sql, DbType.POSTGRESQL)).toBe(expected);
     });
 
-    it('returns empty string for empty input', () => {
-      expect(formatSql('')).toBe('');
-      expect(formatSql('   ')).toBe('');
+    it('returns empty string for empty input', async () => {
+      expect(await formatSql('')).toBe('');
+      expect(await formatSql('   ')).toBe('');
     });
 
-    it('gracefully returns the original sql query on syntax error', () => {
+    it('gracefully returns the original sql query on syntax error', async () => {
       const invalidSql = 'select * from (unclosed query';
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      expect(formatSql(invalidSql, DbType.POSTGRESQL)).toBe(invalidSql);
+      expect(await formatSql(invalidSql, DbType.POSTGRESQL)).toBe(invalidSql);
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
     });
