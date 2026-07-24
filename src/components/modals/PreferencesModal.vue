@@ -42,6 +42,7 @@ const settings = reactive({
   optInPreview: false,
   startMinimized: false,
   maxRows: 1000,
+  connectionTimeout: 15,
   autoSaveHistory: true,
   playCompletionSound: false,
   telemetry: false,
@@ -79,6 +80,7 @@ const resetToDefaults = () => {
   settings.optInPreview = false;
   settings.startMinimized = false;
   settings.maxRows = 1000;
+  settings.connectionTimeout = 15;
   settings.autoSaveHistory = true;
   settings.playCompletionSound = false;
   settings.telemetry = false;
@@ -214,6 +216,22 @@ const savePreferences = async () => {
                       <option value="en">English (US)</option>
                       <option value="vi">Tiếng Việt</option>
                     </select>
+                  </div>
+
+                  <div class="flex items-center justify-between py-1">
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-text-primary text-xs font-medium">Connection Timeout (seconds)</span>
+                      <span class="text-text-tertiary text-[11px]">
+                        Maximum time to wait when establishing a database connection.
+                      </span>
+                    </div>
+                    <input
+                      v-model.number="settings.connectionTimeout"
+                      type="number"
+                      min="1"
+                      max="300"
+                      class="bg-surface border-border text-text-primary focus:border-primary focus:ring-primary w-40 rounded-lg border px-3 py-1.5 text-xs focus:ring-1 focus:outline-none"
+                    />
                   </div>
 
                   <div class="flex items-center justify-between py-1">

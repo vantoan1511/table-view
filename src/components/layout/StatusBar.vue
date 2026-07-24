@@ -164,7 +164,13 @@ const openSettings = () => {
 
     <!-- Center: connection info -->
     <div class="ml-4 flex flex-1 items-center gap-3">
-      <template v-if="connectionsStore.activeConnection?.isConnected">
+      <template v-if="connectionsStore.connectingConnectionId">
+        <span class="flex items-center gap-1.5">
+          <Loader2 :size="12" class="text-primary animate-spin" />
+          <span class="text-primary font-medium">Connecting...</span>
+        </span>
+      </template>
+      <template v-else-if="connectionsStore.activeConnection?.isConnected">
         <span class="flex items-center gap-1.5">
           <span
             class="bg-success h-2.5 w-2.5 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]"

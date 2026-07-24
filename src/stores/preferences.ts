@@ -11,6 +11,7 @@ export interface Preferences {
   optInPreview?: boolean;
   startMinimized: boolean;
   maxRows: number;
+  connectionTimeout?: number;
   autoSaveHistory: boolean;
   playCompletionSound: boolean;
   telemetry: boolean;
@@ -26,6 +27,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
     optInPreview: false,
     startMinimized: false,
     maxRows: 1000,
+    connectionTimeout: 15,
     autoSaveHistory: true,
     playCompletionSound: false,
     telemetry: false
