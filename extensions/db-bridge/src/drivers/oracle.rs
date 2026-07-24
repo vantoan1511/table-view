@@ -359,7 +359,7 @@ impl DatabaseDriver for OracleDriver {
             })
             .collect();
 
-        let schemas = schema_rows
+        let mut schemas: Vec<SchemaObject> = schema_rows
             .iter()
             .map(|r| SchemaObject {
                 name: r.get("USERNAME").and_then(|v| v.as_str()).unwrap_or("").to_string(),
@@ -367,6 +367,19 @@ impl DatabaseDriver for OracleDriver {
                 obj_type: None,
             })
             .collect();
+
+        if !self.current_schema.is_empty()
+            && !schemas.iter().any(|s| s.name.eq_ignore_ascii_case(&self.current_schema))
+        {
+            schemas.insert(
+                0,
+                SchemaObject {
+                    name: self.current_schema.clone(),
+                    schema: None,
+                    obj_type: None,
+                },
+            );
+        }
 
         // For Oracle, we use the service name as the "database" if not listing all.
         // If listing all, we return None for databases so that schemas are listed directly under the connection,
