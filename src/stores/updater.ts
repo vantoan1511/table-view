@@ -61,6 +61,7 @@ export const useUpdaterStore = defineStore('updater', () => {
         if (platform === 'windows') {
           await Neutralino.filesystem.remove?.('updater.bat')?.catch(() => {});
           await Neutralino.filesystem.remove?.('resources.neu.new')?.catch(() => {});
+          await Neutralino.filesystem.remove?.('bin\\db-bridge.exe.new')?.catch(() => {});
           await Neutralino.filesystem
             .remove?.('extensions\\db-bridge\\db-bridge.exe.new')
             ?.catch(() => {});
@@ -173,7 +174,7 @@ export const useUpdaterStore = defineStore('updater', () => {
 
       // 2. Download Extension (.exe)
       updateStatus.value = 'Downloading database engine...';
-      const extPath = 'extensions\\db-bridge\\db-bridge.exe.new';
+      const extPath = 'bin\\db-bridge.exe.new';
       await downloadFileNative(manifest.data.extensionUrl, extPath);
 
       // 3. Determine running executable name dynamically on Windows
@@ -271,7 +272,7 @@ taskkill /f /im ${exeName} >nul 2>&1
 timeout /t 2 /nobreak > nul
 
 :retry_ext
-move /y "extensions\\db-bridge\\db-bridge.exe.new" "extensions\\db-bridge\\db-bridge.exe" > nul
+move /y "bin\\db-bridge.exe.new" "bin\\db-bridge.exe" > nul
 if errorlevel 1 (
     echo Waiting for engine to release lock...
     taskkill /f /im db-bridge.exe >nul 2>&1
