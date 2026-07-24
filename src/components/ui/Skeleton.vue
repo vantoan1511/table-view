@@ -26,4 +26,3 @@ withDefaults(defineProps<Props>(), {
     :border-radius="borderRadius"
   />
 </template>
-

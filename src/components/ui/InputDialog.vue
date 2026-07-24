@@ -40,7 +40,11 @@ const handleSubmit = () => {
     :header="title"
     :style="{ width: '26rem' }"
     :closable="true"
-    @update:visible="(val) => { if (!val) emit('close'); }"
+    @update:visible="
+      (val) => {
+        if (!val) emit('close');
+      }
+    "
   >
     <div class="py-2">
       <div class="mb-2">
@@ -71,18 +75,11 @@ const handleSubmit = () => {
 
     <template #footer>
       <div class="flex items-center justify-end gap-2 pt-2">
-        <Button variant="outlined" severity="secondary" @click="$emit('close')">
-          Cancel
-        </Button>
-        <Button
-          severity="primary"
-          :disabled="!inputValue.trim()"
-          @click="handleSubmit"
-        >
+        <Button variant="outlined" severity="secondary" @click="$emit('close')"> Cancel </Button>
+        <Button severity="primary" :disabled="!inputValue.trim()" @click="handleSubmit">
           {{ confirmLabel }}
         </Button>
       </div>
     </template>
   </Dialog>
 </template>
-

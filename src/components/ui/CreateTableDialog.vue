@@ -85,7 +85,11 @@ const handleCreate = async () => {
     header="Create Table"
     :style="{ width: '46rem' }"
     :closable="true"
-    @update:visible="(val) => { if (!val) emit('close'); }"
+    @update:visible="
+      (val) => {
+        if (!val) emit('close');
+      }
+    "
   >
     <div class="py-2">
       <div class="mb-6">
@@ -113,9 +117,7 @@ const handleCreate = async () => {
 
     <template #footer>
       <div class="flex items-center justify-end gap-2 pt-2">
-        <Button variant="outlined" severity="secondary" @click="$emit('close')">
-          Cancel
-        </Button>
+        <Button variant="outlined" severity="secondary" @click="$emit('close')"> Cancel </Button>
         <Button
           severity="primary"
           :disabled="
@@ -129,4 +131,3 @@ const handleCreate = async () => {
     </template>
   </Dialog>
 </template>
-

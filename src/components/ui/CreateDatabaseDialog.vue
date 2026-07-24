@@ -54,7 +54,11 @@ const handleCreate = async () => {
     header="Create Database"
     :style="{ width: '26rem' }"
     :closable="true"
-    @update:visible="(val) => { if (!val) emit('close'); }"
+    @update:visible="
+      (val) => {
+        if (!val) emit('close');
+      }
+    "
   >
     <div class="flex flex-col gap-4 py-2">
       <!-- Database/Schema Name -->
@@ -121,14 +125,9 @@ const handleCreate = async () => {
 
     <template #footer>
       <div class="flex items-center justify-end gap-2 pt-2">
-        <Button variant="outlined" severity="secondary" @click="$emit('close')">
-          Cancel
-        </Button>
-        <Button severity="primary" @click="handleCreate">
-          Create Database
-        </Button>
+        <Button variant="outlined" severity="secondary" @click="$emit('close')"> Cancel </Button>
+        <Button severity="primary" @click="handleCreate"> Create Database </Button>
       </div>
     </template>
   </Dialog>
 </template>
-
