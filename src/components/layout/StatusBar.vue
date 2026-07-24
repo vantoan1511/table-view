@@ -76,20 +76,9 @@ const toggleDarkMode = async () => {
 };
 
 const handleCheckForUpdates = async () => {
-  const hadUpdate = !!updaterStore.updateAvailable;
   await updaterStore.checkForUpdates(true);
-  // If no update was found after checking, show a friendly toast
-  if (!updaterStore.updateAvailable && !hadUpdate) {
-    toastStore.addToast({
-      title: 'Up to date',
-      message: `You are running the latest version.`,
-      severity: 'success',
-      variation: 'filled',
-      position: 'bottom-center',
-      ttl: 3000
-    });
-  }
 };
+
 
 const openSettings = () => {
   preferencesStore.open();
