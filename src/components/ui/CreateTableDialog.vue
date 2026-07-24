@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import Dialog from 'primevue/dialog';
+import InputText from 'primevue/inputtext';
+import Button from 'primevue/button';
 import TableColumnsEditor, { type ColumnDef } from './TableColumnsEditor.vue';
-
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore, type TableColumn } from '@/stores/grid';
 import { DbType } from '@/types';
-import { AlertCircle, X } from 'lucide-vue-next';
+import { AlertCircle } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -77,64 +79,54 @@ const handleCreate = async () => {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-    <div
-      class="bg-surface border-border flex max-h-[85vh] w-180 flex-col overflow-hidden rounded-xl border shadow-2xl"
-    >
-      <!-- Header -->
-      <div class="border-border flex items-center justify-between border-b px-5 py-4">
-        <h3 class="text-text-primary text-base font-semibold">Create Table</h3>
-        <button
-          @click="$emit('close')"
-          class="text-text-tertiary hover:text-text-primary transition-colors"
-        >
-          <X :size="18" />
-        </button>
-      </div>
-
-      <!-- Body -->
-      <div class="flex-1 overflow-y-auto p-5">
-        <div class="mb-6">
-          <div class="mb-1.5 flex items-center justify-between">
-            <label class="text-text-secondary block text-[13px] font-medium">Table Name</label>
-            <span
-              v-if="!tableName.trim()"
-              class="text-danger animate-fade-in-scale flex items-center gap-1 text-[11px] font-medium"
-            >
-              <AlertCircle :size="12" />
-              Required
-            </span>
-          </div>
-          <input
-            v-model.trim="tableName"
-            type="text"
-            placeholder="Enter table name..."
-            class="bg-muted border-border text-text-primary focus:border-primary w-full rounded-lg border px-4 py-2 text-[14px] transition-colors outline-none"
-            :class="{ 'border-danger! !focus:border-danger': !tableName.trim() }"
-          />
+  <Dialog
+    visible
+    modal
+    header="Create Table"
+    :style="{ width: '46rem' }"
+    :closable="true"
+    @update:visible="(val) => { if (!val) emit('close'); }"
+  >
+    <div class="py-2">
+      <div class="mb-6">
+        <div class="mb-1.5 flex items-center justify-between">
+          <label class="text-text-secondary block text-[13px] font-medium">Table Name</label>
+          <span
+            v-if="!tableName.trim()"
+            class="text-danger flex items-center gap-1 text-[11px] font-medium"
+          >
+            <AlertCircle :size="12" />
+            Required
+          </span>
         </div>
-
-        <TableColumnsEditor v-model="columns" :db-type="dbType" mode="create" />
+        <InputText
+          v-model.trim="tableName"
+          type="text"
+          placeholder="Enter table name..."
+          class="w-full"
+          :invalid="!tableName.trim()"
+        />
       </div>
 
-      <!-- Footer -->
-      <div class="border-border bg-muted/30 flex items-center justify-end gap-3 border-t px-5 py-4">
-        <button
-          @click="$emit('close')"
-          class="text-text-secondary hover:text-text-primary border-border bg-surface hover:bg-hover rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors"
-        >
+      <TableColumnsEditor v-model="columns" :db-type="dbType" mode="create" />
+    </div>
+
+    <template #footer>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <Button variant="outlined" severity="secondary" @click="$emit('close')">
           Cancel
-        </button>
-        <button
-          @click="handleCreate"
-          class="bg-primary hover:bg-primary-hover rounded-lg px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-colors"
+        </Button>
+        <Button
+          severity="primary"
           :disabled="
             !tableName.trim() || columns.length === 0 || columns.some((c) => !c.name.trim())
           "
+          @click="handleCreate"
         >
           Create Table
-        </button>
+        </Button>
       </div>
-    </div>
-  </div>
+    </template>
+  </Dialog>
 </template>
+
