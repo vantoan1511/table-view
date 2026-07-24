@@ -4,7 +4,7 @@ import Button from 'primevue/button';
 import { useAboutStore } from '@/stores/about';
 import { useUpdaterStore } from '@/stores/updater';
 import * as Neutralino from '@neutralinojs/lib';
-import { Coffee, Github, Globe, Heart } from 'lucide-vue-next';
+import { Coffee, Github, Globe, Heart, X } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
 const aboutStore = useAboutStore();
@@ -35,15 +35,32 @@ const openLink = (url: string) => {
     :visible="aboutStore.isOpen"
     modal
     :style="{ width: '24rem' }"
-    :closable="true"
+    :closable="false"
     :showHeader="false"
-    @update:visible="(val) => { if (!val) aboutStore.close(); }"
+    :pt="{
+      root: { class: '!p-0 !overflow-hidden !rounded-2xl' },
+      content: { class: '!p-0 !overflow-hidden !rounded-2xl' }
+    }"
+    @update:visible="
+      (val) => {
+        if (!val) aboutStore.close();
+      }
+    "
   >
-    <div class="-mx-6 -mt-6 overflow-hidden rounded-t-2xl">
+    <div class="relative overflow-hidden">
       <!-- Branded Header -->
       <div
         class="from-primary to-primary-hover relative flex h-32 items-center justify-center overflow-hidden bg-linear-to-br"
       >
+        <!-- Close button -->
+        <button
+          type="button"
+          @click="aboutStore.close"
+          class="absolute top-3 right-3 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-none bg-white/20 text-white backdrop-blur-md transition-colors hover:bg-white/30"
+        >
+          <X :size="16" />
+        </button>
+
         <!-- Decorative background elements -->
         <div class="absolute inset-0 opacity-10">
           <svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -70,54 +87,54 @@ const openLink = (url: string) => {
           <h2 class="text-xl font-bold tracking-tight text-white">Table View</h2>
         </div>
       </div>
-    </div>
 
-    <!-- Content -->
-    <div class="space-y-6 pt-4">
-      <div class="space-y-2.5 text-center">
-        <div
-          class="bg-primary/10 text-primary inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wider uppercase"
-        >
-          Version {{ version }}
+      <!-- Content -->
+      <div class="space-y-6 p-6">
+        <div class="space-y-2.5 text-center">
+          <div
+            class="bg-primary/10 text-primary inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wider uppercase"
+          >
+            Version {{ version }}
+          </div>
+          <p class="text-text-secondary px-2 text-[13px] leading-relaxed">
+            A modern, high-performance database management tool designed for developers who value
+            speed, simplicity, and a beautiful user interface.
+          </p>
         </div>
-        <p class="text-text-secondary px-2 text-[13px] leading-relaxed">
-          A modern, high-performance database management tool designed for developers who
-          value speed, simplicity, and a beautiful user interface.
-        </p>
-      </div>
 
-      <div class="grid grid-cols-2 gap-3">
-        <Button
-          variant="text"
-          severity="secondary"
-          @click="openLink('https://github.com/vantoan1511/table-view')"
-        >
-          <Github class="h-4 w-4" />
-          GitHub
-        </Button>
-        <Button
-          variant="text"
-          severity="secondary"
-          @click="openLink('https://github.com/vantoan1511')"
-        >
-          <Globe class="h-4 w-4" />
-          Toan Nguyen
-        </Button>
-      </div>
+        <div class="grid grid-cols-2 gap-3">
+          <Button
+            variant="text"
+            severity="secondary"
+            @click="openLink('https://github.com/vantoan1511/table-view')"
+          >
+            <Github class="h-4 w-4" />
+            GitHub
+          </Button>
+          <Button
+            variant="text"
+            severity="secondary"
+            @click="openLink('https://github.com/vantoan1511')"
+          >
+            <Globe class="h-4 w-4" />
+            Toan Nguyen
+          </Button>
+        </div>
 
-      <div class="bg-border/50 h-px" />
+        <div class="bg-border/50 h-px" />
 
-      <div class="flex flex-col gap-3">
-        <button
-          type="button"
-          @click="openLink('https://www.buymeacoffee.com/vantoan1511')"
-          class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-none bg-[#FFDD00] px-4 py-3 text-sm font-bold text-black shadow-sm transition-all hover:bg-[#FFDD00]/90 active:scale-[0.98]"
-        >
-          <Coffee class="h-4 w-4" />
-          Buy me a coffee
-        </button>
-        <div class="text-text-tertiary flex items-center justify-center gap-1.5 text-[11px]">
-          Made with <Heart :size="10" class="text-danger fill-danger" /> by Toan Nguyen
+        <div class="flex flex-col gap-3">
+          <button
+            type="button"
+            @click="openLink('https://www.buymeacoffee.com/vantoan1511')"
+            class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-none bg-[#FFDD00] px-4 py-3 text-sm font-bold text-black shadow-sm transition-all hover:bg-[#FFDD00]/90 active:scale-[0.98]"
+          >
+            <Coffee class="h-4 w-4" />
+            Buy me a coffee
+          </button>
+          <div class="text-text-tertiary flex items-center justify-center gap-1.5 text-[11px]">
+            Made with <Heart :size="10" class="text-danger fill-danger" /> by Toan Nguyen
+          </div>
         </div>
       </div>
     </div>
