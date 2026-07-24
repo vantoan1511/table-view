@@ -140,12 +140,19 @@ describe('Connections Store', () => {
       isConnected: false
     });
 
-    // We don't test the full setActiveConnection because it has complex dynamic imports
-    // and BridgeService calls that would need extensive mocking.
-    // But we can check if it updates the ref.
     store.activeConnectionId = id;
     expect(store.activeConnectionId).toBe(id);
     expect(store.activeConnection?.id).toBe(id);
+  });
+
+  it('tracks connecting connection state and helper', () => {
+    const store = useConnectionsStore();
+    expect(store.connectingConnectionId).toBeNull();
+    expect(store.isConnectionConnecting('conn-1')).toBe(false);
+
+    store.connectingConnectionId = 'conn-1';
+    expect(store.isConnectionConnecting('conn-1')).toBe(true);
+    expect(store.isConnectionConnecting('conn-2')).toBe(false);
   });
 
   describe('Import/Export', () => {

@@ -53,9 +53,17 @@ export const useConnectionsStore = defineStore('connections', () => {
     }
   };
 
+  const connectingConnectionId = ref<string | null>(null);
+
+  const isConnectionConnecting = (id: string) => connectingConnectionId.value === id;
+
   const setActiveConnection = async (id: string): Promise<any> => {
+    // If already attempting to connect to this connection, return early to prevent duplicate dispatches
+    if (connectingConnectionId.value === id) {
+      return;
+    }
+
     const toastStore = useToastStore();
-    // 1. Update active ID immediately so UI reflects intended state
     const previousActiveConnectionId = activeConnectionId.value;
     activeConnectionId.value = id;
 
@@ -64,11 +72,30 @@ export const useConnectionsStore = defineStore('connections', () => {
 
     if (window.NL_PORT) {
       const { BridgeService } = await import('@/services/bridge');
+      const { usePreferencesStore } = await import('./preferences');
+      const preferencesStore = usePreferencesStore();
+      const timeoutSeconds = preferencesStore.settings.connectionTimeout || 15;
+
+      connectingConnectionId.value = id;
+
       try {
-        await BridgeService.request('dbBridge.connect', 'dbBridge.connectResult', {
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error(`Connection timed out after ${timeoutSeconds} seconds`));
+          }, timeoutSeconds * 1000);
+        });
+
+        const connectPromise = BridgeService.request('dbBridge.connect', 'dbBridge.connectResult', {
           connectionId: id,
           config: conn
         });
+
+        try {
+          await Promise.race([connectPromise, timeoutPromise]);
+        } finally {
+          if (timeoutId) clearTimeout(timeoutId);
+        }
 
         conn.isConnected = true;
         // Import dynamically to avoid circular dependency
@@ -88,6 +115,8 @@ export const useConnectionsStore = defineStore('connections', () => {
         });
         console.error('Failed to connect:', error.message);
         throw error;
+      } finally {
+        connectingConnectionId.value = null;
       }
     }
   };
@@ -344,6 +373,8 @@ export const useConnectionsStore = defineStore('connections', () => {
   return {
     connections,
     activeConnectionId,
+    connectingConnectionId,
+    isConnectionConnecting,
     activeConnection,
     connectedConnections,
     showNewConnectionModal,

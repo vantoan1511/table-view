@@ -117,9 +117,9 @@ const connectionDatabases = computed(
       </div>
 
       <Loader2
-        v-if="schemaStore.isConnectionLoading(connection.id)"
+        v-if="connectionsStore.connectingConnectionId === connection.id || schemaStore.isConnectionLoading(connection.id)"
         :size="13"
-        class="text-text-tertiary shrink-0 animate-spin"
+        class="text-primary shrink-0 animate-spin"
       />
 
       <Button
