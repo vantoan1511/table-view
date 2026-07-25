@@ -215,6 +215,27 @@ const saveCurrentShortcut = () => {
   }
 };
 
+const isShortcutChanged = (id: string) => {
+  const current = settings.shortcuts?.[id];
+  const def = defaultShortcuts[id];
+  if (!current || !def) return false;
+  return formatKeysString(current) !== formatKeysString(def);
+};
+
+const resetShortcutToDefault = (id: string) => {
+  if (defaultShortcuts[id]) {
+    settings.shortcuts[id] = [...defaultShortcuts[id]];
+    toastStore.addToast({
+      title: 'Shortcut reset',
+      message: 'Reset shortcut to default value.',
+      severity: 'info',
+      variation: 'outlined',
+      position: 'bottom-center',
+      ttl: 2000
+    });
+  }
+};
+
 const tabMap = computed(() => new Map(tabs.map((t) => [t.id, t])));
 
 const getCurrentTabName = computed(() => tabMap.value.get(activeTab.value)?.name ?? '');
@@ -562,20 +583,32 @@ const savePreferences = async () => {
                       <span class="text-text-primary text-xs font-medium">{{ shortcut.name }}</span>
                       <span class="text-text-tertiary text-[11px]">{{ shortcut.desc }}</span>
                     </div>
-                    <button
-                      type="button"
-                      @click="openEditDialog(shortcut)"
-                      class="border-border hover:bg-hover hover:border-primary/50 group flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 transition-all"
-                      title="Click to edit shortcut"
-                    >
-                      <template v-for="(key, keyIndex) in shortcut.keys" :key="keyIndex">
-                        <kbd
-                          class="bg-surface border-border text-text-primary group-hover:text-primary flex h-5 min-w-5 items-center justify-center rounded border px-1.5 font-mono text-[10px] shadow-xs"
-                        >
-                          {{ formatKey(key) }}
-                        </kbd>
-                      </template>
-                    </button>
+                    <div class="flex items-center gap-2">
+                      <button
+                        v-if="isShortcutChanged(shortcut.id)"
+                        type="button"
+                        @click.stop="resetShortcutToDefault(shortcut.id)"
+                        class="text-text-tertiary hover:text-text-primary hover:bg-hover border-border flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border transition-colors"
+                        title="Reset shortcut to default"
+                      >
+                        <RotateCcw :size="12" />
+                      </button>
+
+                      <button
+                        type="button"
+                        @click="openEditDialog(shortcut)"
+                        class="border-border hover:bg-hover hover:border-primary/50 group flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 transition-all"
+                        title="Click to edit shortcut"
+                      >
+                        <template v-for="(key, keyIndex) in shortcut.keys" :key="keyIndex">
+                          <kbd
+                            class="bg-surface border-border text-text-primary group-hover:text-primary flex h-5 min-w-5 items-center justify-center rounded border px-1.5 font-mono text-[10px] shadow-xs"
+                          >
+                            {{ formatKey(key) }}
+                          </kbd>
+                        </template>
+                      </button>
+                    </div>
                   </div>
 
                   <div v-if="index < shortcutCategories.length - 1" class="bg-border/50 h-px" />
@@ -709,16 +742,13 @@ const savePreferences = async () => {
 
           <div class="border-border flex items-center justify-between border-t pt-3">
             <Button
+              icon="pi pi-refresh"
+              label="Reset Default"
               variant="text"
               severity="secondary"
               size="small"
               @click="resetCurrentShortcutToDefault"
-            >
-              <template #icon>
-                <RotateCcw class="h-3.5 w-3.5" />
-              </template>
-              Reset Default
-            </Button>
+            />
 
             <div class="flex items-center gap-2">
               <Button variant="text" severity="secondary" size="small" @click="closeEditDialog">
