@@ -310,10 +310,18 @@ $res.Close()
       let isResolved = false;
       let procId: number | null = null;
 
-      const handler = (evt: any) => {
+      interface SpawnedProcessEvent {
+        detail: {
+          id: number;
+          action: 'stdOut' | 'stdErr' | 'exit';
+          data: unknown;
+        };
+      }
+
+      const handler = (evt: SpawnedProcessEvent) => {
         if (procId !== null && evt.detail.id === procId) {
           if (evt.detail.action === 'stdOut') {
-            const data = evt.detail.data as string;
+            const data = String(evt.detail.data ?? '');
             processOutput += data;
             const matches = data.match(/PROGRESS:(\d+)/g);
             if (matches && matches.length > 0) {
@@ -326,9 +334,9 @@ $res.Close()
               }
             }
           } else if (evt.detail.action === 'stdErr') {
-            processOutput += evt.detail.data;
+            processOutput += String(evt.detail.data ?? '');
           } else if (evt.detail.action === 'exit') {
-            Neutralino.events.off('spawnedProcess', handler);
+            Neutralino.events.off('spawnedProcess', handler as unknown as (evt: CustomEvent) => void);
             if (!isResolved) {
               isResolved = true;
               if (evt.detail.data === 0) {
