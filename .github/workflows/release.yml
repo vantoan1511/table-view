@@ -35,8 +35,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: 'extensions/db-bridge'
-          # Cache size is limited, so we only cache the necessary bits
-          cache-all-crates: true
 
       - name: Install Dependencies
         run: npm install --no-fund --no-audit --legacy-peer-deps
@@ -81,6 +79,12 @@ jobs:
             Output/setup.exe
           body_path: release_notes.md
           generate_release_notes: false
+
+      - name: Install komac
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cargo binstall komac -y --force
 
       - name: Submit to WinGet Community Repository
         uses: vedantmgoyal9/winget-releaser@v2
