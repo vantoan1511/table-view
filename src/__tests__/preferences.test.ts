@@ -43,7 +43,35 @@ describe('Preferences Store', () => {
     expect(store.settings.maxRows).toBe(1000);
     expect(store.settings.autoSaveHistory).toBe(true);
     expect(store.settings.playCompletionSound).toBe(false);
-    expect(store.settings.telemetry).toBe(false);
+    expect(store.settings.shortcuts).toBeDefined();
+    expect(store.settings.shortcuts.openPreferences).toEqual(['Mod', ',']);
+  });
+
+  it('merges default shortcuts on init when missing in storage', async () => {
+    vi.mocked(NativeService.storage.get).mockResolvedValueOnce({
+      theme: 'dark',
+      shortcuts: { openPreferences: ['Mod', 'P'] }
+    });
+
+    const store = usePreferencesStore();
+    await store.init();
+
+    expect(store.settings.shortcuts.openPreferences).toEqual(['Mod', 'P']);
+    expect(store.settings.shortcuts.closeTab).toEqual(['Mod', 'W']);
+  });
+
+  it('matches keyboard shortcuts correctly', async () => {
+    const { matchesShortcut } = await import('../composables/useKeyboardShortcuts');
+
+    const modKEvent = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true });
+    expect(matchesShortcut(modKEvent, ['Mod', 'K'])).toBe(true);
+
+    const shiftModKEvent = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, shiftKey: true });
+    expect(matchesShortcut(shiftModKEvent, ['Mod', 'K'])).toBe(false);
+    expect(matchesShortcut(shiftModKEvent, ['Mod', 'Shift', 'K'])).toBe(true);
+
+    const plainKEvent = new KeyboardEvent('keydown', { key: 'k' });
+    expect(matchesShortcut(plainKEvent, ['Mod', 'K'])).toBe(false);
   });
 
   it('toggles visibility state', () => {

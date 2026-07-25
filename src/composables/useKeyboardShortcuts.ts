@@ -6,6 +6,26 @@ import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
 import { onMounted, onUnmounted } from 'vue';
 
+export function matchesShortcut(e: KeyboardEvent, keys: string[] | undefined): boolean {
+  if (!keys || keys.length === 0) return false;
+
+  const hasMod = keys.some((k) => ['Mod', 'Ctrl', 'Cmd'].includes(k));
+  const hasShift = keys.includes('Shift');
+  const hasAlt = keys.includes('Alt');
+
+  const reqMod = e.ctrlKey || e.metaKey;
+  if (hasMod !== reqMod) return false;
+  if (hasShift !== e.shiftKey) return false;
+  if (hasAlt !== e.altKey) return false;
+
+  const mainKey = keys.find((k) => !['Mod', 'Ctrl', 'Cmd', 'Shift', 'Alt'].includes(k));
+  if (!mainKey) return false;
+
+  if (mainKey === '/' && (e.key === '/' || e.key === '?')) return true;
+
+  return e.key.toLowerCase() === mainKey.toLowerCase();
+}
+
 export function useKeyboardShortcuts() {
   const tabsStore = useTabsStore();
   const gridStore = useGridStore();
@@ -24,24 +44,26 @@ export function useKeyboardShortcuts() {
       return;
     }
 
+    const s = preferencesStore.settings.shortcuts;
+
     // ─── App Shortcuts ────────────────────────────────────────────────────────
 
-    // Ctrl+,: Open Preferences
-    if (isMod && e.key === ',') {
+    // Open Preferences
+    if (matchesShortcut(e, s?.openPreferences)) {
       e.preventDefault();
       preferencesStore.open('general');
       return;
     }
 
-    // Ctrl+/: Open Shortcuts Tab
-    if (isMod && (e.key === '/' || e.key === '?')) {
+    // Open Shortcuts Tab
+    if (matchesShortcut(e, s?.openShortcuts)) {
       e.preventDefault();
       preferencesStore.open('shortcuts');
       return;
     }
 
-    // Ctrl+W: Close active tab
-    if (isMod && e.key.toLowerCase() === 'w') {
+    // Close active tab
+    if (matchesShortcut(e, s?.closeTab)) {
       e.preventDefault();
       if (tabsStore.activeTabId) {
         tabsStore.closeTab(tabsStore.activeTabId);
@@ -49,8 +71,8 @@ export function useKeyboardShortcuts() {
       return;
     }
 
-    // Ctrl+K: Focus search
-    if (isMod && e.key.toLowerCase() === 'k') {
+    // Focus search
+    if (matchesShortcut(e, s?.focusSearch)) {
       e.preventDefault();
       const searchInput = document.querySelector(
         'input[placeholder*="Search"]'
@@ -61,8 +83,8 @@ export function useKeyboardShortcuts() {
       return;
     }
 
-    // Ctrl+R: Refresh data
-    if (isMod && e.key.toLowerCase() === 'r') {
+    // Refresh data
+    if (matchesShortcut(e, s?.refreshData)) {
       e.preventDefault();
       const tab = tabsStore.activeTab;
       if (tab?.type === 'table' && tab.tableName) {
@@ -71,36 +93,36 @@ export function useKeyboardShortcuts() {
       return;
     }
 
-    // Ctrl+N: New Connection
-    if (isMod && e.key.toLowerCase() === 'n') {
+    // New Connection
+    if (matchesShortcut(e, s?.newConnection)) {
       e.preventDefault();
       connectionsStore.toggleConnectionModal(true);
       return;
     }
 
-    // Ctrl+B: Toggle Sidebar
-    if (isMod && e.key.toLowerCase() === 'b') {
+    // Toggle Sidebar
+    if (matchesShortcut(e, s?.toggleSidebar)) {
       e.preventDefault();
       layoutStore.toggleSidebar();
       return;
     }
 
-    // Ctrl+J: Toggle Console
-    if (isMod && e.key.toLowerCase() === 'j') {
+    // Toggle Console
+    if (matchesShortcut(e, s?.toggleConsole)) {
       e.preventDefault();
       layoutStore.togglePanel('console');
       return;
     }
 
-    // Ctrl+I: Toggle Inspector
-    if (isMod && e.key.toLowerCase() === 'i') {
+    // Toggle Inspector
+    if (matchesShortcut(e, s?.toggleInspector)) {
       e.preventDefault();
       layoutStore.togglePanel('inspector');
       return;
     }
 
-    // F5: Refresh
-    if (e.key === 'F5') {
+    // Refresh Schema / Table (Alternative / F5)
+    if (matchesShortcut(e, s?.refreshAlternative)) {
       e.preventDefault();
       const tab = tabsStore.activeTab;
       if (tab?.type === 'table' && tab.tableName) {

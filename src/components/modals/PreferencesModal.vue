@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
 
-import { usePreferencesStore } from '@/stores/preferences';
+import { defaultShortcuts, usePreferencesStore } from '@/stores/preferences';
 import { useToastStore } from '@/stores/toast';
 
 import {
+  AlertCircle,
+  Check,
   Code,
   Info,
   Keyboard,
   Link2,
   Palette,
+  RotateCcw,
   Settings,
   Shield,
   Table,
@@ -35,59 +38,43 @@ const tabs = [
   { id: 'about', name: 'About', icon: Info }
 ];
 
-const shortcutCategories = [
+const shortcutDefinitions = [
   {
     title: 'Global & System',
     shortcuts: [
-      { name: 'Preferences', desc: 'Open preferences modal', keys: ['Ctrl / Cmd', ','] },
+      { id: 'openPreferences', name: 'Preferences', desc: 'Open preferences modal' },
       {
+        id: 'openShortcuts',
         name: 'Keyboard Shortcuts',
-        desc: 'Open keyboard shortcuts reference',
-        keys: ['Ctrl / Cmd', '/']
+        desc: 'Open keyboard shortcuts reference'
       },
-      { name: 'Focus Search', desc: 'Quickly focus search input', keys: ['Ctrl / Cmd', 'K'] },
-      {
-        name: 'New Connection',
-        desc: 'Open new database connection modal',
-        keys: ['Ctrl / Cmd', 'N']
-      },
-      { name: 'Close Tab', desc: 'Close current active tab', keys: ['Ctrl / Cmd', 'W'] }
+      { id: 'focusSearch', name: 'Focus Search', desc: 'Quickly focus search input' },
+      { id: 'newConnection', name: 'New Connection', desc: 'Open new database connection modal' },
+      { id: 'closeTab', name: 'Close Tab', desc: 'Close current active tab' }
     ]
   },
   {
     title: 'Navigation & Views',
     shortcuts: [
+      { id: 'toggleSidebar', name: 'Toggle Sidebar', desc: 'Show or hide navigation sidebar' },
+      { id: 'toggleConsole', name: 'Toggle Console', desc: 'Show or hide bottom console panel' },
       {
-        name: 'Toggle Sidebar',
-        desc: 'Show or hide navigation sidebar',
-        keys: ['Ctrl / Cmd', 'B']
-      },
-      {
-        name: 'Toggle Console',
-        desc: 'Show or hide bottom console panel',
-        keys: ['Ctrl / Cmd', 'J']
-      },
-      {
+        id: 'toggleInspector',
         name: 'Toggle Inspector',
-        desc: 'Show or hide right inspector panel',
-        keys: ['Ctrl / Cmd', 'I']
+        desc: 'Show or hide right inspector panel'
       }
     ]
   },
   {
     title: 'Data & Queries',
     shortcuts: [
-      { name: 'Refresh Data', desc: 'Reload table data or schema', keys: ['Ctrl / Cmd', 'R'] },
+      { id: 'refreshData', name: 'Refresh Data', desc: 'Reload table data or schema' },
       {
+        id: 'refreshAlternative',
         name: 'Refresh Schema / Table',
-        desc: 'Alternative shortcut to reload active tab data',
-        keys: ['F5']
+        desc: 'Alternative shortcut to reload active tab data'
       },
-      {
-        name: 'Copy Cell',
-        desc: 'Copy selected cell contents to clipboard',
-        keys: ['Ctrl / Cmd', 'C']
-      }
+      { id: 'copyCell', name: 'Copy Cell', desc: 'Copy selected cell contents to clipboard' }
     ]
   }
 ];
@@ -95,7 +82,7 @@ const shortcutCategories = [
 const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
 const formatKey = (key: string) => {
-  if (key === 'Ctrl / Cmd') return isMac ? '⌘' : 'Ctrl';
+  if (key === 'Ctrl / Cmd' || key === 'Mod') return isMac ? '⌘' : 'Ctrl';
   return key;
 };
 
@@ -110,8 +97,123 @@ const settings = reactive({
   autoSaveHistory: true,
   playCompletionSound: false,
   telemetry: false,
-  experimentalFeatures: false
+  experimentalFeatures: false,
+  shortcuts: { ...defaultShortcuts }
 });
+
+const shortcutCategories = computed(() => {
+  return shortcutDefinitions.map((category) => ({
+    ...category,
+    shortcuts: category.shortcuts.map((shortcut) => ({
+      ...shortcut,
+      keys: settings.shortcuts?.[shortcut.id] || defaultShortcuts[shortcut.id] || []
+    }))
+  }));
+});
+
+// Shortcut Editing Dialog Logic
+const activeEditShortcut = ref<{ id: string; name: string; desc: string } | null>(null);
+const tempKeys = ref<string[]>([]);
+const isCapturing = ref(false);
+
+const openEditDialog = (shortcut: { id: string; name: string; desc: string; keys: string[] }) => {
+  activeEditShortcut.value = { id: shortcut.id, name: shortcut.name, desc: shortcut.desc };
+  tempKeys.value = [...shortcut.keys];
+  isCapturing.value = true;
+};
+
+const closeEditDialog = () => {
+  activeEditShortcut.value = null;
+  tempKeys.value = [];
+  isCapturing.value = false;
+};
+
+const handleCaptureKeydown = (e: KeyboardEvent) => {
+  if (!activeEditShortcut.value) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  if (e.key === 'Escape') {
+    closeEditDialog();
+    return;
+  }
+
+  // Ignore bare modifier keys
+  if (['Control', 'Meta', 'Shift', 'Alt'].includes(e.key)) {
+    return;
+  }
+
+  const keys: string[] = [];
+  if (e.ctrlKey || e.metaKey) keys.push('Mod');
+  if (e.shiftKey) keys.push('Shift');
+  if (e.altKey) keys.push('Alt');
+
+  let keyName = e.key;
+  if (keyName === ' ') keyName = 'Space';
+  else if (keyName.length === 1) keyName = keyName.toUpperCase();
+
+  keys.push(keyName);
+  tempKeys.value = keys;
+};
+
+watch(isCapturing, (capturing) => {
+  if (capturing) {
+    window.addEventListener('keydown', handleCaptureKeydown, true);
+  } else {
+    window.removeEventListener('keydown', handleCaptureKeydown, true);
+  }
+});
+
+const formatKeysString = (keys: string[] | undefined) => (keys ? keys.join('+') : '');
+
+const conflictingShortcutName = computed(() => {
+  if (!activeEditShortcut.value || tempKeys.value.length === 0) return null;
+  const currentTargetStr = formatKeysString(tempKeys.value);
+
+  for (const category of shortcutDefinitions) {
+    for (const sc of category.shortcuts) {
+      if (sc.id === activeEditShortcut.value.id) continue;
+      const existingKeys = settings.shortcuts?.[sc.id] || defaultShortcuts[sc.id];
+      if (existingKeys && formatKeysString(existingKeys) === currentTargetStr) {
+        return sc.name;
+      }
+    }
+  }
+  return null;
+});
+
+const isIdenticalShortcut = computed(() => {
+  if (!activeEditShortcut.value) return false;
+  const currentKeys =
+    settings.shortcuts?.[activeEditShortcut.value.id] ||
+    defaultShortcuts[activeEditShortcut.value.id];
+  return formatKeysString(tempKeys.value) === formatKeysString(currentKeys);
+});
+
+const resetCurrentShortcutToDefault = () => {
+  if (activeEditShortcut.value) {
+    const def = defaultShortcuts[activeEditShortcut.value.id];
+    if (def) {
+      tempKeys.value = [...def];
+    }
+  }
+};
+
+const saveCurrentShortcut = () => {
+  if (activeEditShortcut.value && tempKeys.value.length > 0 && !conflictingShortcutName.value) {
+    settings.shortcuts[activeEditShortcut.value.id] = [...tempKeys.value];
+    toastStore.addToast({
+      title: 'Shortcut updated',
+      message: `Updated shortcut for ${activeEditShortcut.value.name}.`,
+      severity: 'success',
+      variation: 'filled',
+      position: 'bottom-center',
+      ttl: 2000
+    });
+    closeEditDialog();
+  }
+};
 
 const tabMap = computed(() => new Map(tabs.map((t) => [t.id, t])));
 
@@ -121,6 +223,9 @@ const getCurrentTabIcon = computed(() => tabMap.value.get(activeTab.value)?.icon
 
 const syncLocalSettings = () => {
   Object.assign(settings, preferencesStore.settings);
+  if (preferencesStore.settings.shortcuts) {
+    settings.shortcuts = { ...preferencesStore.settings.shortcuts };
+  }
 };
 
 watch(
@@ -129,6 +234,8 @@ watch(
     if (isOpen) {
       syncLocalSettings();
       activeTab.value = preferencesStore.activeTab || 'general';
+    } else {
+      closeEditDialog();
     }
   },
   { immediate: true }
@@ -431,7 +538,7 @@ const savePreferences = async () => {
                 <div>
                   <h3 class="text-text-primary text-sm font-medium">Keyboard Shortcuts</h3>
                   <p class="text-text-tertiary mt-0.5 text-[11px]">
-                    Overview of available keyboard shortcuts for faster navigation and actions.
+                    Click any key combination below to customize its shortcut.
                   </p>
                 </div>
 
@@ -455,15 +562,20 @@ const savePreferences = async () => {
                       <span class="text-text-primary text-xs font-medium">{{ shortcut.name }}</span>
                       <span class="text-text-tertiary text-[11px]">{{ shortcut.desc }}</span>
                     </div>
-                    <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      @click="openEditDialog(shortcut)"
+                      class="border-border hover:bg-hover hover:border-primary/50 group flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 transition-all"
+                      title="Click to edit shortcut"
+                    >
                       <template v-for="(key, keyIndex) in shortcut.keys" :key="keyIndex">
                         <kbd
-                          class="bg-surface border-border text-text-primary flex h-5 min-w-5 items-center justify-center rounded border px-1.5 font-mono text-[10px] shadow-xs"
+                          class="bg-surface border-border text-text-primary group-hover:text-primary flex h-5 min-w-5 items-center justify-center rounded border px-1.5 font-mono text-[10px] shadow-xs"
                         >
                           {{ formatKey(key) }}
                         </kbd>
                       </template>
-                    </div>
+                    </button>
                   </div>
 
                   <div v-if="index < shortcutCategories.length - 1" class="bg-border/50 h-px" />
@@ -505,6 +617,120 @@ const savePreferences = async () => {
                 Cancel
               </Button>
               <Button size="small" @click="savePreferences"> Save Changes </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- Edit Shortcut Dialog -->
+  <Teleport to="body">
+    <Transition name="fade">
+      <div
+        v-if="activeEditShortcut"
+        class="fixed inset-0 z-200 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
+        @click.self="closeEditDialog"
+      >
+        <div
+          class="bg-surface border-border animate-in zoom-in w-full max-w-md rounded-xl border p-5 shadow-2xl duration-150"
+        >
+          <div class="border-border flex items-center justify-between border-b pb-3">
+            <h3 class="text-text-primary text-sm font-semibold">Edit Keyboard Shortcut</h3>
+            <Button
+              rounded
+              variant="text"
+              severity="secondary"
+              size="small"
+              @click="closeEditDialog"
+            >
+              <template #icon>
+                <X class="h-4 w-4" />
+              </template>
+            </Button>
+          </div>
+
+          <div class="space-y-4 py-4">
+            <div>
+              <span class="text-text-primary text-xs font-medium">{{
+                activeEditShortcut.name
+              }}</span>
+              <p class="text-text-tertiary mt-0.5 text-[11px]">{{ activeEditShortcut.desc }}</p>
+            </div>
+
+            <div
+              class="bg-surface border-border flex min-h-20 flex-col items-center justify-center rounded-lg border border-dashed p-4"
+            >
+              <p class="text-text-tertiary mb-2 text-[11px]">
+                Press any key combination on your keyboard...
+              </p>
+              <div class="flex min-h-7 items-center gap-1.5">
+                <template v-for="(key, idx) in tempKeys" :key="idx">
+                  <kbd
+                    class="bg-primary/10 border-primary/30 text-primary flex h-7 min-w-7 items-center justify-center rounded-md border px-2 font-mono text-xs font-semibold shadow-xs"
+                  >
+                    {{ formatKey(key) }}
+                  </kbd>
+                </template>
+                <span v-if="tempKeys.length === 0" class="text-text-tertiary text-xs italic"
+                  >Waiting for keys...</span
+                >
+              </div>
+            </div>
+
+            <!-- Status / Conflict Validation Messages -->
+            <div
+              v-if="conflictingShortcutName"
+              class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-xs text-red-400"
+            >
+              <AlertCircle :size="16" class="shrink-0" />
+              <span
+                >Shortcut conflicts with <strong>{{ conflictingShortcutName }}</strong
+                >.</span
+              >
+            </div>
+
+            <div
+              v-else-if="isIdenticalShortcut"
+              class="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-2.5 text-xs text-blue-400"
+            >
+              <Info :size="16" class="shrink-0" />
+              <span>This is the currently assigned shortcut combination.</span>
+            </div>
+
+            <div
+              v-else
+              class="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-xs text-emerald-400"
+            >
+              <Check :size="16" class="shrink-0" />
+              <span>New key combination recorded. Click Save to apply.</span>
+            </div>
+          </div>
+
+          <div class="border-border flex items-center justify-between border-t pt-3">
+            <Button
+              variant="text"
+              severity="secondary"
+              size="small"
+              @click="resetCurrentShortcutToDefault"
+            >
+              <template #icon>
+                <RotateCcw class="h-3.5 w-3.5" />
+              </template>
+              Reset Default
+            </Button>
+
+            <div class="flex items-center gap-2">
+              <Button variant="text" severity="secondary" size="small" @click="closeEditDialog">
+                Cancel
+              </Button>
+              <Button
+                size="small"
+                :disabled="!!conflictingShortcutName || tempKeys.length === 0"
+                @click="saveCurrentShortcut"
+              >
+                Save
+              </Button>
             </div>
           </div>
         </div>

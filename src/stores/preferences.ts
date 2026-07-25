@@ -4,6 +4,20 @@ import { reactive, ref } from 'vue';
 import { NativeService } from '@/services/native';
 import { useUpdaterStore } from './updater';
 
+export const defaultShortcuts: Record<string, string[]> = {
+  openPreferences: ['Mod', ','],
+  openShortcuts: ['Mod', '/'],
+  focusSearch: ['Mod', 'K'],
+  newConnection: ['Mod', 'N'],
+  closeTab: ['Mod', 'W'],
+  toggleSidebar: ['Mod', 'B'],
+  toggleConsole: ['Mod', 'J'],
+  toggleInspector: ['Mod', 'I'],
+  refreshData: ['Mod', 'R'],
+  refreshAlternative: ['F5'],
+  copyCell: ['Mod', 'C']
+};
+
 export interface Preferences {
   theme: 'light' | 'dark' | 'system';
   language: 'en' | 'vi';
@@ -15,6 +29,8 @@ export interface Preferences {
   autoSaveHistory: boolean;
   playCompletionSound: boolean;
   telemetry: boolean;
+  experimentalFeatures?: boolean;
+  shortcuts: Record<string, string[]>;
 }
 
 export const usePreferencesStore = defineStore('preferences', () => {
@@ -31,7 +47,9 @@ export const usePreferencesStore = defineStore('preferences', () => {
     connectionTimeout: 15,
     autoSaveHistory: true,
     playCompletionSound: false,
-    telemetry: false
+    telemetry: false,
+    experimentalFeatures: false,
+    shortcuts: { ...defaultShortcuts }
   });
 
   let mediaQueryListener: ((e: MediaQueryListEvent) => void) | null = null;
@@ -65,6 +83,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
       const data = await NativeService.storage.get<Preferences>('preferences');
       if (data) {
         Object.assign(settings, data);
+        settings.shortcuts = { ...defaultShortcuts, ...data.shortcuts };
       }
       applyTheme(settings.theme);
     } catch (error) {
