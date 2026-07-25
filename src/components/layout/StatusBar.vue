@@ -79,7 +79,6 @@ const handleCheckForUpdates = async () => {
   await updaterStore.checkForUpdates(true);
 };
 
-
 const openSettings = () => {
   preferencesStore.open();
 };
