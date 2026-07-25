@@ -53,23 +53,62 @@ export function useSchemaActions(
       const backendDatabases: any[] = payload.databases || [];
       const defaultObjectSchema = resolveFallbackSchema(connection?.type, connection?.username);
 
+      const existingSchema = cache.schemasByConnection.value[targetConnectionId];
+
+      const newTables = (payload.tables || []).map((t: any) => ({
+        name: t.name,
+        schema: t.schema || defaultObjectSchema
+      }));
+      const newViews = (payload.views || []).map((v: any) => ({
+        name: v.name,
+        schema: v.schema || defaultObjectSchema
+      }));
+      const newFunctions = (payload.functions || []).map((f: any) => ({
+        name: f.name,
+        schema: f.schema || defaultObjectSchema,
+        returnType: f.type || 'unknown'
+      }));
+
+      const mergedSchemas =
+        backendSchemas.length > 0
+          ? backendSchemas.map((s: any) => s.name || s)
+          : existingSchema?.schemas || [];
+
+      const mergedTables =
+        existingSchema && targetSchemaName
+          ? [
+              ...existingSchema.tables.filter((t: any) => !sameSchema(t.schema, targetSchemaName)),
+              ...newTables
+            ]
+          : newTables;
+
+      const mergedViews =
+        existingSchema && targetSchemaName
+          ? [
+              ...existingSchema.views.filter((v: any) => !sameSchema(v.schema, targetSchemaName)),
+              ...newViews
+            ]
+          : newViews;
+
+      const mergedFunctions =
+        existingSchema && targetSchemaName
+          ? [
+              ...existingSchema.functions.filter(
+                (f: any) => !sameSchema(f.schema, targetSchemaName)
+              ),
+              ...newFunctions
+            ]
+          : newFunctions;
+
       const nextSchema: SchemaInfo = {
-        tables: (payload.tables || []).map((t: any) => ({
-          name: t.name,
-          schema: t.schema || defaultObjectSchema
-        })),
-        views: (payload.views || []).map((v: any) => ({
-          name: v.name,
-          schema: v.schema || defaultObjectSchema
-        })),
-        functions: (payload.functions || []).map((f: any) => ({
-          name: f.name,
-          schema: f.schema || defaultObjectSchema,
-          returnType: f.type || 'unknown'
-        })),
-        schemas: backendSchemas.length > 0 ? backendSchemas.map((s: any) => s.name || s) : [],
+        tables: mergedTables,
+        views: mergedViews,
+        functions: mergedFunctions,
+        schemas: mergedSchemas,
         databases:
-          backendDatabases.length > 0 ? backendDatabases.map((d: any) => d.name || d) : undefined
+          backendDatabases.length > 0
+            ? backendDatabases.map((d: any) => d.name || d)
+            : existingSchema?.databases
       };
 
       cache.schemasByConnection.value[targetConnectionId] = nextSchema;

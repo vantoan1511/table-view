@@ -82,6 +82,31 @@ describe('useSchemaActions', () => {
       expect(cache.schemasByConnection.value['conn-1'].tables).toHaveLength(1);
       expect(treeState.selectedSchemaByConnection.value['conn-1']).toBe('public');
     });
+
+    it('merges tables from different schemas when loading a specific schema', async () => {
+      const actions = useSchemaActions(cache, treeState, connectionsStore, loadedAllDatabases);
+      vi.mocked(BridgeService.request)
+        .mockResolvedValueOnce({
+          tables: [{ name: 'sys_table', schema: 'SYS' }],
+          views: [],
+          functions: [],
+          schemas: ['SYS', 'SHOPBEE']
+        })
+        .mockResolvedValueOnce({
+          tables: [{ name: 'shop_table', schema: 'SHOPBEE' }],
+          views: [],
+          functions: [],
+          schemas: ['SYS', 'SHOPBEE']
+        });
+
+      await actions.loadSchema(undefined, 'conn-1', 'SYS');
+      await actions.loadSchema(undefined, 'conn-1', 'SHOPBEE');
+
+      const cached = cache.schemasByConnection.value['conn-1'];
+      expect(cached.tables).toHaveLength(2);
+      expect(cached.tables.map((t: any) => t.name)).toContain('sys_table');
+      expect(cached.tables.map((t: any) => t.name)).toContain('shop_table');
+    });
   });
 
   describe('loadDbSchema', () => {

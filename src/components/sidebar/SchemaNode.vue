@@ -23,8 +23,16 @@ const isExpanded = computed(() =>
   schemaStore.isSchemaExpanded(props.connectionId, expansionKey.value)
 );
 
-const toggle = () => {
-  schemaStore.setSchemaExpanded(props.connectionId, expansionKey.value, !isExpanded.value);
+const toggle = async () => {
+  const nextExpanded = !isExpanded.value;
+  schemaStore.setSchemaExpanded(props.connectionId, expansionKey.value, nextExpanded);
+  if (nextExpanded) {
+    if (props.dbName) {
+      await schemaStore.loadDbSchema(props.connectionId, props.dbName, true);
+    } else {
+      await schemaStore.loadSchema(undefined, props.connectionId, props.schemaName);
+    }
+  }
 };
 </script>
 

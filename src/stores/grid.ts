@@ -299,7 +299,7 @@ export const useGridStore = defineStore('grid', () => {
       if (dbName) {
         await schemaStore.refreshDbSchema(connectionId, dbName);
       } else {
-        await schemaStore.loadSchema(undefined, connectionId);
+        await schemaStore.loadSchema(undefined, connectionId, schemaName);
       }
 
       toastStore.addToast({
