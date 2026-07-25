@@ -92,6 +92,13 @@ const shortcutCategories = [
   }
 ];
 
+const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
+const formatKey = (key: string) => {
+  if (key === 'Ctrl / Cmd') return isMac ? '⌘' : 'Ctrl';
+  return key;
+};
+
 const settings = reactive({
   theme: 'dark' as 'light' | 'dark' | 'system',
   language: 'en' as 'en' | 'vi',
@@ -106,15 +113,11 @@ const settings = reactive({
   experimentalFeatures: false
 });
 
-const getCurrentTabName = computed(() => {
-  const current = tabs.find((t) => t.id === activeTab.value);
-  return current ? current.name : '';
-});
+const tabMap = computed(() => new Map(tabs.map((t) => [t.id, t])));
 
-const getCurrentTabIcon = computed(() => {
-  const current = tabs.find((t) => t.id === activeTab.value);
-  return current ? current.icon : Settings;
-});
+const getCurrentTabName = computed(() => tabMap.value.get(activeTab.value)?.name ?? '');
+
+const getCurrentTabIcon = computed(() => tabMap.value.get(activeTab.value)?.icon ?? Settings);
 
 const syncLocalSettings = () => {
   Object.assign(settings, preferencesStore.settings);
@@ -183,7 +186,11 @@ const savePreferences = async () => {
     <Transition name="fade">
       <div
         v-if="preferencesStore.isOpen"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="preferences-modal-title"
         class="modal-backdrop fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        @keydown.escape="preferencesStore.close"
         @click.self="preferencesStore.close"
       >
         <div
@@ -193,7 +200,7 @@ const savePreferences = async () => {
           <div class="border-border flex items-center justify-between border-b px-5 py-4">
             <div class="text-text-primary flex items-center gap-2.5">
               <Settings :size="18" class="text-primary shrink-0" />
-              <h2 class="text-sm font-semibold">Preferences</h2>
+              <h2 id="preferences-modal-title" class="text-sm font-semibold">Preferences</h2>
             </div>
             <Button rounded variant="text" severity="secondary" @click="preferencesStore.close">
               <template #icon>
@@ -206,11 +213,17 @@ const savePreferences = async () => {
           <div class="flex min-h-0 flex-1">
             <!-- Sidebar -->
             <div
+              role="tablist"
+              aria-label="Preferences Navigation"
               class="border-border bg-surface flex w-56 shrink-0 flex-col gap-1 overflow-y-auto border-r p-3"
             >
               <button
                 v-for="tab in tabs"
                 :key="tab.id"
+                role="tab"
+                :id="`tab-${tab.id}`"
+                :aria-selected="activeTab === tab.id"
+                :aria-controls="`panel-${tab.id}`"
                 @click="activeTab = tab.id"
                 class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors select-none"
                 :class="
@@ -447,7 +460,7 @@ const savePreferences = async () => {
                         <kbd
                           class="bg-surface border-border text-text-primary flex h-5 min-w-5 items-center justify-center rounded border px-1.5 font-mono text-[10px] shadow-xs"
                         >
-                          {{ key }}
+                          {{ formatKey(key) }}
                         </kbd>
                       </template>
                     </div>
