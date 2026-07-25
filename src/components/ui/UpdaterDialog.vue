@@ -131,17 +131,22 @@ const close = () => {
               <div class="flex flex-col items-center gap-4 text-center">
                 <Loader2 :size="40" class="text-primary animate-spin" />
                 <div class="space-y-1">
-                  <p class="text-text-primary font-medium">{{ updaterStore.updateStatus }}</p>
+                  <p class="text-text-primary font-medium">
+                    {{ updaterStore.updateStatus }}
+                    <template v-if="updaterStore.downloadProgress > 0">
+                      ({{ updaterStore.downloadProgress }}%)
+                    </template>
+                  </p>
                   <p class="text-text-tertiary text-sm italic">
                     Please do not close the application.
                   </p>
                 </div>
               </div>
-              <!-- Simulated Progress Bar (Native Neutralino installer doesn't provide progress easily) -->
+              <!-- Progress Bar -->
               <div class="bg-border h-2 w-full overflow-hidden rounded-full">
                 <div
-                  class="bg-primary h-full animate-pulse transition-all duration-500"
-                  style="width: 100%"
+                  class="bg-primary h-full transition-all duration-300 ease-out"
+                  :style="{ width: `${updaterStore.downloadProgress}%` }"
                 ></div>
               </div>
             </div>

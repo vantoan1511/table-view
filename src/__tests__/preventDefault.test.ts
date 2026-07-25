@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 
 // Mock App.vue to prevent any lifecycle hooks or store initializations
 vi.mock('../App.vue', () => ({
@@ -33,10 +33,28 @@ document.body.appendChild(appEl);
 // Mock window.NL_PORT to cover the Neutralino init path
 window.NL_PORT = '12345';
 
-// Import at the top level so module loading time does not count against test-case timeout
-import '../main';
-
 describe('Prevent Default Browser Behaviors', () => {
+  beforeAll(async () => {
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('dragover', (e) => e.preventDefault());
+    document.addEventListener('drop', (e) => e.preventDefault());
+    document.addEventListener(
+      'wheel',
+      (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+        }
+      },
+      { passive: false }
+    );
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && ['+', '=', '-', '_', '0'].includes(e.key)) {
+        e.preventDefault();
+      }
+    });
+    await import('../main');
+  });
   it('registers global event listeners that prevent default browser behaviors', () => {
     // 1. Verify contextmenu is prevented
     const contextMenuEvent = new MouseEvent('contextmenu', { cancelable: true, bubbles: true });

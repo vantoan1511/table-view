@@ -220,7 +220,9 @@ const savePreferences = async () => {
 
                   <div class="flex items-center justify-between py-1">
                     <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">Connection Timeout (seconds)</span>
+                      <span class="text-text-primary text-xs font-medium"
+                        >Connection Timeout (seconds)</span
+                      >
                       <span class="text-text-tertiary text-[11px]">
                         Maximum time to wait when establishing a database connection.
                       </span>

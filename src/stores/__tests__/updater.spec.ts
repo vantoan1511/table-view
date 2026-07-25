@@ -18,7 +18,12 @@ vi.mock('@neutralinojs/lib', () => ({
     checkForUpdates: vi.fn()
   },
   os: {
-    execCommand: vi.fn()
+    execCommand: vi.fn(),
+    spawnProcess: vi.fn()
+  },
+  events: {
+    on: vi.fn(),
+    off: vi.fn()
   },
   app: {
     exit: vi.fn()
@@ -170,6 +175,33 @@ describe('Updater Store', () => {
       return { exitCode: 0, stdOut: '', stdErr: '' };
     });
 
+    // Mock Neutralino.os.spawnProcess and events
+    const eventHandlers: Record<string, ((evt: any) => void)[]> = {};
+    vi.mocked(Neutralino.events.on).mockImplementation((event: string, handler: any) => {
+      if (!eventHandlers[event]) eventHandlers[event] = [];
+      eventHandlers[event].push(handler);
+      return Promise.resolve() as any;
+    });
+    vi.mocked(Neutralino.events.off).mockImplementation((event: string, handler: any) => {
+      if (eventHandlers[event]) {
+        eventHandlers[event] = eventHandlers[event].filter((h) => h !== handler);
+      }
+      return Promise.resolve() as any;
+    });
+
+    let procIdCounter = 1;
+    vi.mocked(Neutralino.os.spawnProcess).mockImplementation(async () => {
+      const id = procIdCounter++;
+      setTimeout(() => {
+        const handlers = eventHandlers['spawnedProcess'] || [];
+        handlers.slice().forEach((h) => {
+          h({ detail: { id, action: 'stdOut', data: 'PROGRESS:50\nPROGRESS:100\n' } });
+          h({ detail: { id, action: 'exit', data: 0 } });
+        });
+      }, 10);
+      return { id } as any;
+    });
+
     const store = useUpdaterStore();
 
     // Setup updateAvailable manifest
@@ -185,19 +217,9 @@ describe('Updater Store', () => {
     // Trigger update installation
     await store.installUpdates();
 
-    // Verify download calls
-    expect(Neutralino.os.execCommand).toHaveBeenCalledWith(
-      expect.stringContaining("Split-Path -Path 'resources.neu.new'")
-    );
-    expect(Neutralino.os.execCommand).toHaveBeenCalledWith(
-      expect.stringContaining("Invoke-WebRequest -Uri 'https://example.com/resources.neu'")
-    );
-    expect(Neutralino.os.execCommand).toHaveBeenCalledWith(
-      expect.stringContaining("Split-Path -Path 'bin\\db-bridge.exe.new'")
-    );
-    expect(Neutralino.os.execCommand).toHaveBeenCalledWith(
-      expect.stringContaining("Invoke-WebRequest -Uri 'https://example.com/db-bridge.exe'")
-    );
+    // Verify spawnProcess calls
+    expect(Neutralino.os.spawnProcess).toHaveBeenCalledTimes(2);
+    expect(store.downloadProgress).toBe(100);
 
     // Verify that the swapper batch script is written with the correct dynamic exe name
     expect(Neutralino.filesystem.writeFile).toHaveBeenCalledWith(

@@ -18,6 +18,7 @@ export interface UpdateManifest {
 export const useUpdaterStore = defineStore('updater', () => {
   const isChecking = ref(false);
   const isUpdating = ref(false);
+  const downloadProgress = ref(0);
   const updateAvailable = ref<UpdateManifest | null>(null);
   const updateStatus = ref('');
   const error = ref<string | null>(null);
@@ -57,7 +58,7 @@ export const useUpdaterStore = defineStore('updater', () => {
       }
 
       try {
-        const platform = window.NL_OS.toLowerCase();
+        const platform = (window.NL_OS || '').toLowerCase();
         if (platform === 'windows') {
           await Neutralino.filesystem.remove?.('updater.bat')?.catch(() => {});
           await Neutralino.filesystem.remove?.('resources.neu.new')?.catch(() => {});
@@ -157,6 +158,7 @@ export const useUpdaterStore = defineStore('updater', () => {
     if (!updateAvailable.value || isUpdating.value) return;
 
     isUpdating.value = true;
+    downloadProgress.value = 0;
     updateStatus.value = 'Preparing update...';
 
     try {
@@ -252,13 +254,107 @@ export const useUpdaterStore = defineStore('updater', () => {
     showUpdateDialog.value = false;
   };
 
-  const downloadFileNative = async (url: string, dest: string) => {
-    // Use PowerShell to bypass CORS and handle redirects reliably
-    const cmd = `powershell -Command "$dir = Split-Path -Path '${dest}'; if ($dir -and !(Test-Path -Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }; Invoke-WebRequest -Uri '${url}' -OutFile '${dest}'"`;
-    const res = await Neutralino.os.execCommand(cmd);
-    if (res.exitCode !== 0) {
-      throw new Error(`Download failed (PowerShell): ${res.stdErr}`);
+  const encodeScriptToUtf16Base64 = (script: string): string => {
+    const buffer = new Uint16Array(script.length);
+    for (let i = 0; i < script.length; i++) {
+      buffer[i] = script.charCodeAt(i);
     }
+    const uint8 = new Uint8Array(buffer.buffer);
+    let binary = '';
+    for (let i = 0; i < uint8.byteLength; i++) {
+      const b = uint8[i];
+      if (b !== undefined) {
+        binary += String.fromCharCode(b);
+      }
+    }
+    return btoa(binary);
+  };
+
+  const downloadFileNative = async (url: string, dest: string) => {
+    downloadProgress.value = 0;
+    const psScript = `
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$req = [System.Net.HttpWebRequest]::Create('${url}')
+$req.Method = 'GET'
+$res = $req.GetResponse()
+$total = $res.ContentLength
+$stream = $res.GetResponseStream()
+$dest = '${dest}'
+$dir = Split-Path -Path $dest
+if ($dir -and !(Test-Path -Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+$file = [System.IO.File]::Create($dest)
+$buffer = New-Object byte[] 8192
+$read = 0
+$downloaded = 0
+$lastReport = -1
+while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+    $file.Write($buffer, 0, $read)
+    $downloaded += $read
+    if ($total -gt 0) {
+        $pct = [math]::Floor(($downloaded / $total) * 100)
+        if ($pct -ne $lastReport) {
+            Write-Host "PROGRESS:$pct"
+            $lastReport = $pct
+        }
+    }
+}
+$file.Close()
+$res.Close()
+`;
+
+    const encodedCommand = encodeScriptToUtf16Base64(psScript);
+    const cmd = `powershell -WindowStyle Hidden -EncodedCommand ${encodedCommand}`;
+
+    return new Promise<void>(async (resolve, reject) => {
+      let processOutput = '';
+      let isResolved = false;
+      let procId: number | null = null;
+
+      const handler = (evt: any) => {
+        if (procId !== null && evt.detail.id === procId) {
+          if (evt.detail.action === 'stdOut') {
+            const data = evt.detail.data as string;
+            processOutput += data;
+            const matches = data.match(/PROGRESS:(\d+)/g);
+            if (matches && matches.length > 0) {
+              const lastMatch = matches[matches.length - 1];
+              if (lastMatch) {
+                const pct = parseInt(lastMatch.replace('PROGRESS:', ''), 10);
+                if (!isNaN(pct)) {
+                  downloadProgress.value = pct;
+                }
+              }
+            }
+          } else if (evt.detail.action === 'stdErr') {
+            processOutput += evt.detail.data;
+          } else if (evt.detail.action === 'exit') {
+            Neutralino.events.off('spawnedProcess', handler);
+            if (!isResolved) {
+              isResolved = true;
+              if (evt.detail.data === 0) {
+                downloadProgress.value = 100;
+                resolve();
+              } else {
+                reject(
+                  new Error(
+                    `Download failed with exit code ${evt.detail.data}: ${processOutput.trim()}`
+                  )
+                );
+              }
+            }
+          }
+        }
+      };
+
+      try {
+        Neutralino.events.on('spawnedProcess', handler);
+        const proc = await Neutralino.os.spawnProcess(cmd);
+        procId = proc.id;
+      } catch (err) {
+        Neutralino.events.off('spawnedProcess', handler);
+        reject(err);
+      }
+    });
   };
 
   const createSwapperBat = (exeName: string) => {
@@ -375,6 +471,7 @@ del "%~f0" & exit
   return {
     isChecking,
     isUpdating,
+    downloadProgress,
     updateAvailable,
     showUpdateDialog,
     updateStatus,
