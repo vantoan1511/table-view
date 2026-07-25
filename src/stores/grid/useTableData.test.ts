@@ -66,6 +66,18 @@ describe('useTableData', () => {
       const result = tableData.resolveBackendTableName('orders', 'conn-2');
       expect(result).toBe('SALES.orders');
     });
+
+    it('returns table name without schema prefix if schema is "default"', () => {
+      const tableData = useTableData(connectionsStore);
+      const result = tableData.resolveBackendTableName('users', 'conn-2', 'default');
+      expect(result).toBe('users');
+    });
+
+    it('returns table name as is if tableName already includes schema prefix', () => {
+      const tableData = useTableData(connectionsStore);
+      const result = tableData.resolveBackendTableName('SHOPBEE.orders', 'conn-2', 'SHOPBEE');
+      expect(result).toBe('SHOPBEE.orders');
+    });
   });
 
   describe('toggleSort', () => {

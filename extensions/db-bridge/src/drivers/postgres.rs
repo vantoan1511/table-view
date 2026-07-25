@@ -1271,7 +1271,7 @@ mod tests {
         let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, &columns, PostgresDriver::quote).unwrap();
         assert_eq!(
             sql,
-            "CREATE TABLE \"public\".\"users\" (\"id\" SERIAL NOT NULL PRIMARY KEY, \"name\" VARCHAR(255) DEFAULT 'Guest')"
+            "CREATE TABLE \"public\".\"users\" (\"id\" SERIAL PRIMARY KEY, \"name\" VARCHAR(255) DEFAULT 'Guest')"
         );
     }
 

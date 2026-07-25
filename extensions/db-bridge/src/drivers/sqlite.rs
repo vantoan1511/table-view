@@ -837,7 +837,7 @@ mod tests {
         let sql = crate::drivers::utils::build_create_table_sql_generic("\"users\"", &columns, SqliteDriver::quote).unwrap();
         assert_eq!(
             sql,
-            "CREATE TABLE \"users\" (\"id\" INTEGER NOT NULL PRIMARY KEY, \"name\" TEXT DEFAULT 'Guest')"
+            "CREATE TABLE \"users\" (\"id\" INTEGER PRIMARY KEY, \"name\" TEXT DEFAULT 'Guest')"
         );
     }
 

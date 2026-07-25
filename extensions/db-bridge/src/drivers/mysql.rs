@@ -1101,7 +1101,7 @@ mod tests {
         let sql = crate::drivers::utils::build_create_table_sql_generic("`users`", &columns, MysqlDriver::quote).unwrap();
         assert_eq!(
             sql,
-            "CREATE TABLE `users` (`id` INT NOT NULL PRIMARY KEY, `name` VARCHAR(255) DEFAULT 'Guest')"
+            "CREATE TABLE `users` (`id` INT PRIMARY KEY, `name` VARCHAR(255) DEFAULT 'Guest')"
         );
     }
 

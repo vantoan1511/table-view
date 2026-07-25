@@ -111,7 +111,14 @@ export function useTableData(connectionsStore: any) {
     const connection = resolveConnection(targetConnectionId);
     const targetSchema = schemaName || activeTableSchema.value;
 
-    if (['oracle', 'postgres', 'postgresql'].includes(connection?.type ?? '') && targetSchema) {
+    if (
+      ['oracle', 'postgres', 'postgresql'].includes(connection?.type ?? '') &&
+      targetSchema &&
+      targetSchema.toLowerCase() !== 'default'
+    ) {
+      if (tableName.includes('.')) {
+        return tableName;
+      }
       return `${targetSchema}.${tableName}`;
     }
 

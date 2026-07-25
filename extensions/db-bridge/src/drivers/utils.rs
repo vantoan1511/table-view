@@ -137,14 +137,14 @@ where
             return Err(format!("Invalid or unsafe data type: {}", col.data_type));
         }
         let mut def = format!("{} {}", quote_ident(&col.name), col.data_type);
-        if !col.nullable {
-            def.push_str(" NOT NULL");
-        }
         if let Some(ref d) = col.default {
             if !is_safe_default(d) {
                 return Err(format!("Invalid or unsafe default value: {}", d));
             }
             def.push_str(&format!(" DEFAULT {}", d));
+        }
+        if !col.nullable && !col.is_primary_key {
+            def.push_str(" NOT NULL");
         }
         if col.is_primary_key {
             def.push_str(" PRIMARY KEY");

@@ -34,13 +34,22 @@ impl OracleDriver {
     }
 
     fn split_table_name<'a>(&'a self, table_name: &'a str) -> (&'a str, &'a str) {
-        table_name
+        let (owner, name) = table_name
             .split_once('.')
-            .unwrap_or((self.current_schema.as_str(), table_name))
+            .unwrap_or((self.current_schema.as_str(), table_name));
+        if owner.eq_ignore_ascii_case("default") || owner.is_empty() {
+            (self.current_schema.as_str(), name)
+        } else {
+            (owner, name)
+        }
     }
 
     pub fn qualify_table(owner: &str, table_name: &str) -> String {
-        format!("{}.{}", Self::quote(owner), Self::quote(table_name))
+        if owner.is_empty() || owner.eq_ignore_ascii_case("default") {
+            Self::quote(table_name)
+        } else {
+            format!("{}.{}", Self::quote(owner), Self::quote(table_name))
+        }
     }
 
     pub fn pagination_clause(limit: i64, offset: i64) -> String {
@@ -179,7 +188,17 @@ impl OracleDriver {
         conn.execute(&cleaned_sql, &bind_values)
             .await
             .map_err(|e| e.to_string())?;
-        conn.commit().await.map_err(|e| e.to_string())?;
+
+        let upper_sql = cleaned_sql.trim().to_ascii_uppercase();
+        let is_ddl = upper_sql.starts_with("CREATE")
+            || upper_sql.starts_with("ALTER")
+            || upper_sql.starts_with("DROP")
+            || upper_sql.starts_with("TRUNCATE")
+            || upper_sql.starts_with("GRANT")
+            || upper_sql.starts_with("REVOKE");
+        if !is_ddl {
+            conn.commit().await.map_err(|e| e.to_string())?;
+        }
         Ok(())
     }
 }
@@ -278,7 +297,7 @@ impl DatabaseDriver for OracleDriver {
         let is_sys = self.current_schema == "SYS";
         let requested_schema = schema_name
             .map(str::trim)
-            .filter(|name| !name.is_empty())
+            .filter(|name| !name.is_empty() && !name.eq_ignore_ascii_case("default"))
             .map(|name| name.to_uppercase());
 
         // Always fetch all users (schemas)
@@ -652,7 +671,14 @@ impl DatabaseDriver for OracleDriver {
     async fn create_table(&self, table_name: &str, columns: &[TableColumn]) -> Result<(), String> {
         let pool = self.pool()?;
         let (owner, table) = self.split_table_name(table_name);
-        let safe_table = Self::qualify_table(owner, table);
+        let safe_table = if owner.is_empty()
+            || owner.eq_ignore_ascii_case("default")
+            || owner.eq_ignore_ascii_case(&self.current_schema)
+        {
+            Self::quote(table)
+        } else {
+            Self::qualify_table(owner, table)
+        };
 
         let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, columns, Self::quote)?;
         Self::execute_dml(pool, &sql, &[]).await?;
@@ -1123,6 +1149,39 @@ mod tests {
         assert_eq!(
             OracleDriver::qualify_table("HR", "EMPLOYEES"),
             "\"HR\".\"EMPLOYEES\""
+        );
+        assert_eq!(OracleDriver::qualify_table("", "EMPLOYEES"), "\"EMPLOYEES\"");
+        assert_eq!(OracleDriver::qualify_table("default", "EMPLOYEES"), "\"EMPLOYEES\"");
+    }
+
+    #[test]
+    fn test_oracle_build_create_table_sql() {
+        use crate::drivers::TableColumn;
+
+        let columns = vec![
+            TableColumn {
+                name: "id".to_string(),
+                data_type: "NUMBER".to_string(),
+                nullable: false,
+                is_primary_key: true,
+                default: None,
+                foreign_key: None,
+            },
+            TableColumn {
+                name: "status".to_string(),
+                data_type: "VARCHAR2(20)".to_string(),
+                nullable: false,
+                is_primary_key: false,
+                default: Some("'active'".to_string()),
+                foreign_key: None,
+            },
+        ];
+
+        let safe_table = OracleDriver::qualify_table("default", "new_table");
+        let sql = crate::drivers::utils::build_create_table_sql_generic(&safe_table, &columns, OracleDriver::quote).unwrap();
+        assert_eq!(
+            sql,
+            "CREATE TABLE \"new_table\" (\"id\" NUMBER PRIMARY KEY, \"status\" VARCHAR2(20) DEFAULT 'active' NOT NULL)"
         );
     }
 
