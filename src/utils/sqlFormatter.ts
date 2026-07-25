@@ -32,12 +32,10 @@ export const formatSql = async (sql: string, dbType?: DbType): Promise<string> =
   try {
     const { format } = await import('sql-formatter');
     return format(sql, {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       language: dialect as any,
       keywordCase: 'upper'
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.warn(`SQL formatting failed for dialect ${dialect}:`, error);
     return sql;
   }

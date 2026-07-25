@@ -6,7 +6,6 @@ import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { useLayoutStore } from '@/stores/layout';
 import { usePreferencesStore } from '@/stores/preferences';
-import { useToastStore } from '@/stores/toast';
 import { useUpdaterStore } from '@/stores/updater';
 
 import {
@@ -28,7 +27,6 @@ const layoutStore = useLayoutStore();
 const connectionsStore = useConnectionsStore();
 const gridStore = useGridStore();
 const updaterStore = useUpdaterStore();
-const toastStore = useToastStore();
 
 const isDark = computed(() => {
   if (preferencesStore.settings.theme === 'system') {
