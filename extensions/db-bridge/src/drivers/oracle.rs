@@ -153,8 +153,12 @@ impl OracleDriver {
 
         log::info!("oracle: executing query: {}", cleaned_sql);
         let start = std::time::Instant::now();
-        let lower = cleaned_sql.trim().to_ascii_lowercase();
-        let is_query = lower.starts_with("select") || lower.starts_with("with");
+        let first_word = cleaned_sql
+            .split_whitespace()
+            .next()
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        let is_query = matches!(first_word.as_str(), "select" | "with");
 
         let result = if is_query {
             conn.query(&cleaned_sql, &bind_values)
@@ -189,13 +193,15 @@ impl OracleDriver {
             .await
             .map_err(|e| e.to_string())?;
 
-        let upper_sql = cleaned_sql.trim().to_ascii_uppercase();
-        let is_ddl = upper_sql.starts_with("CREATE")
-            || upper_sql.starts_with("ALTER")
-            || upper_sql.starts_with("DROP")
-            || upper_sql.starts_with("TRUNCATE")
-            || upper_sql.starts_with("GRANT")
-            || upper_sql.starts_with("REVOKE");
+        let first_word = cleaned_sql
+            .split_whitespace()
+            .next()
+            .unwrap_or("")
+            .to_ascii_uppercase();
+        let is_ddl = matches!(
+            first_word.as_str(),
+            "CREATE" | "ALTER" | "DROP" | "TRUNCATE" | "GRANT" | "REVOKE"
+        );
         if !is_ddl {
             conn.commit().await.map_err(|e| e.to_string())?;
         }

@@ -55,50 +55,45 @@ export function useSchemaActions(
 
       const existingSchema = cache.schemasByConnection.value[targetConnectionId];
 
-      const newTables = (payload.tables || []).map((t: any) => ({
+      const mergeObjects = <T extends { schema: string }>(
+        existing: T[] | undefined,
+        incoming: any[],
+        mapFn: (o: any) => T
+      ): T[] => {
+        const newObjects = incoming.map(mapFn);
+        if (existing && targetSchemaName) {
+          return [
+            ...existing.filter((o) => !sameSchema(o.schema, targetSchemaName)),
+            ...newObjects
+          ];
+        }
+        return newObjects;
+      };
+
+      const mergedTables = mergeObjects(existingSchema?.tables, payload.tables || [], (t: any) => ({
         name: t.name,
         schema: t.schema || defaultObjectSchema
       }));
-      const newViews = (payload.views || []).map((v: any) => ({
+
+      const mergedViews = mergeObjects(existingSchema?.views, payload.views || [], (v: any) => ({
         name: v.name,
         schema: v.schema || defaultObjectSchema
       }));
-      const newFunctions = (payload.functions || []).map((f: any) => ({
-        name: f.name,
-        schema: f.schema || defaultObjectSchema,
-        returnType: f.type || 'unknown'
-      }));
+
+      const mergedFunctions = mergeObjects(
+        existingSchema?.functions,
+        payload.functions || [],
+        (f: any) => ({
+          name: f.name,
+          schema: f.schema || defaultObjectSchema,
+          returnType: f.type || 'unknown'
+        })
+      );
 
       const mergedSchemas =
         backendSchemas.length > 0
           ? backendSchemas.map((s: any) => s.name || s)
           : existingSchema?.schemas || [];
-
-      const mergedTables =
-        existingSchema && targetSchemaName
-          ? [
-              ...existingSchema.tables.filter((t: any) => !sameSchema(t.schema, targetSchemaName)),
-              ...newTables
-            ]
-          : newTables;
-
-      const mergedViews =
-        existingSchema && targetSchemaName
-          ? [
-              ...existingSchema.views.filter((v: any) => !sameSchema(v.schema, targetSchemaName)),
-              ...newViews
-            ]
-          : newViews;
-
-      const mergedFunctions =
-        existingSchema && targetSchemaName
-          ? [
-              ...existingSchema.functions.filter(
-                (f: any) => !sameSchema(f.schema, targetSchemaName)
-              ),
-              ...newFunctions
-            ]
-          : newFunctions;
 
       const nextSchema: SchemaInfo = {
         tables: mergedTables,
