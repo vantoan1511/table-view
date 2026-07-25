@@ -557,8 +557,26 @@ impl DatabaseDriver for OracleDriver {
         let pool = self.pool()?;
         let (owner, table) = self.split_table_name(table_name);
         let cols: Vec<String> = data.keys().map(|k| Self::quote(k)).collect();
-        let placeholders: Vec<String> = (1..=data.len()).map(|i| format!(":{}", i)).collect();
-        let values: Vec<JsonValue> = data.values().cloned().collect();
+        let mut placeholders = Vec::new();
+        let mut values = Vec::new();
+        let mut param_idx = 1;
+
+        for (key, val) in data {
+            let col_name = key.to_uppercase();
+            // Wrap LOBs to avoid ORA-00000 errors with temporary locators
+            if ["CLOB", "NCLOB", "BLOB"].iter().any(|&t| col_name.contains(t)) {
+                let func = match col_name.as_str() {
+                    _ if col_name.contains("BLOB") => "TO_BLOB",
+                    _ if col_name.contains("NCLOB") => "TO_NCLOB",
+                    _ => "TO_CLOB",
+                };
+                placeholders.push(format!("{}(:{})", func, param_idx));
+            } else {
+                placeholders.push(format!(":{}", param_idx));
+            }
+            values.push(val.clone());
+            param_idx += 1;
+        }
 
         let sql = format!(
             "INSERT INTO {} ({}) VALUES ({})",
