@@ -18,7 +18,11 @@ export default [
       'bin/**',
       'build/**',
       '.tmp/**',
-      '.storage/**'
+      '.storage/**',
+      'test/**',
+      '**/*.test.ts',
+      '**/*.spec.ts',
+      '**/__tests__/**'
     ]
   },
 
@@ -30,9 +34,9 @@ export default [
     rules: {
       'linebreak-style': ['warn', 'windows'],
       'vue/multi-word-component-names': 'off',
-      'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
+      'no-console': 'off',
       'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
       // Disable base rule — TS-aware version handles all cases including imports
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [

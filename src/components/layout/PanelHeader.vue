@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import type { Panel } from '@/types';
 
+import { useLayoutStore } from '@/stores/layout';
+
 import { Minus } from 'lucide-vue-next';
 
-defineProps<{
+const props = defineProps<{
   panel: Panel;
 }>();
 
 const emit = defineEmits<{
   (e: 'minimize'): void;
 }>();
+
+const layoutStore = useLayoutStore();
 </script>
 
 <template>
@@ -28,7 +32,7 @@ const emit = defineEmits<{
               ? 'border-primary text-primary bg-primary/5'
               : 'text-text-secondary hover:text-text-primary hover:bg-hover/50 border-transparent'
           "
-          @click="panel.activeTabId = tab.id"
+          @click="layoutStore.setActiveTab(props.panel.id, tab.id)"
         >
           {{ tab.title }}
         </button>

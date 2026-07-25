@@ -35,6 +35,57 @@ const tabs = [
   { id: 'about', name: 'About', icon: Info }
 ];
 
+const shortcutCategories = [
+  {
+    title: 'Global & System',
+    shortcuts: [
+      { name: 'Focus Search', desc: 'Quickly focus search input', keys: ['Ctrl / Cmd', 'K'] },
+      {
+        name: 'New Connection',
+        desc: 'Open new database connection modal',
+        keys: ['Ctrl / Cmd', 'N']
+      },
+      { name: 'Close Tab', desc: 'Close current active tab', keys: ['Ctrl / Cmd', 'W'] }
+    ]
+  },
+  {
+    title: 'Navigation & Views',
+    shortcuts: [
+      {
+        name: 'Toggle Sidebar',
+        desc: 'Show or hide navigation sidebar',
+        keys: ['Ctrl / Cmd', 'B']
+      },
+      {
+        name: 'Toggle Console',
+        desc: 'Show or hide bottom console panel',
+        keys: ['Ctrl / Cmd', 'J']
+      },
+      {
+        name: 'Toggle Inspector',
+        desc: 'Show or hide right inspector panel',
+        keys: ['Ctrl / Cmd', 'I']
+      }
+    ]
+  },
+  {
+    title: 'Data & Queries',
+    shortcuts: [
+      { name: 'Refresh Data', desc: 'Reload table data or schema', keys: ['Ctrl / Cmd', 'R'] },
+      {
+        name: 'Refresh Schema / Table',
+        desc: 'Alternative shortcut to reload active tab data',
+        keys: ['F5']
+      },
+      {
+        name: 'Copy Cell',
+        desc: 'Copy selected cell contents to clipboard',
+        keys: ['Ctrl / Cmd', 'C']
+      }
+    ]
+  }
+];
+
 const settings = reactive({
   theme: 'dark' as 'light' | 'dark' | 'system',
   language: 'en' as 'en' | 'vi',
@@ -352,6 +403,50 @@ const savePreferences = async () => {
                     </div>
                     <ToggleSwitch v-model="settings.experimentalFeatures" />
                   </div>
+                </div>
+              </div>
+
+              <!-- Shortcuts Tab -->
+              <div v-else-if="activeTab === 'shortcuts'" class="max-w-2xl space-y-6">
+                <div>
+                  <h3 class="text-text-primary text-sm font-medium">Keyboard Shortcuts</h3>
+                  <p class="text-text-tertiary mt-0.5 text-[11px]">
+                    Overview of available keyboard shortcuts for faster navigation and actions.
+                  </p>
+                </div>
+
+                <div class="bg-border/50 h-px" />
+
+                <div
+                  v-for="(category, index) in shortcutCategories"
+                  :key="category.title"
+                  class="space-y-4"
+                >
+                  <h4 class="text-text-tertiary text-[10px] font-bold tracking-wider uppercase">
+                    {{ category.title }}
+                  </h4>
+
+                  <div
+                    v-for="shortcut in category.shortcuts"
+                    :key="shortcut.name"
+                    class="flex items-center justify-between py-1"
+                  >
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-text-primary text-xs font-medium">{{ shortcut.name }}</span>
+                      <span class="text-text-tertiary text-[11px]">{{ shortcut.desc }}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <template v-for="(key, keyIndex) in shortcut.keys" :key="keyIndex">
+                        <kbd
+                          class="bg-surface border-border text-text-primary flex h-5 min-w-5 items-center justify-center rounded border px-1.5 font-mono text-[10px] shadow-xs"
+                        >
+                          {{ key }}
+                        </kbd>
+                      </template>
+                    </div>
+                  </div>
+
+                  <div v-if="index < shortcutCategories.length - 1" class="bg-border/50 h-px" />
                 </div>
               </div>
 

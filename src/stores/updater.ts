@@ -336,7 +336,10 @@ $res.Close()
           } else if (evt.detail.action === 'stdErr') {
             processOutput += String(evt.detail.data ?? '');
           } else if (evt.detail.action === 'exit') {
-            Neutralino.events.off('spawnedProcess', handler as unknown as (evt: CustomEvent) => void);
+            Neutralino.events.off(
+              'spawnedProcess',
+              handler as unknown as (evt: CustomEvent) => void
+            );
             if (!isResolved) {
               isResolved = true;
               if (evt.detail.data === 0) {

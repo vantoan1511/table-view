@@ -132,6 +132,13 @@ export const useLayoutStore = defineStore('layout', {
     async toggleSidebar() {
       this.isSidebarVisible = !this.isSidebarVisible;
       await this.save();
+    },
+
+    setActiveTab(id: string, tabId: string) {
+      const panel = this.panels[id];
+      if (panel) {
+        panel.activeTabId = tabId;
+      }
     }
   }
 });
