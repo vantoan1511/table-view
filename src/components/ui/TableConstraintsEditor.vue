@@ -3,7 +3,7 @@ import DropdownMenu from './DropdownMenu.vue';
 
 import { DbType } from '@/types';
 
-import { Check, Edit2, Plus, Trash2 } from 'lucide-vue-next';
+import { Check, Edit2, Plus, Trash2 } from '@lucide/vue';
 import { computed } from 'vue';
 
 export interface ConstraintDef {

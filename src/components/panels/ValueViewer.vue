@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGridStore } from '@/stores/grid';
 import { formatGridCellValue } from '@/stores/grid/valueConversion';
-import { Check, Clipboard, Edit3, FileText, X } from 'lucide-vue-next';
+import { Check, Clipboard, Edit3, FileText, X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const gridStore = useGridStore();

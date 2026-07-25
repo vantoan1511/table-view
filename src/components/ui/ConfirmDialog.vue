@@ -2,7 +2,7 @@
 import Dialog from 'primevue/dialog';
 import Checkbox from 'primevue/checkbox';
 import Button from 'primevue/button';
-import { AlertTriangle, Info, Trash2 } from 'lucide-vue-next';
+import { AlertTriangle, Info, Trash2 } from '@lucide/vue';
 
 interface Props {
   title: string;

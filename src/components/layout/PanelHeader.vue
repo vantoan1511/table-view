@@ -3,7 +3,7 @@ import type { Panel } from '@/types';
 
 import { useLayoutStore } from '@/stores/layout';
 
-import { Minus } from 'lucide-vue-next';
+import { Minus } from '@lucide/vue';
 
 const props = defineProps<{
   panel: Panel;

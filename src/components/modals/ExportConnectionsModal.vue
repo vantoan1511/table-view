@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useConnectionsStore } from '@/stores/connections';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const connectionsStore = useConnectionsStore();

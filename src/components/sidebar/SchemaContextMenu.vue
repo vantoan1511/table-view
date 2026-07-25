@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ContextMenu from '../ui/ContextMenu.vue';
 
-import { LayoutGrid, RefreshCw, Trash2, Layers } from 'lucide-vue-next';
+import { LayoutGrid, RefreshCw, Trash2, Layers } from '@lucide/vue';
 
 defineProps<{
   show: boolean;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useUpdaterStore } from '@/stores/updater';
 
-import { Download, FileText, Info, Loader2, RefreshCw, X } from 'lucide-vue-next';
+import { Download, FileText, Info, Loader2, RefreshCw, X } from '@lucide/vue';
 import { computed, onMounted } from 'vue';
 
 const updaterStore = useUpdaterStore();

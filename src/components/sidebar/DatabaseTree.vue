@@ -13,7 +13,7 @@ import { useTabsStore } from '@/stores/tabs';
 
 import type { Connection } from '@/types';
 
-import { ChevronsDownUpIcon, Download, Layers, LocateFixed, Upload } from 'lucide-vue-next';
+import { ChevronsDownUpIcon, Download, Layers, LocateFixed, Upload } from '@lucide/vue';
 import { nextTick, provide, ref } from 'vue';
 
 const connectionsStore = useConnectionsStore();

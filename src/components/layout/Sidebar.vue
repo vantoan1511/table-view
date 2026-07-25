@@ -2,7 +2,7 @@
 import DatabaseTree from '@/components/sidebar/DatabaseTree.vue';
 import { useConnectionsStore } from '@/stores/connections';
 import { useSchemaStore } from '@/stores/schema';
-import { Plus, Search } from 'lucide-vue-next';
+import { Plus, Search } from '@lucide/vue';
 
 const connectionsStore = useConnectionsStore();
 const schemaStore = useSchemaStore();

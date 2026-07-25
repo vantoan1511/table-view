@@ -5,14 +5,7 @@ import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.v
 import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
 
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Plus,
-  Trash2
-} from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, Trash2 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const gridStore = useGridStore();

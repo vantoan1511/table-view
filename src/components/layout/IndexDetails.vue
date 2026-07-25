@@ -2,7 +2,7 @@
 import { useSchemaStore } from '@/stores/schema';
 import type { Tab, DbIndex } from '@/types';
 import { computed } from 'vue';
-import { Key } from 'lucide-vue-next';
+import { Key } from '@lucide/vue';
 
 const props = defineProps<{
   tab: Tab;

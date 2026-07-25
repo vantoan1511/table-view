@@ -6,7 +6,7 @@ import TableColumnsEditor, { type ColumnDef } from './TableColumnsEditor.vue';
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore, type TableColumn } from '@/stores/grid';
 import { DbType } from '@/types';
-import { AlertCircle } from 'lucide-vue-next';
+import { AlertCircle } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{

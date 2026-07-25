@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { GridColumn } from '@/types';
 
-import { Check, X } from 'lucide-vue-next';
+import { Check, X } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 
 import { formatGridCellValue } from '@/stores/grid/valueConversion';

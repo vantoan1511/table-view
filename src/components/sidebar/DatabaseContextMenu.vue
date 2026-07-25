@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ContextMenu from '../ui/ContextMenu.vue';
 
-import { Database, RefreshCw, Trash2 } from 'lucide-vue-next';
+import { Database, RefreshCw, Trash2 } from '@lucide/vue';
 
 defineProps<{
   show: boolean;

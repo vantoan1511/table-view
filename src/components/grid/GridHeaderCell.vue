@@ -1,6 +1,6 @@
 // src/components/grid/GridHeaderCell.vue
 <script setup lang="ts">
-import { ArrowDown, ArrowUp } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp } from '@lucide/vue';
 
 import type { GridColumn } from '@/types';
 

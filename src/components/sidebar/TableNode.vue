@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
-import { ChevronRight, Key, Table2 } from 'lucide-vue-next';
+import { ChevronRight, Key, Table2 } from '@lucide/vue';
 import { computed, inject, ref } from 'vue';
 
 const props = defineProps<{

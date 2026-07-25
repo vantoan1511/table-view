@@ -58,7 +58,7 @@ export default defineConfig({
             return 'vendor-primevue';
           }
           // Lucide icon library
-          if (id.includes('node_modules/lucide-vue-next')) {
+          if (id.includes('node_modules/@lucide/vue')) {
             return 'vendor-lucide';
           }
           // Neutralino desktop bindings

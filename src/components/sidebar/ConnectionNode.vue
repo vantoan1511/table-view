@@ -5,7 +5,7 @@ import SchemaNode from './SchemaNode.vue';
 
 import { useConnectionsStore } from '@/stores/connections';
 import { useSchemaStore } from '@/stores/schema';
-import { ChevronRight, Loader2, MoreVertical } from 'lucide-vue-next';
+import { ChevronRight, Loader2, MoreVertical } from '@lucide/vue';
 import { computed } from 'vue';
 
 import type { Connection } from '@/types';

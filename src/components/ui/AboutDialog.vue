@@ -4,7 +4,8 @@ import Button from 'primevue/button';
 import { useAboutStore } from '@/stores/about';
 import { useUpdaterStore } from '@/stores/updater';
 import * as Neutralino from '@neutralinojs/lib';
-import { Coffee, Github, Globe, Heart, X } from 'lucide-vue-next';
+import { Coffee, Globe, Heart, X } from '@lucide/vue';
+import { GitHubIcon } from 'vue3-simple-icons';
 import { onMounted, ref } from 'vue';
 
 const aboutStore = useAboutStore();
@@ -108,7 +109,7 @@ const openLink = (url: string) => {
             severity="secondary"
             @click="openLink('https://github.com/vantoan1511/table-view')"
           >
-            <Github class="h-4 w-4" />
+            <GitHubIcon class="h-4 w-4" />
             GitHub
           </Button>
           <Button

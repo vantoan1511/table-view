@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useSchemaStore } from '@/stores/schema';
 import { useTabsStore } from '@/stores/tabs';
-import { ChevronRight, Eye, FunctionSquare, Table2 } from 'lucide-vue-next';
+import { ChevronRight, Eye, FunctionSquare, Table2 } from '@lucide/vue';
 import { computed, inject } from 'vue';
 import TableNode from './TableNode.vue';
 

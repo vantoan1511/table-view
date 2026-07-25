@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PenTool, RefreshCw, Trash2 } from 'lucide-vue-next';
+import { PenTool, RefreshCw, Trash2 } from '@lucide/vue';
 import ContextMenu from '../ui/ContextMenu.vue';
 
 defineProps<{

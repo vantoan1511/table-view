@@ -11,7 +11,7 @@ import {
   Table,
   ZoomIn,
   ZoomOut
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import { useDiagramStore } from '@/stores/diagram';

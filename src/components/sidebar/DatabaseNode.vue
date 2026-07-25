@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useSchemaStore } from '@/stores/schema';
-import { AlertCircle, ChevronRight, Database, Loader2, Lock } from 'lucide-vue-next';
+import { AlertCircle, ChevronRight, Database, DatabaseCheck, Loader2, Lock } from '@lucide/vue';
 import { computed, inject } from 'vue';
 import SchemaNode from './SchemaNode.vue';
 
@@ -55,12 +55,8 @@ const schemas = computed(() => dbSchema.value?.schemas ?? []);
       <span v-else-if="error" class="inline-flex shrink-0" v-tooltip.right="error">
         <AlertCircle :size="13" class="text-danger" />
       </span>
-      <Database
-        v-else
-        :size="13"
-        class="shrink-0"
-        :class="isActive ? 'text-primary' : 'text-text-secondary'"
-      />
+      <DatabaseCheck v-else-if="isActive" :size="13" class="text-primary shrink-0" />
+      <Database v-else :size="13" class="text-text-secondary shrink-0" />
 
       <span
         class="flex-1 truncate text-[12px]"

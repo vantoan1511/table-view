@@ -5,7 +5,7 @@ import Button from 'primevue/button';
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { DbType } from '@/types';
-import { AlertCircle, Info } from 'lucide-vue-next';
+import { AlertCircle, Info } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{

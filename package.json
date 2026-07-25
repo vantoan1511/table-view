@@ -26,11 +26,11 @@
     "@codemirror/lang-sql": "^6.10.0",
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.41.1",
+    "@lucide/vue": "^1.22.0",
     "@neutralinojs/lib": "^6.7.0",
     "@primeuix/themes": "^2.0.3",
     "@tailwindcss/vite": "^4.2.4",
     "codemirror": "^6.0.2",
-    "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.5",
@@ -38,7 +38,8 @@
     "tailwindcss": "^4.2.4",
     "tailwindcss-primeui": "^0.6.1",
     "vue": "^3.5.31",
-    "vue-router": "^5.0.4"
+    "vue-router": "^5.0.4",
+    "vue3-simple-icons": "^16.10.0"
   },
   "devDependencies": {
     "@primevue/auto-import-resolver": "^4.5.5",

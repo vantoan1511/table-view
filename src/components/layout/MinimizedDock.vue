@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Docker from '@/components/ui/Docker.vue';
 import { useTabsStore } from '@/stores/tabs';
-import { LayoutGrid, X } from 'lucide-vue-next';
+import { LayoutGrid, X } from '@lucide/vue';
 
 const tabsStore = useTabsStore();
 

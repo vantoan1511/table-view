@@ -4,7 +4,7 @@ import { useTabsStore } from '@/stores/tabs';
 
 import type { Tab } from '@/types';
 
-import { LayoutGrid, Plus, Trash2, X } from 'lucide-vue-next';
+import { LayoutGrid, Plus, Trash2, X } from '@lucide/vue';
 import { computed } from 'vue';
 
 const tabsStore = useTabsStore();

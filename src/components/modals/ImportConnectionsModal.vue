@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useConnectionsStore } from '@/stores/connections';
 import type { Connection } from '@/types';
-import { AlertCircle, X } from 'lucide-vue-next';
+import { AlertCircle, X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const connectionsStore = useConnectionsStore();

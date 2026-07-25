@@ -11,7 +11,7 @@ import { useErrorStore } from '@/stores/error';
 import { ConnectionColor, DbType, OracleConnectType, OracleRole, type Connection } from '@/types';
 
 import * as Neutralino from '@neutralinojs/lib';
-import { CircleHelp, Download, Eye, EyeOff, Loader2, Send, X } from 'lucide-vue-next';
+import { CircleHelp, Download, Eye, EyeOff, Loader2, Send, X } from '@lucide/vue';
 import { reactive, ref, watch } from 'vue';
 
 import { DB_TYPES } from '@/lib/dbTypes';

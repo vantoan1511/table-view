@@ -3,7 +3,7 @@ import { useGridStore } from '@/stores/grid';
 import { useDiagramStore } from '@/stores/diagram';
 import { useTabsStore } from '@/stores/tabs';
 import { computed, watch } from 'vue';
-import { ArrowRight, Link } from 'lucide-vue-next';
+import { ArrowRight, Link } from '@lucide/vue';
 
 const gridStore = useGridStore();
 const diagramStore = useDiagramStore();

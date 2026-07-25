@@ -2,7 +2,7 @@
 import { useConnectionsStore } from '@/stores/connections';
 import { useTabsStore } from '@/stores/tabs';
 import { TabType, type Tab } from '@/types';
-import { Code2, LayoutGrid, Minus, Plus, Trash2, X } from 'lucide-vue-next';
+import { Code2, LayoutGrid, Minus, Plus, Trash2, X } from '@lucide/vue';
 import { onMounted, ref } from 'vue';
 
 const tabsStore = useTabsStore();

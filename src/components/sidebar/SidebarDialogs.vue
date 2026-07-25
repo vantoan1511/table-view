@@ -9,7 +9,7 @@ import { useGridStore } from '@/stores/grid';
 import { useSchemaStore } from '@/stores/schema';
 import { useToastStore } from '@/stores/toast';
 
-import { AlertTriangle, Trash2, X } from 'lucide-vue-next';
+import { AlertTriangle, Trash2, X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{

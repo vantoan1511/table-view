@@ -2,7 +2,7 @@
 import ObjectGroupNode from './ObjectGroupNode.vue';
 
 import { useSchemaStore } from '@/stores/schema';
-import { ChevronRight, Database } from 'lucide-vue-next';
+import { ChevronRight, TableProperties } from '@lucide/vue';
 import { computed, inject } from 'vue';
 
 const props = defineProps<{
@@ -51,7 +51,7 @@ const toggle = async () => {
         class="text-text-tertiary shrink-0 transition-transform duration-150"
         :class="isExpanded ? 'rotate-90' : ''"
       />
-      <Database :size="13" class="text-text-secondary shrink-0" />
+      <TableProperties :size="13" class="shrink-0" />
       <span class="text-text-secondary flex-1 truncate text-[12px] font-medium">{{
         schemaName
       }}</span>

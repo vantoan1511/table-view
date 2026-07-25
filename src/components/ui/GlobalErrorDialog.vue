@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useErrorStore } from '@/stores/error';
-import { AlertCircle, ChevronDown, ChevronRight, X } from 'lucide-vue-next';
+import { AlertCircle, ChevronDown, ChevronRight, X } from '@lucide/vue';
 import { ref } from 'vue';
 
 const errorStore = useErrorStore();

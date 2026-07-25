@@ -8,16 +8,7 @@ import { useToastStore } from '@/stores/toast';
 
 import type { HistoryEntry } from '@/types';
 
-import {
-  Code2,
-  Copy,
-  Database,
-  ExternalLink,
-  History,
-  Play,
-  Search,
-  Trash2
-} from 'lucide-vue-next';
+import { Code2, Copy, Database, ExternalLink, History, Play, Search, Trash2 } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 
 const historyStore = useHistoryStore();

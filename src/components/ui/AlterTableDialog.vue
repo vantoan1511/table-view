@@ -6,7 +6,7 @@ import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
 import { DbType } from '@/types';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps<{
