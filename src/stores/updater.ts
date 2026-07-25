@@ -63,9 +63,6 @@ export const useUpdaterStore = defineStore('updater', () => {
           await Neutralino.filesystem.remove?.('updater.bat')?.catch(() => {});
           await Neutralino.filesystem.remove?.('resources.neu.new')?.catch(() => {});
           await Neutralino.filesystem.remove?.('bin\\db-bridge.exe.new')?.catch(() => {});
-          await Neutralino.filesystem
-            .remove?.('extensions\\db-bridge\\db-bridge.exe.new')
-            ?.catch(() => {});
         }
       } catch (err) {
         console.warn('Cleanup failed:', err);
@@ -176,6 +173,11 @@ export const useUpdaterStore = defineStore('updater', () => {
 
       // 2. Download Extension (.exe)
       updateStatus.value = 'Downloading database engine...';
+      try {
+        await (Neutralino.filesystem as any).createDirectory('bin');
+      } catch {
+        // Directory already exists — not an error
+      }
       const extPath = 'bin\\db-bridge.exe.new';
       await downloadFileNative(manifest.data.extensionUrl, extPath);
 
