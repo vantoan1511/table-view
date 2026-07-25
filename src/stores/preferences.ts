@@ -19,6 +19,7 @@ export interface Preferences {
 
 export const usePreferencesStore = defineStore('preferences', () => {
   const isOpen = ref(false);
+  const activeTab = ref('general');
 
   const settings = reactive<Preferences>({
     theme: 'dark',
@@ -89,11 +90,16 @@ export const usePreferencesStore = defineStore('preferences', () => {
     isOpen.value = val !== undefined ? val : !isOpen.value;
   };
 
-  const open = () => toggle(true);
+  const open = (tab: string = 'general') => {
+    activeTab.value = tab;
+    isOpen.value = true;
+  };
+
   const close = () => toggle(false);
 
   return {
     isOpen,
+    activeTab,
     settings,
     init,
     save,

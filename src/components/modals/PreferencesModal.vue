@@ -39,6 +39,12 @@ const shortcutCategories = [
   {
     title: 'Global & System',
     shortcuts: [
+      { name: 'Preferences', desc: 'Open preferences modal', keys: ['Ctrl / Cmd', ','] },
+      {
+        name: 'Keyboard Shortcuts',
+        desc: 'Open keyboard shortcuts reference',
+        keys: ['Ctrl / Cmd', '/']
+      },
       { name: 'Focus Search', desc: 'Quickly focus search input', keys: ['Ctrl / Cmd', 'K'] },
       {
         name: 'New Connection',
@@ -119,6 +125,7 @@ watch(
   (isOpen) => {
     if (isOpen) {
       syncLocalSettings();
+      activeTab.value = preferencesStore.activeTab || 'general';
     }
   },
   { immediate: true }
