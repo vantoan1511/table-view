@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-07-25
+
+### Fixed
+
+- **CI/CD**: Fixed `komac` not recognized error in WinGet releaser step by pre-installing with `--force` and removing conflicting `cache-all-crates` from Rust cache.
+
 ## [0.6.3] - 2026-07-25
 
 ### Fixed
+
 
 - **CI/CD**: Fixed `komac` CLI path resolution in WinGet community release step.
 
