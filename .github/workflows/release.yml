@@ -80,6 +80,11 @@ jobs:
           body_path: release_notes.md
           generate_release_notes: false
 
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install komac
         shell: pwsh
         env:
