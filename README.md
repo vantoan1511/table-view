@@ -1,6 +1,6 @@
 # Table View
 
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/vantoan1511/table-view/releases)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/vantoan1511/table-view/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![NeutralinoJS](https://img.shields.io/badge/Runtime-NeutralinoJS-orange.svg)](https://neutralino.js.org/)
 [![Vue](https://img.shields.io/badge/Frontend-Vue%203-green.svg)](https://vuejs.org/)

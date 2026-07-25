@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-25
+
+### Added
+
+- **Shortcuts & Preferences**: Added customizable keybindings tab in Preferences with validation dialog, keybinding customization, and individual shortcut reset to default.
+- **Shortcuts & Navigation**: Added default keybindings for opening Preferences (`Ctrl+,`) and Shortcuts tab.
+- **App Updater**: Added download progress tracking for app updates.
+- **UI & Reactivity**: Added connection UI loading reactivity and configurable connection timeout.
+
+### Refactored
+
+- **UI Components**: Migrated dialogs (`CreateDatabaseDialog`, `CreateTableDialog`, `InputDialog`, `AboutDialog`), controls (`ToggleSwitch`, `Skeleton`, `ConfirmDialog`), and `ToastContainer` to PrimeVue 4 components.
+- **Preferences**: Improved modal accessibility, styling, and platform-specific key formatting (`Cmd` vs `Ctrl`).
+- **SQL Editor**: Refactored SQL token checks and eliminated duplicate merge logic.
+
+### Fixed
+
+- **App Updater**: Fixed update downloading by ensuring target directory exists prior to download, updated extension binary path, and fixed duplicate toast notifications during update checks.
+- **Oracle Driver**: Resolved Oracle connection hanging during schema retrieval, and fixed table creation and cross-schema table loading issues.
+- **TypeScript & Build**: Resolved explicit `any` warning by introducing `SpawnedProcessEvent` interface.
+
 ## [0.5.0] - 2026-07-23
 
 ### Changed
