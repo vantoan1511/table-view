@@ -12,7 +12,8 @@ vi.mock('@neutralinojs/lib', () => ({
   },
   filesystem: {
     remove: vi.fn(),
-    writeFile: vi.fn()
+    writeFile: vi.fn(),
+    createDirectory: vi.fn()
   },
   updater: {
     checkForUpdates: vi.fn()
@@ -226,6 +227,101 @@ describe('Updater Store', () => {
       'updater.bat',
       expect.stringContaining('custom-table-view.exe')
     );
+  });
+
+  it('pre-creates bin directory before downloading the extension binary', async () => {
+    // @ts-ignore
+    window.NL_PID = 9999;
+
+    vi.mocked(Neutralino.os.execCommand).mockResolvedValue({ exitCode: 0, stdOut: '', stdErr: '' });
+
+    const eventHandlers: Record<string, ((evt: any) => void)[]> = {};
+    vi.mocked(Neutralino.events.on).mockImplementation((event: string, handler: any) => {
+      if (!eventHandlers[event]) eventHandlers[event] = [];
+      eventHandlers[event].push(handler);
+      return Promise.resolve() as any;
+    });
+    vi.mocked(Neutralino.events.off).mockImplementation((event: string, handler: any) => {
+      if (eventHandlers[event]) {
+        eventHandlers[event] = eventHandlers[event].filter((h) => h !== handler);
+      }
+      return Promise.resolve() as any;
+    });
+
+    let procIdCounter = 1;
+    vi.mocked(Neutralino.os.spawnProcess).mockImplementation(async () => {
+      const id = procIdCounter++;
+      setTimeout(() => {
+        const handlers = eventHandlers['spawnedProcess'] || [];
+        handlers.slice().forEach((h) => {
+          h({ detail: { id, action: 'stdOut', data: 'PROGRESS:100\n' } });
+          h({ detail: { id, action: 'exit', data: 0 } });
+        });
+      }, 10);
+      return { id } as any;
+    });
+
+    const store = useUpdaterStore();
+    store.updateAvailable = {
+      applicationId: 'table-view',
+      version: '0.2.11',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: { extensionUrl: 'https://example.com/db-bridge.exe' }
+    };
+
+    await store.installUpdates();
+
+    expect((Neutralino.filesystem as any).createDirectory).toHaveBeenCalledWith('bin');
+  });
+
+  it('continues install even when createDirectory throws (directory already exists)', async () => {
+    // @ts-ignore
+    window.NL_PID = 9999;
+
+    vi.mocked(Neutralino.os.execCommand).mockResolvedValue({ exitCode: 0, stdOut: '', stdErr: '' });
+    vi.mocked((Neutralino.filesystem as any).createDirectory).mockRejectedValue(
+      new Error('already exists')
+    );
+
+    const eventHandlers: Record<string, ((evt: any) => void)[]> = {};
+    vi.mocked(Neutralino.events.on).mockImplementation((event: string, handler: any) => {
+      if (!eventHandlers[event]) eventHandlers[event] = [];
+      eventHandlers[event].push(handler);
+      return Promise.resolve() as any;
+    });
+    vi.mocked(Neutralino.events.off).mockImplementation((event: string, handler: any) => {
+      if (eventHandlers[event]) {
+        eventHandlers[event] = eventHandlers[event].filter((h) => h !== handler);
+      }
+      return Promise.resolve() as any;
+    });
+
+    let procIdCounter = 1;
+    vi.mocked(Neutralino.os.spawnProcess).mockImplementation(async () => {
+      const id = procIdCounter++;
+      setTimeout(() => {
+        const handlers = eventHandlers['spawnedProcess'] || [];
+        handlers.slice().forEach((h) => {
+          h({ detail: { id, action: 'stdOut', data: 'PROGRESS:100\n' } });
+          h({ detail: { id, action: 'exit', data: 0 } });
+        });
+      }, 10);
+      return { id } as any;
+    });
+
+    const store = useUpdaterStore();
+    store.updateAvailable = {
+      applicationId: 'table-view',
+      version: '0.2.11',
+      resourcesURL: 'https://example.com/resources.neu',
+      data: { extensionUrl: 'https://example.com/db-bridge.exe' }
+    };
+
+    await store.installUpdates();
+
+    // Install completes despite createDirectory throwing
+    expect(Neutralino.os.spawnProcess).toHaveBeenCalledTimes(2);
+    expect(store.error).toBeNull();
   });
 
   it('triggers a toast notification in background checks (manual = false)', async () => {
