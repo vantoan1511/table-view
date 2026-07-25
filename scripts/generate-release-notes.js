@@ -91,18 +91,19 @@ export function formatReleaseNotes({ features, bugFixes, improvements }) {
 
 export function getGitCommitLines() {
   try {
-    // Find the previous tag
+    // Get tags sorted by version descending
+    const tags = execSync('git tag --sort=-v:refname', { encoding: 'utf8' })
+      .split('\n')
+      .map((t) => t.trim())
+      .filter(Boolean);
+
     let range = '';
-    try {
-      const prevTag = execSync('git describe --tags --abbrev=0 HEAD^ 2>/dev/null', {
-        encoding: 'utf8'
-      }).trim();
-      if (prevTag) {
-        range = `${prevTag}..HEAD`;
-      }
-    } catch {
-      // No previous tag found, use full log
-      range = 'HEAD';
+    if (tags.length >= 2) {
+      const currentTag = tags[0];
+      const previousTag = tags[1];
+      range = `${previousTag}..${currentTag}`;
+    } else if (tags.length === 1) {
+      range = tags[0];
     }
 
     const logCmd = range ? `git log ${range} --oneline` : 'git log --oneline';
