@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-08-05
+
+### Added
+
+- **CI/CD**: Generated SHA-256 checksums (`SHA256SUMS.txt`) for release binaries in automated release workflow.
+- **Build & Packaging**: Added optional binary code signing hook support and embedded Inno Setup executable version information.
+
+### Fixed
+
+- **Rust Extension**: Added `winres` build script to link PE resources and resolved Thin LTO compiler panic during release builds.
+
 ## [0.6.5] - 2026-07-25
 
 ### Fixed
