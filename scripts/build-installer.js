@@ -1,4 +1,5 @@
-import { copyFileSync, readFileSync, writeFileSync } from 'fs';
+import { execSync } from 'child_process';
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'fs';
 import innosetupCompiler from 'innosetup-compiler';
 import { join } from 'path';
 
@@ -25,6 +26,25 @@ const iconDest = join('dist', 'table-view', 'icon.ico');
 console.log(`Copying icon from ${iconSrc} to ${iconDest}...`);
 copyFileSync(iconSrc, iconDest);
 
+// Optional Binary Signing Hook
+const signCmd = process.env.SIGN_CMD || process.env.SIGN_TOOL_CMD;
+if (signCmd) {
+  const binariesToSign = [
+    join('dist', 'table-view', 'table-view-win_x64.exe'),
+    join('dist', 'table-view', 'bin', 'db-bridge.exe')
+  ];
+  for (const bin of binariesToSign) {
+    if (existsSync(bin)) {
+      console.log(`Signing binary ${bin}...`);
+      try {
+        execSync(`${signCmd} "${bin}"`, { stdio: 'inherit' });
+      } catch (err) {
+        console.warn(`Warning: Failed to sign ${bin}: ${err.message}`);
+      }
+    }
+  }
+}
+
 // Generate ISS script
 const issContent = `
 [Setup]
@@ -43,10 +63,15 @@ DisableDirPage=no
 PrivilegesRequired=lowest
 OutputDir=Output
 OutputBaseFilename=setup
-Compression=lzma
+Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=dist\\table-view\\icon.ico
+VersionInfoDescription=${appName} Setup
+VersionInfoProductName=${appName}
+VersionInfoCompany=${config.author || 'Toan Nguyen'}
+VersionInfoCopyright=${config.copyright || 'Copyright © Table View 2026'}
+VersionInfoVersion=${appVersion}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

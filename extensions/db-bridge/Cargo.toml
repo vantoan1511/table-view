@@ -39,9 +39,12 @@ rustls = { version = "0.23", features = ["ring"] }
 [patch.crates-io]
 oracle-rs = { path = "vendor/oracle-rs" }
 
+[build-dependencies]
+winres = "0.1"
+
 [profile.release]
-opt-level = 3          # speed up compilation (3 is faster than 'z')
-lto = "thin"           # faster than full LTO, still good optimization
-codegen-units = 16     # parallelize compilation for faster builds
-strip = true           # keep symbols stripped for reasonable binary size
+opt-level = 3          # speed up compilation
+lto = false            # avoid thin LTO compiler panic when linking PE resources
+codegen-units = 1      # single codegen unit for clean release build
+strip = false          # retain symbol table for AV trust and debugging
 panic = "abort"        # abort on panic (smaller binary)

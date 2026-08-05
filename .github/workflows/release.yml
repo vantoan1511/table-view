@@ -69,6 +69,13 @@ jobs:
           echo "Generated release notes:"
           cat release_notes.md
 
+      - name: Generate SHA-256 Checksums
+        shell: bash
+        run: |
+          echo "Generating SHA-256 checksums for release binaries..."
+          sha256sum Output/setup.exe bin/db-bridge.exe dist/table-view/resources.neu > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -77,6 +84,7 @@ jobs:
             dist/table-view/resources.neu
             bin/db-bridge.exe
             Output/setup.exe
+            SHA256SUMS.txt
           body_path: release_notes.md
           generate_release_notes: false
 
