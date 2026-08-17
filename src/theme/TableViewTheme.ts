@@ -57,5 +57,59 @@ export const TableViewTheme = definePreset(Aura, {
         }
       }
     }
+  },
+  components: {
+    select: {
+      colorScheme: {
+        light: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+            hoverBorderColor: 'var(--color-border-strong)',
+            focusBorderColor: 'var(--color-primary)'
+          },
+          dropdown: {
+            color: 'var(--color-text-tertiary)'
+          },
+          option: {
+            focusBackground: 'var(--color-hover)',
+            selectedBackground: 'var(--color-primary-light)',
+            selectedColor: 'var(--color-primary)'
+          }
+        },
+        dark: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+            hoverBorderColor: 'var(--color-border-strong)',
+            focusBorderColor: 'var(--color-primary)'
+          },
+          dropdown: {
+            color: 'var(--color-text-tertiary)'
+          },
+          option: {
+            focusBackground: 'var(--color-hover)',
+            selectedBackground: 'var(--color-primary-light)',
+            selectedColor: 'var(--color-primary)'
+          }
+        }
+      }
+    },
+    popover: {
+      colorScheme: {
+        light: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)'
+          }
+        },
+        dark: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)'
+          }
+        }
+      }
+    }
   }
 });
