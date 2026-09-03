@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.8] - 2026-09-03
+
+### Fixed
+
+- **Oracle**: Resolved buffer underflow on multi-packet server responses (#67).
+
+### Refactored
+
+- **Theme**: Migrated Select and Popover styling to PrimeVue theme preset (#66).
+
 ## [0.6.7] - 2026-08-05
 
 ### Fixed

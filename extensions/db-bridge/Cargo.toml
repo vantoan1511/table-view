@@ -1,6 +1,6 @@
 [package]
 name = "db-bridge"
-version = "0.6.6"
+version = "0.6.8"
 edition = "2021"
 
 [[bin]]
