@@ -15,6 +15,7 @@ use super::Connection;
 
 impl Connection {
     /// Parse query response to extract columns and rows
+    #[allow(dead_code)]
     pub(crate) fn parse_query_response(&self, payload: &[u8], caps: &Capabilities) -> Result<QueryResult> {
         self.parse_query_response_with_columns(payload, caps, &[])
     }
@@ -111,10 +112,22 @@ impl Connection {
                     }
                 }
 
+                // EndOfResponse (29)
+                x if x == MessageType::EndOfResponse as u8 => {
+                    end_of_response = true;
+                }
+
                 _ => {
                     break;
                 }
             }
+        }
+
+        if !end_of_response {
+            return Err(Error::BufferUnderflow {
+                needed: 1,
+                available: 0,
+            });
         }
 
         Ok(QueryResult {
@@ -138,10 +151,11 @@ impl Connection {
 
         let mut bit_vector: Option<Vec<u8>> = None;
         let mut previous_row_values: Option<Vec<Value>> = None;
+        let mut end_of_response = false;
 
         buf.skip(2)?;
 
-        while buf.remaining() >= 1 {
+        while !end_of_response && buf.remaining() >= 1 {
             let msg_type = buf.read_u8()?;
 
             match msg_type {
@@ -191,18 +205,25 @@ impl Connection {
                             message: error_msg,
                         });
                     }
-                    break;
+                    end_of_response = true;
                 }
                 x if x == MessageType::Status as u8 => {
-                    break;
+                    end_of_response = true;
                 }
                 x if x == MessageType::EndOfResponse as u8 => {
-                    break;
+                    end_of_response = true;
                 }
                 _ => {
                     break;
                 }
             }
+        }
+
+        if !end_of_response {
+            return Err(Error::BufferUnderflow {
+                needed: 1,
+                available: 0,
+            });
         }
 
         Ok(QueryResult {
@@ -899,6 +920,7 @@ impl Connection {
                             message: error_msg.unwrap_or_default(),
                         });
                     }
+                    end_of_response = true;
                 }
 
                 x if x == MessageType::Parameter as u8 => {
@@ -1240,3 +1262,121 @@ impl Connection {
         Ok(columns)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use crate::connection::inner::ConnectionInner;
+    use crate::constants::OracleType;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+
+    fn create_test_connection() -> Connection {
+        Connection {
+            inner: Arc::new(Mutex::new(ConnectionInner::new_with_cache(0))),
+            config: Config::default(),
+            closed: AtomicBool::new(false),
+            id: 1,
+        }
+    }
+
+    #[test]
+    fn test_parse_query_response_mid_row_underflow_and_packet_assembly() {
+        let conn = create_test_connection();
+        let caps = Capabilities::new();
+        let columns = vec![ColumnInfo::new("UUID", OracleType::Varchar)];
+
+        // Simulate Packet 1:
+        // - 2 bytes data flags: [0x00, 0x00]
+        // - Message type: 7 (RowData)
+        // - Column value length: 36 bytes (e.g. UUID), but packet ends after 7 bytes
+        let mut packet1_payload = vec![0x00, 0x00, 7, 36];
+        packet1_payload.extend_from_slice(b"1234567"); // Only 7 bytes available out of 36 needed!
+
+        // Parsing packet 1 alone must return BufferUnderflow with needed: 36, available: 7
+        let err = conn.parse_query_response_with_columns(&packet1_payload, &caps, &columns).unwrap_err();
+        match err {
+            Error::BufferUnderflow { needed, available } => {
+                assert_eq!(needed, 36);
+                assert_eq!(available, 7);
+            }
+            other => panic!("Expected BufferUnderflow, got {:?}", other),
+        }
+
+        // Simulate Packet 2:
+        // - 2 bytes data flags: [0x00, 0x00]
+        // - Remaining 29 bytes of the 36-byte UUID: "8-1234-1234-1234-123456789012"
+        // - Message type 29 (EndOfResponse)
+        let mut packet2_payload = vec![0x00, 0x00];
+        packet2_payload.extend_from_slice(b"8-1234-1234-1234-123456789012");
+        packet2_payload.push(29); // EndOfResponse
+
+        // Progressive accumulation: packet 1 + packet 2 (skipping packet 2's 2-byte flags)
+        let mut accumulated_payload = packet1_payload.clone();
+        accumulated_payload.extend_from_slice(&packet2_payload[2..]);
+
+        // Parsing accumulated payload must succeed with 1 complete row
+        let result = conn.parse_query_response_with_columns(&accumulated_payload, &caps, &columns).unwrap();
+        assert_eq!(result.rows.len(), 1);
+        let val = result.rows[0].get(0).unwrap();
+        match val {
+            Value::String(s) => {
+                assert_eq!(s, "12345678-1234-1234-1234-123456789012");
+            }
+            other => panic!("Expected String value, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_parse_query_response_incomplete_without_end_of_response() {
+        let conn = create_test_connection();
+        let caps = Capabilities::new();
+        let columns = vec![ColumnInfo::new("NAME", OracleType::Varchar)];
+
+        // Row data complete, but response ends without Error or EndOfResponse
+        let mut payload = vec![0x00, 0x00, 7, 4];
+        payload.extend_from_slice(b"John");
+
+        let err = conn.parse_query_response_with_columns(&payload, &caps, &columns).unwrap_err();
+        match err {
+            Error::BufferUnderflow { needed, available } => {
+                assert_eq!(needed, 1);
+                assert_eq!(available, 0);
+            }
+            other => panic!("Expected BufferUnderflow, got {:?}", other),
+        }
+
+        // Now append EndOfResponse (29)
+        payload.push(29);
+        let result = conn.parse_query_response_with_columns(&payload, &caps, &columns).unwrap();
+        assert_eq!(result.rows.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_fetch_response_incomplete_and_assembly() {
+        let conn = create_test_connection();
+        let caps = Capabilities::new();
+        let columns = vec![ColumnInfo::new("NAME", OracleType::Varchar)];
+
+        // Fetch payload ending without terminal message
+        let mut payload = vec![0x00, 0x00, 7, 5];
+        payload.extend_from_slice(b"Alice");
+
+        let err = conn.parse_fetch_response(&payload, &columns, &caps).unwrap_err();
+        match err {
+            Error::BufferUnderflow { needed, available } => {
+                assert_eq!(needed, 1);
+                assert_eq!(available, 0);
+            }
+            other => panic!("Expected BufferUnderflow, got {:?}", other),
+        }
+
+        // Append EndOfResponse (29)
+        payload.push(29);
+        let result = conn.parse_fetch_response(&payload, &columns, &caps).unwrap();
+        assert_eq!(result.rows.len(), 1);
+    }
+}
+

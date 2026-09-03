@@ -394,15 +394,7 @@ impl Connection {
         let request = fetch_msg.build_request(&inner.capabilities)?;
         inner.send(&request).await?;
 
-        let response = inner.receive_response().await?;
-        if response.len() <= PACKET_HEADER_SIZE {
-            return Err(Error::Protocol("Empty fetch response".to_string()));
-        }
-
-        let payload = &response[PACKET_HEADER_SIZE..];
-        let caps = inner.capabilities.clone();
-        drop(inner);
-        self.parse_fetch_response(payload, columns, &caps)
+        self.receive_and_parse_fetch(&mut inner, columns).await
     }
 
     /// Fetch rows from a REF CURSOR
@@ -439,22 +431,7 @@ impl Connection {
         let request = execute_msg.build_request_with_sdu(&inner.capabilities, large_sdu)?;
         inner.send(&request).await?;
 
-        let response = inner.receive_response().await?;
-        if response.len() <= PACKET_HEADER_SIZE {
-            return Err(Error::Protocol("Empty cursor response".to_string()));
-        }
-
-        let packet_type = response[4];
-        if packet_type == PacketType::Marker as u8 {
-            let error_response = inner.handle_marker_reset().await?;
-            let payload = &error_response[PACKET_HEADER_SIZE..];
-            return self.parse_error_response(payload);
-        }
-
-        let payload = &response[PACKET_HEADER_SIZE..];
-        let caps = inner.capabilities.clone();
-        drop(inner);
-        self.parse_fetch_response(payload, cursor.columns(), &caps)
+        self.receive_and_parse_fetch(&mut inner, cursor.columns()).await
     }
 
     /// Fetch rows from an implicit result set
@@ -490,22 +467,7 @@ impl Connection {
         let request = execute_msg.build_request_with_sdu(&inner.capabilities, large_sdu)?;
         inner.send(&request).await?;
 
-        let response = inner.receive_response().await?;
-
-        if response.len() <= PACKET_HEADER_SIZE {
-            return Err(Error::Protocol("Empty scrollable cursor response".to_string()));
-        }
-
-        let packet_type = response[4];
-        if packet_type == PacketType::Marker as u8 {
-            let error_response = inner.handle_marker_reset().await?;
-            let payload = &error_response[PACKET_HEADER_SIZE..];
-            let _: QueryResult = self.parse_error_response(payload)?;
-            return Err(Error::Protocol("Unexpected successful response after MARKER".to_string()));
-        }
-
-        let payload = &response[PACKET_HEADER_SIZE..];
-        let result = self.parse_query_response(payload, &inner.capabilities)?;
+        let result = self.receive_and_parse_query(&mut inner, &[]).await?;
 
         Ok(ScrollableCursor::new(result.cursor_id, result.columns))
     }
@@ -552,21 +514,7 @@ impl Connection {
         let request = execute_msg.build_request_with_sdu(&inner.capabilities, large_sdu)?;
         inner.send(&request).await?;
 
-        let response = inner.receive_response().await?;
-        if response.len() <= PACKET_HEADER_SIZE {
-            return Err(Error::Protocol("Empty scroll response".to_string()));
-        }
-
-        let packet_type = response[4];
-        if packet_type == PacketType::Marker as u8 {
-            let error_response = inner.handle_marker_reset().await?;
-            let payload = &error_response[PACKET_HEADER_SIZE..];
-            let _: QueryResult = self.parse_error_response(payload)?;
-            return Err(Error::Protocol("Scroll operation failed".to_string()));
-        }
-
-        let payload = &response[PACKET_HEADER_SIZE..];
-        let query_result = self.parse_query_response_with_columns(payload, &inner.capabilities, &cursor.columns)?;
+        let query_result = self.receive_and_parse_query(&mut inner, &cursor.columns).await?;
 
         let new_position = if !query_result.rows.is_empty() {
             query_result.rows_affected as i64
@@ -663,6 +611,110 @@ impl Connection {
         }
     }
 
+    pub(crate) async fn receive_and_parse_query(
+        &self,
+        inner: &mut ConnectionInner,
+        known_columns: &[ColumnInfo],
+    ) -> Result<QueryResult> {
+        let mut accumulated_payload = Vec::new();
+        let mut is_first_packet = true;
+
+        loop {
+            let packet = inner.receive().await?;
+            if packet.len() < PACKET_HEADER_SIZE {
+                return Err(Error::Protocol("Packet too small".to_string()));
+            }
+
+            let packet_type = packet[4];
+            if packet_type == PacketType::Marker as u8 {
+                let error_response = inner.handle_marker_reset().await?;
+                let payload = &error_response[PACKET_HEADER_SIZE..];
+                return self.parse_error_response(payload);
+            }
+
+            if packet_type != PacketType::Data as u8 {
+                return Err(Error::Protocol(format!(
+                    "Unexpected packet type {} for query response",
+                    packet_type
+                )));
+            }
+
+            let payload = &packet[PACKET_HEADER_SIZE..];
+            if payload.len() < 2 {
+                return Err(Error::Protocol("DATA packet payload too small".to_string()));
+            }
+
+            if is_first_packet {
+                accumulated_payload.extend_from_slice(payload);
+                is_first_packet = false;
+            } else {
+                accumulated_payload.extend_from_slice(&payload[2..]);
+            }
+
+            match self.parse_query_response_with_columns(
+                &accumulated_payload,
+                &inner.capabilities,
+                known_columns,
+            ) {
+                Ok(result) => return Ok(result),
+                Err(Error::BufferUnderflow { .. }) => continue,
+                Err(e) => return Err(e),
+            }
+        }
+    }
+
+    pub(crate) async fn receive_and_parse_fetch(
+        &self,
+        inner: &mut ConnectionInner,
+        columns: &[ColumnInfo],
+    ) -> Result<QueryResult> {
+        let mut accumulated_payload = Vec::new();
+        let mut is_first_packet = true;
+
+        loop {
+            let packet = inner.receive().await?;
+            if packet.len() < PACKET_HEADER_SIZE {
+                return Err(Error::Protocol("Packet too small".to_string()));
+            }
+
+            let packet_type = packet[4];
+            if packet_type == PacketType::Marker as u8 {
+                let error_response = inner.handle_marker_reset().await?;
+                let payload = &error_response[PACKET_HEADER_SIZE..];
+                return self.parse_error_response(payload);
+            }
+
+            if packet_type != PacketType::Data as u8 {
+                return Err(Error::Protocol(format!(
+                    "Unexpected packet type {} for fetch response",
+                    packet_type
+                )));
+            }
+
+            let payload = &packet[PACKET_HEADER_SIZE..];
+            if payload.len() < 2 {
+                return Err(Error::Protocol("DATA packet payload too small".to_string()));
+            }
+
+            if is_first_packet {
+                accumulated_payload.extend_from_slice(payload);
+                is_first_packet = false;
+            } else {
+                accumulated_payload.extend_from_slice(&payload[2..]);
+            }
+
+            match self.parse_fetch_response(
+                &accumulated_payload,
+                columns,
+                &inner.capabilities,
+            ) {
+                Ok(result) => return Ok(result),
+                Err(Error::BufferUnderflow { .. }) => continue,
+                Err(e) => return Err(e),
+            }
+        }
+    }
+
     /// Internal: Execute a query statement with optional bind parameters
     pub(crate) async fn execute_query_with_params(&self, statement: &Statement, params: &[Value]) -> Result<QueryResult> {
         let prefetch_rows = 100;
@@ -681,20 +733,7 @@ impl Connection {
         let request = execute_msg.build_request_with_sdu(&inner.capabilities, large_sdu)?;
         inner.send(&request).await?;
 
-        let response = inner.receive_response().await?;
-        if response.len() <= PACKET_HEADER_SIZE {
-            return Err(Error::Protocol("Empty query response".to_string()));
-        }
-
-        let packet_type = response[4];
-        if packet_type == PacketType::Marker as u8 {
-            let error_response = inner.handle_marker_reset().await?;
-            let payload = &error_response[PACKET_HEADER_SIZE..];
-            return self.parse_error_response(payload);
-        }
-
-        let payload = &response[PACKET_HEADER_SIZE..];
-        let mut result = self.parse_query_response(payload, &inner.capabilities)?;
+        let mut result = self.receive_and_parse_query(&mut inner, &[]).await?;
 
         let has_lob_columns = result.columns.iter().any(|col| col.is_lob());
 
@@ -714,24 +753,10 @@ impl Connection {
             let define_request = define_msg.build_request_with_sdu(&inner.capabilities, large_sdu)?;
             inner.send(&define_request).await?;
 
-            let define_response = inner.receive_response().await?;
-            if define_response.len() <= PACKET_HEADER_SIZE {
-                return Err(Error::Protocol("Empty define response".to_string()));
-            }
-
-            let packet_type = define_response[4];
-            if packet_type == PacketType::Marker as u8 {
-                let error_response = inner.handle_marker_reset().await?;
-                let payload = &error_response[PACKET_HEADER_SIZE..];
-                return self.parse_error_response(payload);
-            }
-
-            let payload = &define_response[PACKET_HEADER_SIZE..];
-            result = self.parse_query_response_with_columns(
-                payload,
-                &inner.capabilities,
+            result = self.receive_and_parse_query(
+                &mut inner,
                 &stmt_with_define.columns(),
-            )?;
+            ).await?;
         }
 
         Ok(result)

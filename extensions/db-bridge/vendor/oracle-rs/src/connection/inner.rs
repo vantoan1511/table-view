@@ -233,7 +233,6 @@ impl ConnectionInner {
             // Check for end of response - Python checks both flags and message type
             let has_end_flag = (data_flags_value & data_flags::END_OF_RESPONSE) != 0;
             let has_eof_flag = (data_flags_value & data_flags::EOF) != 0;
-            let no_more_data = (data_flags_value & data_flags::MORE_DATA_TO_FOLLOW) == 0;
 
             // Also check for EndOfResponse message type (header + 3 bytes with msg type 29)
             let has_end_message = payload.len() == 3
@@ -250,7 +249,7 @@ impl ConnectionInner {
             }
 
             // Check for end of response using data flags from this packet
-            let is_end_of_response = has_end_flag || has_eof_flag || has_end_message || no_more_data;
+            let is_end_of_response = has_end_flag || has_eof_flag || has_end_message;
 
             // If data flags don't indicate end, scan the ACCUMULATED message data
             // for terminal messages. We scan accumulated data (not just current packet)
