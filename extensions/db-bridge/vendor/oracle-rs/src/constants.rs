@@ -81,7 +81,6 @@ pub mod data_flags {
     pub const END_OF_REQUEST: u16 = 0x0800;
     pub const END_OF_RESPONSE: u16 = 0x2000;
     pub const EOF: u16 = 0x0040;
-    pub const MORE_DATA_TO_FOLLOW: u16 = 0x0001;
 }
 
 // =============================================================================
