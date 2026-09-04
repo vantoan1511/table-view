@@ -60,6 +60,13 @@ describe('Diagram Store', () => {
             { name: 'id', dataType: 'integer', isPrimaryKey: true, nullable: false },
             { name: 'name', dataType: 'text', isPrimaryKey: false, nullable: true }
           ]
+        },
+        {
+          name: 'profiles',
+          columns: [
+            { name: 'id', dataType: 'integer', isPrimaryKey: true, nullable: false },
+            { name: 'user_id', dataType: 'integer', isPrimaryKey: false, nullable: false }
+          ]
         }
       ],
       relations: [
@@ -88,10 +95,14 @@ describe('Diagram Store', () => {
     );
 
     expect(result).not.toBeNull();
-    expect(result?.tables.length).toBe(1);
+    expect(result?.tables.length).toBe(2);
     expect(result?.tables[0].name).toBe('users');
     expect(result?.tables[0].columns[0].name).toBe('id');
     expect(result?.tables[0].columns[0].isPrimaryKey).toBe(true);
+    expect(result?.tables[1].columns[1].foreignKey).toEqual({
+      targetTable: 'users',
+      targetColumn: 'id'
+    });
     expect(result?.relations.length).toBe(1);
     expect(result?.relations[0].constraintName).toBe('fk_users_profile');
 

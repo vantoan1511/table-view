@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 import { BridgeService } from '@/services/bridge';
-import type { SchemaDetails } from '@/types';
+import type { SchemaDetails, TableDetails, TableRelation } from '@/types';
 import { useToastStore } from './toast';
 
 export const useDiagramStore = defineStore('diagram', () => {
@@ -45,25 +45,46 @@ export const useDiagramStore = defineStore('diagram', () => {
         throw new Error('Empty response from database bridge');
       }
 
-      // Ensure proper structure
-      const schemaDetails: SchemaDetails = {
-        tables: (payload.tables || []).map((t: any) => ({
-          name: t.name,
-          columns: (t.columns || []).map((c: any) => ({
-            name: c.name,
+      const relations: TableRelation[] = (payload.relations || []).map((r: any) => ({
+        constraintName: r.constraintName || r.constraint_name || '',
+        sourceTable: r.sourceTable || r.source_table || '',
+        sourceColumn: r.sourceColumn || r.source_column || '',
+        targetTable: r.targetTable || r.target_table || '',
+        targetColumn: r.targetColumn || r.target_column || ''
+      }));
+
+      const fkMap = new Map<string, { targetTable: string; targetColumn: string }>();
+      for (const rel of relations) {
+        if (rel.sourceTable && rel.sourceColumn) {
+          fkMap.set(`${rel.sourceTable}.${rel.sourceColumn}`, {
+            targetTable: rel.targetTable,
+            targetColumn: rel.targetColumn
+          });
+        }
+      }
+
+      const tables: TableDetails[] = (payload.tables || []).map((t: any) => ({
+        name: t.name,
+        columns: (t.columns || []).map((c: any) => {
+          const colName = c.name;
+          const fk = fkMap.get(`${t.name}.${colName}`);
+          return {
+            name: colName,
             dataType: c.dataType || c.data_type || 'unknown',
             nullable: c.nullable ?? true,
             isPrimaryKey: c.isPrimaryKey || c.is_primary_key || false,
-            default: c.default || undefined
-          }))
-        })),
-        relations: (payload.relations || []).map((r: any) => ({
-          constraintName: r.constraintName || r.constraint_name || '',
-          sourceTable: r.sourceTable || r.source_table || '',
-          sourceColumn: r.sourceColumn || r.source_column || '',
-          targetTable: r.targetTable || r.target_table || '',
-          targetColumn: r.targetColumn || r.target_column || ''
-        }))
+            default: c.default || undefined,
+            foreignKey: fk
+              ? { targetTable: fk.targetTable, targetColumn: fk.targetColumn }
+              : undefined
+          };
+        })
+      }));
+
+      // Ensure proper structure
+      const schemaDetails: SchemaDetails = {
+        tables,
+        relations
       };
 
       diagrams.value[key] = schemaDetails;

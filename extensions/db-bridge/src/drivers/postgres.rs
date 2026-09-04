@@ -1004,19 +1004,20 @@ impl DatabaseDriver for PostgresDriver {
                 c.udt_name::text as data_type, \
                 (c.is_nullable = 'YES') as is_nullable, \
                 c.column_default::text as column_default, \
-                EXISTS ( \
-                    SELECT 1 \
-                    FROM information_schema.table_constraints tc \
-                    JOIN information_schema.key_column_usage kcu \
-                        ON tc.constraint_name = kcu.constraint_name \
-                        AND tc.table_schema = kcu.table_schema \
-                        AND tc.table_name = kcu.table_name \
-                    WHERE tc.constraint_type = 'PRIMARY KEY' \
-                        AND tc.table_schema = c.table_schema \
-                        AND tc.table_name = c.table_name \
-                        AND kcu.column_name = c.column_name \
-                ) as is_primary_key \
+                (pk.column_name IS NOT NULL) as is_primary_key \
             FROM information_schema.columns c \
+            LEFT JOIN ( \
+                SELECT kcu.table_schema, kcu.table_name, kcu.column_name \
+                FROM information_schema.table_constraints tc \
+                JOIN information_schema.key_column_usage kcu \
+                    ON tc.constraint_name = kcu.constraint_name \
+                    AND tc.table_schema = kcu.table_schema \
+                    AND tc.table_name = kcu.table_name \
+                WHERE tc.constraint_type = 'PRIMARY KEY' \
+                    AND tc.table_schema::text = $1::text \
+            ) pk ON pk.table_schema = c.table_schema \
+                AND pk.table_name = c.table_name \
+                AND pk.column_name = c.column_name \
             WHERE c.table_schema::text = $1::text \
             ORDER BY c.table_name, c.ordinal_position";
 
