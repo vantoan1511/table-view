@@ -597,45 +597,85 @@ impl DatabaseDriver for SqliteDriver {
     }
 
     async fn get_schema_details(&self, _schema_name: &str) -> Result<SchemaDetails, String> {
-        let pool = self.pool()?;
+        let pool = self.pool()?.clone();
         
         // 1. Get all tables
         let (table_rows, _, _) = Self::execute_query(
-            pool,
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+            &pool,
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
             &[],
         )
         .await?;
 
-        let mut tables = Vec::new();
+        let table_names: Vec<String> = table_rows
+            .into_iter()
+            .filter_map(|r| r.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .collect();
+
+        // 2. Query columns and foreign keys concurrently across tables
+        let mut tasks = Vec::with_capacity(table_names.len());
+        for table_name in table_names {
+            let pool_clone = pool.clone();
+            tasks.push(tokio::spawn(async move {
+                let quoted_table = Self::quote(&table_name);
+                let col_sql = format!("PRAGMA table_info({})", quoted_table);
+                let fk_sql = format!("PRAGMA foreign_key_list({})", quoted_table);
+
+                let (col_res, fk_res) = tokio::join!(
+                    Self::execute_query(&pool_clone, &col_sql, &[]),
+                    Self::execute_query(&pool_clone, &fk_sql, &[])
+                );
+
+                let (rows, _, _) = col_res.unwrap_or((vec![], vec![], 0));
+                let (fk_rows, _, _) = fk_res.unwrap_or((vec![], vec![], 0));
+
+                let mut fk_map = HashMap::new();
+                let mut relations = Vec::new();
+                for (idx, fk) in fk_rows.into_iter().enumerate() {
+                    let target_table = fk.get("table").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    let source_col = fk.get("from").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    let target_col = fk.get("to").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+                    if !source_col.is_empty() && !target_table.is_empty() {
+                        fk_map.insert(source_col.clone(), ForeignKeyDef {
+                            target_table: target_table.clone(),
+                            target_column: target_col.clone(),
+                        });
+                        relations.push(TableRelation {
+                            constraint_name: format!("fk_{}_{}_{}", table_name, source_col, idx),
+                            source_table: table_name.clone(),
+                            source_column: source_col,
+                            target_table,
+                            target_column: target_col,
+                        });
+                    }
+                }
+
+                let mut columns = Vec::new();
+                for r in rows {
+                    let col_name = r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    let foreign_key = fk_map.get(&col_name).cloned();
+                    columns.push(TableColumn {
+                        name: col_name,
+                        data_type: r.get("type").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        nullable: r.get("notnull").and_then(|v| v.as_i64()).map(|i| i == 0).unwrap_or(true),
+                        is_primary_key: r.get("pk").and_then(|v| v.as_i64()).map(|i| i > 0).unwrap_or(false),
+                        default: r.get("dflt_value").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                        foreign_key,
+                    });
+                }
+
+                (TableInfo { name: table_name, columns }, relations)
+            }));
+        }
+
+        let mut tables = Vec::with_capacity(tasks.len());
         let mut relations = Vec::new();
 
-        for r in table_rows {
-            let table_name = r.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            
-            // Fetch columns
-            let columns = self.get_table_columns(&table_name).await?;
-            tables.push(TableInfo {
-                name: table_name.clone(),
-                columns,
-            });
-
-            // Fetch foreign keys
-            let fk_sql = format!("PRAGMA foreign_key_list({})", Self::quote(&table_name));
-            let (fk_rows, _, _) = Self::execute_query(pool, &fk_sql, &[]).await?;
-            for (idx, fk) in fk_rows.iter().enumerate() {
-                let target_table = fk.get("table").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let source_col = fk.get("from").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let target_col = fk.get("to").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                
-                // Construct relation
-                relations.push(TableRelation {
-                    constraint_name: format!("fk_{}_{}_{}", table_name, source_col, idx),
-                    source_table: table_name.clone(),
-                    source_column: source_col,
-                    target_table,
-                    target_column: target_col,
-                });
+        for task in tasks {
+            if let Ok((table_info, table_rels)) = task.await {
+                tables.push(table_info);
+                relations.extend(table_rels);
             }
         }
 

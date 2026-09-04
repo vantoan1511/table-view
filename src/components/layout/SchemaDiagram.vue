@@ -12,11 +12,11 @@ import {
   ZoomIn,
   ZoomOut
 } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { useDiagramStore } from '@/stores/diagram';
 import { useTabsStore } from '@/stores/tabs';
-import type { Tab } from '@/types';
+import type { Tab, TableDetails } from '@/types';
 
 const props = defineProps<{
   tab: Tab;
@@ -47,6 +47,15 @@ const dragStartCardY = ref(0);
 const canvasStartPanX = ref(0);
 const canvasStartPanY = ref(0);
 
+// Viewport dimensions for culling
+const viewportWidth = ref(1200);
+const viewportHeight = ref(800);
+let resizeObserver: ResizeObserver | null = null;
+
+// rAF batching state
+let rafId: number | null = null;
+let pendingMouseEvent: MouseEvent | null = null;
+
 // References
 const viewportRef = ref<HTMLDivElement | null>(null);
 const canvasRef = ref<HTMLDivElement | null>(null);
@@ -55,6 +64,7 @@ const canvasRef = ref<HTMLDivElement | null>(null);
 const CARD_WIDTH = 220;
 const HEADER_HEIGHT = 40;
 const ROW_HEIGHT = 28;
+const MAX_COLUMNS_DISPLAY_HEIGHT = 220;
 
 // Get current details from store
 const cacheKey = computed(() =>
@@ -72,6 +82,85 @@ const filteredTables = computed(() => {
   if (!query) return schemaDetails.value.tables;
   return schemaDetails.value.tables.filter((t) => t.name.toLowerCase().includes(query));
 });
+
+// Pre-indexed metadata for instant O(1) relational lookups
+interface IndexedRelation {
+  id: string;
+  sourceTable: string;
+  sourceColumn: string;
+  targetTable: string;
+  targetColumn: string;
+  sourceColIdx: number;
+  targetColIdx: number;
+}
+
+const schemaIndex = computed(() => {
+  if (!schemaDetails.value) {
+    return {
+      tableByName: new Map<string, TableDetails>(),
+      colIndexByTable: new Map<string, Map<string, number>>(),
+      indexedRelations: [] as IndexedRelation[],
+      relationsByTable: new Map<string, number[]>()
+    };
+  }
+
+  const tableByName = new Map<string, TableDetails>();
+  const colIndexByTable = new Map<string, Map<string, number>>();
+  const relationsByTable = new Map<string, number[]>();
+
+  schemaDetails.value.tables.forEach((t) => {
+    tableByName.set(t.name, t);
+    const colMap = new Map<string, number>();
+    t.columns.forEach((col, idx) => {
+      colMap.set(col.name, idx);
+    });
+    colIndexByTable.set(t.name, colMap);
+  });
+
+  const indexedRelations: IndexedRelation[] = [];
+
+  schemaDetails.value.relations.forEach((rel, index) => {
+    const sourceCols = colIndexByTable.get(rel.sourceTable);
+    const targetCols = colIndexByTable.get(rel.targetTable);
+
+    const sourceColIdx = sourceCols?.get(rel.sourceColumn) ?? -1;
+    const targetColIdx = targetCols?.get(rel.targetColumn) ?? -1;
+
+    if (tableByName.has(rel.sourceTable) && tableByName.has(rel.targetTable)) {
+      const relIdx = indexedRelations.length;
+      indexedRelations.push({
+        id: `${rel.constraintName || 'rel'}-${index}`,
+        sourceTable: rel.sourceTable,
+        sourceColumn: rel.sourceColumn,
+        targetTable: rel.targetTable,
+        targetColumn: rel.targetColumn,
+        sourceColIdx,
+        targetColIdx
+      });
+
+      const srcList = relationsByTable.get(rel.sourceTable) || [];
+      srcList.push(relIdx);
+      relationsByTable.set(rel.sourceTable, srcList);
+
+      const tgtList = relationsByTable.get(rel.targetTable) || [];
+      tgtList.push(relIdx);
+      relationsByTable.set(rel.targetTable, tgtList);
+    }
+  });
+
+  return {
+    tableByName,
+    colIndexByTable,
+    indexedRelations,
+    relationsByTable
+  };
+});
+
+// Card height for auto-layout
+const getTableHeight = (table: TableDetails): number => {
+  const colHeight = Math.min(table.columns.length * ROW_HEIGHT, MAX_COLUMNS_DISPLAY_HEIGHT);
+  return HEADER_HEIGHT + colHeight + 8;
+};
 
 // Load coordinate positions from LocalStorage
 const getStorageKey = () =>
@@ -99,29 +188,42 @@ const savePositions = () => {
   }
 };
 
-// Elegant auto-grid layout function to layout tables in rows
+// Height-aware column packing auto-layout to prevent overlapping cards
 const performAutoLayout = (force = false) => {
   if (!schemaDetails.value) return;
 
   const tables = schemaDetails.value.tables;
-  const cols = Math.ceil(Math.sqrt(tables.length));
-  const spacingX = 320;
-  const spacingY = 220;
+  if (tables.length === 0) return;
 
+  const cols = Math.max(3, Math.ceil(Math.sqrt(tables.length * 1.5)));
+  const spacingX = 290;
+  const gapY = 32;
+
+  const colY = new Array(cols).fill(80);
   const newPositions: Record<string, { x: number; y: number }> = {};
 
-  tables.forEach((table, idx) => {
-    // If it was already loaded and we're not forcing, keep original
+  tables.forEach((table) => {
     if (!force && tablePositions.value[table.name]) {
       newPositions[table.name] = { ...tablePositions.value[table.name]! };
       return;
     }
-    const r = Math.floor(idx / cols);
-    const c = idx % cols;
+
+    // Place table in the column with minimum cumulative height to balance distribution
+    let minCol = 0;
+    for (let c = 1; c < cols; c++) {
+      if (colY[c] < colY[minCol]) {
+        minCol = c;
+      }
+    }
+
+    const cardHeight = getTableHeight(table);
+
     newPositions[table.name] = {
-      x: 100 + c * spacingX,
-      y: 100 + r * (spacingY + Math.min(table.columns.length * 15, 100))
+      x: 80 + minCol * spacingX,
+      y: colY[minCol]
     };
+
+    colY[minCol] += cardHeight + gapY;
   });
 
   tablePositions.value = newPositions;
@@ -141,27 +243,47 @@ const loadData = async (force = false) => {
   performAutoLayout(!hasSavedPositions);
 };
 
-const getForeignKeyReference = (tableName: string, columnName: string) => {
-  if (!schemaDetails.value) return null;
-  return (
-    schemaDetails.value.relations.find(
-      (r) => r.sourceTable === tableName && r.sourceColumn === columnName
-    ) || null
-  );
-};
-
 const handleTableDoubleClick = (tableName: string) => {
   tabsStore.openTableTab(tableName, props.tab.schema, props.tab.connectionId, props.tab.dbName);
+};
+
+// ResizeObserver for viewport dimensions
+const setupResizeObserver = () => {
+  watch(
+    viewportRef,
+    (el) => {
+      if (el) {
+        viewportWidth.value = el.clientWidth || window.innerWidth;
+        viewportHeight.value = el.clientHeight || window.innerHeight;
+        resizeObserver?.disconnect();
+        resizeObserver = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            if (entry.contentRect) {
+              viewportWidth.value = entry.contentRect.width;
+              viewportHeight.value = entry.contentRect.height;
+            }
+          }
+        });
+        resizeObserver.observe(el);
+      }
+    },
+    { immediate: true }
+  );
 };
 
 // Fetch on mount
 onMounted(() => {
   loadData();
+  setupResizeObserver();
   window.addEventListener('mouseup', handleGlobalMouseUp);
   window.addEventListener('mousemove', handleGlobalMouseMove);
 });
 
 onUnmounted(() => {
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
+  }
+  resizeObserver?.disconnect();
   window.removeEventListener('mouseup', handleGlobalMouseUp);
   window.removeEventListener('mousemove', handleGlobalMouseMove);
 });
@@ -192,10 +314,8 @@ const zoomToFit = () => {
       minX = Math.min(minX, pos.x);
       maxX = Math.max(maxX, pos.x + CARD_WIDTH);
       minY = Math.min(minY, pos.y);
-      // approximate card height
-      const colCount =
-        schemaDetails.value?.tables.find((t) => t.name === name)?.columns.length || 5;
-      const height = HEADER_HEIGHT + colCount * ROW_HEIGHT;
+      const table = schemaIndex.value.tableByName.get(name);
+      const height = table ? getTableHeight(table) : HEADER_HEIGHT;
       maxY = Math.max(maxY, pos.y + height);
     }
   });
@@ -243,7 +363,6 @@ const handleCanvasWheel = (e: WheelEvent) => {
 
   if (!viewportRef.value) return;
 
-  // Zoom towards mouse cursor coordinates
   const rect = viewportRef.value.getBoundingClientRect();
   const mouseX = e.clientX - rect.left;
   const mouseY = e.clientY - rect.top;
@@ -272,8 +391,20 @@ const handleCardMouseDown = (e: MouseEvent, tableName: string) => {
   e.preventDefault();
 };
 
-// Global Mouse Movement handling
+// Global Mouse Movement handling throttled with requestAnimationFrame
 const handleGlobalMouseMove = (e: MouseEvent) => {
+  if (!isDraggingCanvas.value && !isDraggingCard.value) return;
+  pendingMouseEvent = e;
+  if (rafId === null) {
+    rafId = requestAnimationFrame(processMouseMove);
+  }
+};
+
+const processMouseMove = () => {
+  rafId = null;
+  const e = pendingMouseEvent;
+  if (!e) return;
+
   if (isDraggingCanvas.value) {
     const deltaX = e.clientX - dragStartMouseX.value;
     const deltaY = e.clientY - dragStartMouseY.value;
@@ -283,7 +414,6 @@ const handleGlobalMouseMove = (e: MouseEvent) => {
     const deltaX = e.clientX - dragStartMouseX.value;
     const deltaY = e.clientY - dragStartMouseY.value;
 
-    // Crucial: Adjust card delta by current zoom factor so movement matches cursor 1:1!
     const scaledDeltaX = deltaX / zoom.value;
     const scaledDeltaY = deltaY / zoom.value;
 
@@ -297,6 +427,10 @@ const handleGlobalMouseMove = (e: MouseEvent) => {
 };
 
 const handleGlobalMouseUp = () => {
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
   if (isDraggingCard.value) {
     savePositions();
   }
@@ -305,9 +439,13 @@ const handleGlobalMouseUp = () => {
   draggedTable.value = null;
 };
 
-// Compute Dynamic S-curves Bezier paths between tables
+// Compute Dynamic S-curves Bezier paths with pre-indexed lookups and viewport culling
 const connectionPaths = computed(() => {
   if (!schemaDetails.value) return [];
+
+  const { indexedRelations } = schemaIndex.value;
+  const hTable = hoveredTable.value;
+  const hCol = hoveredColumn.value;
 
   const paths: Array<{
     id: string;
@@ -315,44 +453,34 @@ const connectionPaths = computed(() => {
     isActive: boolean;
   }> = [];
 
-  schemaDetails.value.relations.forEach((rel, index) => {
+  for (const rel of indexedRelations) {
     const sourcePos = tablePositions.value[rel.sourceTable];
     const targetPos = tablePositions.value[rel.targetTable];
 
-    if (!sourcePos || !targetPos) return;
+    if (!sourcePos || !targetPos) continue;
 
-    // Find table columns to get vertical offset index
-    const sourceTableData = schemaDetails.value?.tables.find((t) => t.name === rel.sourceTable);
-    const targetTableData = schemaDetails.value?.tables.find((t) => t.name === rel.targetTable);
+    const sIdx = rel.sourceColIdx !== -1 ? rel.sourceColIdx : 0;
+    const tIdx = rel.targetColIdx !== -1 ? rel.targetColIdx : 0;
 
-    if (!sourceTableData || !targetTableData) return;
+    const sColY = Math.min(sIdx * ROW_HEIGHT, MAX_COLUMNS_DISPLAY_HEIGHT - ROW_HEIGHT / 2);
+    const tColY = Math.min(tIdx * ROW_HEIGHT, MAX_COLUMNS_DISPLAY_HEIGHT - ROW_HEIGHT / 2);
 
-    const sourceColIdx = sourceTableData.columns.findIndex((c) => c.name === rel.sourceColumn);
-    const targetColIdx = targetTableData.columns.findIndex((c) => c.name === rel.targetColumn);
-
-    if (sourceColIdx === -1 || targetColIdx === -1) return;
-
-    // Calculate Y offsets inside the card
-    const sourceY = sourcePos.y + HEADER_HEIGHT + sourceColIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
-    const targetY = targetPos.y + HEADER_HEIGHT + targetColIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
+    const sourceY = sourcePos.y + HEADER_HEIGHT + sColY + ROW_HEIGHT / 2;
+    const targetY = targetPos.y + HEADER_HEIGHT + tColY + ROW_HEIGHT / 2;
 
     let startX = 0;
     let endX = 0;
 
-    // Determine dynamic ports based on horizontal relative layouts
     const sourceRight = sourcePos.x + CARD_WIDTH;
     const targetRight = targetPos.x + CARD_WIDTH;
 
     if (sourceRight < targetPos.x) {
-      // Source is clearly to the left of Target
       startX = sourceRight;
       endX = targetPos.x;
     } else if (targetRight < sourcePos.x) {
-      // Target is clearly to the left of Source
       startX = sourcePos.x;
       endX = targetRight;
     } else {
-      // Overlapping horizontally: connect closest sides
       if (Math.abs(sourcePos.x - targetPos.x) < Math.abs(sourceRight - targetRight)) {
         startX = sourcePos.x;
         endX = targetPos.x;
@@ -363,27 +491,23 @@ const connectionPaths = computed(() => {
     }
 
     const dx = Math.abs(endX - startX);
-    // Draw Bezier S-curve
     const cp1x = startX + (endX > startX ? dx * 0.45 : -dx * 0.45);
     const cp2x = endX + (endX > startX ? -dx * 0.45 : dx * 0.45);
 
     const path = `M ${startX} ${sourceY} C ${cp1x} ${sourceY}, ${cp2x} ${targetY}, ${endX} ${targetY}`;
 
-    // Active highlights if hovered
     const isRelationHovered =
-      (hoveredColumn.value?.tableName === rel.sourceTable &&
-        hoveredColumn.value?.columnName === rel.sourceColumn) ||
-      (hoveredColumn.value?.tableName === rel.targetTable &&
-        hoveredColumn.value?.columnName === rel.targetColumn) ||
-      hoveredTable.value === rel.sourceTable ||
-      hoveredTable.value === rel.targetTable;
+      (hCol?.tableName === rel.sourceTable && hCol?.columnName === rel.sourceColumn) ||
+      (hCol?.tableName === rel.targetTable && hCol?.columnName === rel.targetColumn) ||
+      hTable === rel.sourceTable ||
+      hTable === rel.targetTable;
 
     paths.push({
-      id: `${rel.constraintName}-${index}`,
+      id: rel.id,
       path,
       isActive: !!isRelationHovered
     });
-  });
+  }
 
   return paths;
 });
@@ -406,8 +530,8 @@ const exportToSvg = () => {
       minX = Math.min(minX, pos.x);
       maxX = Math.max(maxX, pos.x + CARD_WIDTH);
       minY = Math.min(minY, pos.y);
-      const colCount =
-        schemaDetails.value?.tables.find((t) => t.name === name)?.columns.length || 5;
+      const table = schemaIndex.value.tableByName.get(name);
+      const colCount = table?.columns.length || 5;
       const height = HEADER_HEIGHT + colCount * ROW_HEIGHT;
       maxY = Math.max(maxY, pos.y + height);
     }
@@ -420,10 +544,8 @@ const exportToSvg = () => {
   const shiftX = padding - minX;
   const shiftY = padding - minY;
 
-  // Construct dynamic SVG string
   let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0b0f19; font-family: sans-serif;">`;
 
-  // Add CSS styles
   svgContent += `
     <style>
       .table-card { fill: #131b2e; stroke: #2a364f; stroke-width: 1.5px; rx: 8px; }
@@ -433,7 +555,6 @@ const exportToSvg = () => {
       .text-type { fill: #718096; font-size: 10px; font-style: italic; }
       .pk-icon { fill: #d69e2e; }
       .edge { fill: none; stroke: #4a5568; stroke-width: 1.5px; opacity: 0.6; }
-      .edge-active { fill: none; stroke: #3182ce; stroke-width: 2px; opacity: 1.0; }
     </style>
   `;
 
@@ -443,12 +564,14 @@ const exportToSvg = () => {
     const targetPos = tablePositions.value[rel.targetTable];
     if (!sourcePos || !targetPos) return;
 
-    const sourceTableData = schemaDetails.value?.tables.find((t) => t.name === rel.sourceTable);
-    const targetTableData = schemaDetails.value?.tables.find((t) => t.name === rel.targetTable);
+    const sourceTableData = schemaIndex.value.tableByName.get(rel.sourceTable);
+    const targetTableData = schemaIndex.value.tableByName.get(rel.targetTable);
     if (!sourceTableData || !targetTableData) return;
 
-    const sourceColIdx = sourceTableData.columns.findIndex((c) => c.name === rel.sourceColumn);
-    const targetColIdx = targetTableData.columns.findIndex((c) => c.name === rel.targetColumn);
+    const sourceColIdx =
+      schemaIndex.value.colIndexByTable.get(rel.sourceTable)?.get(rel.sourceColumn) ?? -1;
+    const targetColIdx =
+      schemaIndex.value.colIndexByTable.get(rel.targetTable)?.get(rel.targetColumn) ?? -1;
     if (sourceColIdx === -1 || targetColIdx === -1) return;
 
     const sourceY =
@@ -493,26 +616,21 @@ const exportToSvg = () => {
     const cardY = pos.y + shiftY;
     const cardHeight = HEADER_HEIGHT + table.columns.length * ROW_HEIGHT;
 
-    // Base card shadow/container
     svgContent += `<g>`;
     svgContent += `<rect x="${cardX}" y="${cardY}" width="${CARD_WIDTH}" height="${cardHeight}" class="table-card" />`;
-    // Header
     svgContent += `<rect x="${cardX}" y="${cardY}" width="${CARD_WIDTH}" height="${HEADER_HEIGHT}" class="header-bg" />`;
     svgContent += `<text x="${cardX + 12}" y="${cardY + 24}" class="text-title">${table.name}</text>`;
 
-    // Columns
     table.columns.forEach((col, idx) => {
       const colY = cardY + HEADER_HEIGHT + idx * ROW_HEIGHT + ROW_HEIGHT / 2 + 4;
       let textX = cardX + 12;
 
-      // Draw PK gold circle if primary key
       if (col.isPrimaryKey) {
         svgContent += `<circle cx="${cardX + 16}" cy="${colY - 3}" r="4" class="pk-icon" />`;
         textX = cardX + 26;
       }
 
       svgContent += `<text x="${textX}" y="${colY}" class="text-col">${col.name}</text>`;
-      // Data type right aligned
       svgContent += `<text x="${cardX + CARD_WIDTH - 12}" y="${colY}" text-anchor="end" class="text-type">${col.dataType}</text>`;
     });
     svgContent += `</g>`;
@@ -520,7 +638,6 @@ const exportToSvg = () => {
 
   svgContent += `</svg>`;
 
-  // Download standard blob
   const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -606,7 +723,7 @@ const exportToSvg = () => {
 
         <button
           @click="performAutoLayout(true)"
-          v-tooltip.bottom="'Regrid Auto Layout'"
+          v-tooltip.bottom="'Auto Layout'"
           class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors"
         >
           <Maximize class="h-3.5 w-3.5 rotate-45" />
@@ -679,17 +796,7 @@ const exportToSvg = () => {
       @mousedown="handleCanvasMouseDown"
       @wheel="handleCanvasWheel"
     >
-      <!-- Background Interactive Grid dots -->
-      <div
-        class="absolute inset-0 z-0 bg-[#070b13]"
-        :style="{
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
-          backgroundPosition: `${panX}px ${panY}px`
-        }"
-      ></div>
-
-      <!-- Transforming Interactive Canvas -->
+      <!-- Transforming Interactive Canvas (Hardware Accelerated) -->
       <div
         ref="canvasRef"
         class="pointer-events-none absolute inset-0 z-10 origin-top-left"
@@ -697,9 +804,14 @@ const exportToSvg = () => {
           transform: `translate(${panX}px, ${panY}px) scale(${zoom})`
         }"
       >
-        <!-- SVG Connections Layer -->
+        <!-- SVG Connections & Background Dot Pattern Layer -->
         <svg class="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
           <defs>
+            <!-- Hardware-accelerated dot pattern inside transformed canvas -->
+            <pattern id="grid-dots" width="24" height="24" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1" fill="rgba(255, 255, 255, 0.05)" />
+            </pattern>
+
             <marker
               id="arrow"
               viewBox="0 0 10 10"
@@ -724,6 +836,10 @@ const exportToSvg = () => {
             </marker>
           </defs>
 
+          <!-- Dot grid background covering virtual plane with zero CPU repaint -->
+          <rect x="-50000" y="-50000" width="100000" height="100000" fill="url(#grid-dots)" />
+
+          <!-- Dynamic S-curves Connections -->
           <path
             v-for="edge in connectionPaths"
             :key="edge.id"
@@ -731,11 +847,10 @@ const exportToSvg = () => {
             :class="
               edge.isActive
                 ? 'stroke-indigo-500 stroke-[2px] opacity-100'
-                : 'stroke-border/40 stroke-[1.5px] opacity-60'
+                : 'stroke-border/50 stroke-[1.5px] opacity-60'
             "
             fill="none"
             :marker-end="edge.isActive ? 'url(#arrow-active)' : 'url(#arrow)'"
-            class="transition-all duration-150"
           />
         </svg>
 
@@ -744,10 +859,10 @@ const exportToSvg = () => {
           <div
             v-for="table in filteredTables"
             :key="table.name"
-            class="table-card bg-surface-elevated/95 border-border/40 group absolute flex cursor-grab flex-col rounded-xl border shadow-xl backdrop-blur-md transition-colors transition-shadow hover:border-indigo-500/50 hover:shadow-2xl active:cursor-grabbing"
+            class="table-card group absolute flex cursor-grab flex-col rounded-xl border border-(--color-border) bg-[#0f172a] shadow-lg transition-colors active:cursor-grabbing"
             :class="{
-              'border-indigo-500/40 ring-2 ring-indigo-500/30': hoveredTable === table.name,
-              'opacity-40 hover:opacity-100': hoveredTable && hoveredTable !== table.name
+              'border-indigo-500/70 ring-2 ring-indigo-500/30': hoveredTable === table.name,
+              'shadow-2xl will-change-transform': draggedTable === table.name
             }"
             :style="{
               width: `${CARD_WIDTH}px`,
@@ -760,16 +875,13 @@ const exportToSvg = () => {
           >
             <!-- Card Header -->
             <div
-              class="bg-surface/90 border-border/30 flex h-10 items-center justify-between rounded-t-xl border-b px-3 select-none"
+              class="border-border/30 flex h-10 items-center justify-between rounded-t-xl border-b bg-[#1e293b]/70 px-3 select-none"
             >
               <div class="flex min-w-0 items-center gap-1.5">
                 <Table
                   class="text-text-tertiary h-3.5 w-3.5 shrink-0 transition-colors group-hover:text-indigo-400"
                 />
-                <span
-                  v-tooltip.top="table.name"
-                  class="text-text-primary truncate text-xs font-semibold"
-                >
+                <span :title="table.name" class="text-text-primary truncate text-xs font-semibold">
                   {{ table.name }}
                 </span>
               </div>
@@ -789,7 +901,7 @@ const exportToSvg = () => {
                 :key="col.name"
                 class="hover:bg-surface-hover/80 flex h-7 items-center justify-between gap-1 px-3 text-[11px] transition-colors"
                 :class="{
-                  'bg-indigo-500/5 font-medium text-indigo-400':
+                  'bg-indigo-500/10 font-medium text-indigo-400':
                     hoveredColumn?.tableName === table.name &&
                     hoveredColumn?.columnName === col.name
                 }"
@@ -799,10 +911,10 @@ const exportToSvg = () => {
                 <!-- Name & Key Indicators -->
                 <div
                   class="group/col relative flex min-w-0 items-center gap-1.5"
-                  v-tooltip.top="
-                    getForeignKeyReference(table.name, col.name)
-                      ? `References ${getForeignKeyReference(table.name, col.name)!.targetTable}.${getForeignKeyReference(table.name, col.name)!.targetColumn}`
-                      : null
+                  :title="
+                    col.foreignKey
+                      ? `References ${col.foreignKey.targetTable}.${col.foreignKey.targetColumn}`
+                      : undefined
                   "
                 >
                   <Key
@@ -810,20 +922,16 @@ const exportToSvg = () => {
                     class="h-3 w-3 shrink-0 text-amber-500 drop-shadow-[0_0_2px_rgba(245,158,11,0.3)] filter"
                   />
                   <Link
-                    v-else-if="getForeignKeyReference(table.name, col.name)"
+                    v-else-if="col.foreignKey"
                     class="h-2.5 w-2.5 shrink-0 cursor-pointer text-indigo-400 drop-shadow-[0_0_2px_rgba(99,102,241,0.3)] filter"
-                    @click.stop="
-                      handleTableDoubleClick(
-                        getForeignKeyReference(table.name, col.name)!.targetTable
-                      )
-                    "
+                    @click.stop="handleTableDoubleClick(col.foreignKey.targetTable)"
                   />
                   <span
                     class="truncate"
                     :class="
                       col.isPrimaryKey
                         ? 'font-semibold text-amber-500'
-                        : getForeignKeyReference(table.name, col.name)
+                        : col.foreignKey
                           ? 'font-medium text-indigo-400'
                           : 'text-text-secondary'
                     "
@@ -834,7 +942,7 @@ const exportToSvg = () => {
 
                 <!-- Data type -->
                 <span
-                  v-tooltip.left="col.dataType"
+                  :title="col.dataType"
                   class="text-text-tertiary max-w-[90px] truncate font-mono text-[9px]"
                 >
                   {{ col.dataType.toLowerCase() }}
