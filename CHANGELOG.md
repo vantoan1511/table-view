@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.9] - 2026-09-05
+
+### Added
+
+- **Native Service**: Implemented `nativeService` wrapper layer and enforced import boundary across components (#73).
+- **CI/CD**: Added PR auto-labeler workflow based on conventional commits (#72).
+
+### Performance
+
+- **Schema Diagram**: Optimized schema diagram dragging with `v-memo` and precomputed SVG paths (#75).
+- **Schema Diagram**: Improved diagram rendering and navigation performance for large schemas (#69).
+
+### Refactored
+
+- **UI Components**: Polished UI components with PrimeVue v4 and unified design system principles (#74).
+
+### Documentation
+
+- **README**: Overhauled README with comprehensive features, architecture overview, and dynamic release badge (#70).
+
+### CI/CD
+
+- **Release Notes**: Categorized release notes automatically by PR labels (#76).
+- **WinGet Automation**: Synchronized WinGet fork and decoupled auto-updater logic in release workflow (#71).
+
 ## [0.6.8] - 2026-09-03
 
 ### Fixed
