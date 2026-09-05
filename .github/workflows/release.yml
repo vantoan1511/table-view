@@ -60,15 +60,6 @@ jobs:
           echo "Building installer for version $VERSION"
           node scripts/build-installer.js $VERSION
 
-      - name: Extract Release Notes
-        id: extract_notes
-        shell: bash
-        run: |
-          echo "Generating user-facing release notes from Conventional Commits..."
-          node scripts/generate-release-notes.js release_notes.md
-          echo "Generated release notes:"
-          cat release_notes.md
-
       - name: Generate SHA-256 Checksums
         shell: bash
         run: |
@@ -85,8 +76,7 @@ jobs:
             bin/db-bridge.exe
             Output/setup.exe
             SHA256SUMS.txt
-          body_path: release_notes.md
-          generate_release_notes: false
+          generate_release_notes: true
 
       - name: Update manifest.json for Auto-Updater
         shell: bash
