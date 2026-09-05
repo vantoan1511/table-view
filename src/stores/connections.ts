@@ -1,9 +1,9 @@
 import { OracleConnectType, OracleRole, type Connection } from '@/types';
-import * as Neutralino from '@neutralinojs/lib';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
 import { NativeService } from '@/services/native';
+import { storage } from '@/services/nativeService';
 import { decryptPassword, encryptPassword } from '@/utils/crypto';
 import { useToastStore } from './toast';
 
@@ -25,7 +25,7 @@ export const useConnectionsStore = defineStore('connections', () => {
   const loadConnections = async () => {
     if (window.NL_PORT) {
       try {
-        const data = await Neutralino.storage.getData('connections');
+        const data = await storage.getData('connections');
         const loaded = JSON.parse(data) as Connection[];
         // Decrypt passwords and reset connection states on boot
         loaded.forEach((c) => {
@@ -49,7 +49,7 @@ export const useConnectionsStore = defineStore('connections', () => {
         ...c,
         password: encryptPassword(c.password)
       }));
-      await Neutralino.storage.setData('connections', JSON.stringify(toSave));
+      await storage.setData('connections', JSON.stringify(toSave));
     }
   };
 

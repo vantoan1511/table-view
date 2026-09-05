@@ -250,3 +250,5 @@ export interface HistoryEntry {
   // Table properties
   tableName?: string;
 }
+
+export * from './events';

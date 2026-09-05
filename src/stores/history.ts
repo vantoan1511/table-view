@@ -1,5 +1,5 @@
 import type { HistoryEntry } from '@/types';
-import * as Neutralino from '@neutralinojs/lib';
+import { storage } from '@/services/nativeService';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
@@ -14,7 +14,7 @@ export const useHistoryStore = defineStore('history', () => {
   const loadHistory = async () => {
     if (window.NL_PORT) {
       try {
-        const data = await Neutralino.storage.getData('query_history');
+        const data = await storage.getData('query_history');
         const loaded = JSON.parse(data) as HistoryEntry[];
         history.value = loaded;
       } catch (_err) {
@@ -26,7 +26,7 @@ export const useHistoryStore = defineStore('history', () => {
   const saveHistory = async () => {
     if (window.NL_PORT) {
       try {
-        await Neutralino.storage.setData('query_history', JSON.stringify(history.value));
+        await storage.setData('query_history', JSON.stringify(history.value));
       } catch (err) {
         console.error('Failed to save query history:', err);
       }

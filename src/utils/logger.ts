@@ -1,4 +1,4 @@
-import * as Neutralino from '@neutralinojs/lib';
+import { dbBridge, events, extensions } from '@/services/nativeService';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
@@ -17,14 +17,10 @@ const logQueue: QueuedLog[] = [];
 async function sendToExtension(level: LogLevel, message: string) {
   if (isExtensionConnected) {
     try {
-      await Neutralino.extensions.dispatch(
-        'com.github.vantoan1511.tableview.db-bridge',
-        'dbBridge.log',
-        {
-          level,
-          message
-        }
-      );
+      await dbBridge.dispatch('dbBridge.log', {
+        level,
+        message
+      });
     } catch (e) {
       // Fallback to console if extension fails
       console.warn('Failed to send log to extension:', e);
@@ -39,8 +35,9 @@ async function sendToExtension(level: LogLevel, message: string) {
  */
 export function initLogger() {
   // Monitor extension ready event
-  Neutralino.events.on('extensionReady', (event) => {
-    if (event.detail === 'com.github.vantoan1511.tableview.db-bridge') {
+  events.on('extensionReady', (event: any) => {
+    const extId = typeof event === 'string' ? event : event?.detail;
+    if (extId === 'com.github.vantoan1511.tableview.db-bridge') {
       isExtensionConnected = true;
       processQueue();
     }
@@ -52,7 +49,7 @@ export function initLogger() {
 
 async function checkConnection() {
   try {
-    const stats = await Neutralino.extensions.getStats();
+    const stats = await extensions.getStats();
     if (stats.loaded.includes('com.github.vantoan1511.tableview.db-bridge')) {
       isExtensionConnected = true;
       processQueue();

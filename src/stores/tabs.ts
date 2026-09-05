@@ -2,7 +2,7 @@ import { TabType, type Tab } from '@/types';
 import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
 
-import { NativeService } from '@/services/native';
+import { NativeService } from '@/services/nativeService';
 import { useConnectionsStore } from './connections';
 import { useSchemaStore } from './schema';
 import { useTabPersistence } from './tabs/useTabPersistence';

@@ -3,7 +3,7 @@ import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import { useAboutStore } from '@/stores/about';
 import { useUpdaterStore } from '@/stores/updater';
-import * as Neutralino from '@neutralinojs/lib';
+import { os } from '@/services/nativeService';
 import { Coffee, Github, Globe, Heart, X } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
@@ -23,7 +23,7 @@ onMounted(async () => {
 
 const openLink = (url: string) => {
   if (window.NL_PORT) {
-    Neutralino.os.open(url);
+    os.open(url);
   } else {
     window.open(url, '_blank');
   }

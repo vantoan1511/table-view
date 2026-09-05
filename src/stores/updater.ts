@@ -1,4 +1,4 @@
-import * as Neutralino from '@neutralinojs/lib';
+import { app, events, filesystem, os, storage, updater } from '@/services/nativeService';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
@@ -49,7 +49,7 @@ export const useUpdaterStore = defineStore('updater', () => {
     // Cleanup update-related files on startup
     if (window.NL_PORT) {
       try {
-        const data = await Neutralino.storage.getData('updater_config');
+        const data = await storage.getData('updater_config');
         const config = JSON.parse(data);
         ignoredVersion.value = config.ignoredVersion || null;
         installedVersion.value = config.installedVersion || null;
@@ -60,9 +60,9 @@ export const useUpdaterStore = defineStore('updater', () => {
       try {
         const platform = (window.NL_OS || '').toLowerCase();
         if (platform === 'windows') {
-          await Neutralino.filesystem.remove?.('updater.bat')?.catch(() => {});
-          await Neutralino.filesystem.remove?.('resources.neu.new')?.catch(() => {});
-          await Neutralino.filesystem.remove?.('bin\\db-bridge.exe.new')?.catch(() => {});
+          await filesystem.remove?.('updater.bat')?.catch(() => {});
+          await filesystem.remove?.('resources.neu.new')?.catch(() => {});
+          await filesystem.remove?.('bin\\db-bridge.exe.new')?.catch(() => {});
         }
       } catch (err) {
         console.warn('Cleanup failed:', err);
@@ -81,7 +81,7 @@ export const useUpdaterStore = defineStore('updater', () => {
       const manifestUrl = preferencesStore.settings.optInPreview
         ? PREVIEW_MANIFEST_URL
         : STABLE_MANIFEST_URL;
-      const manifest = (await Neutralino.updater.checkForUpdates(manifestUrl)) as UpdateManifest;
+      const manifest = (await updater.checkForUpdates(manifestUrl)) as UpdateManifest;
       const currentAppVersion = getCurrentAppVersion();
       const appNeedsUpdate = isNewerVersion(
         manifest.version,
@@ -174,7 +174,7 @@ export const useUpdaterStore = defineStore('updater', () => {
       // 2. Download Extension (.exe)
       updateStatus.value = 'Downloading database engine...';
       try {
-        await (Neutralino.filesystem as any).createDirectory('bin');
+        await (filesystem as any).createDirectory('bin');
       } catch {
         // Directory already exists — not an error
       }
@@ -187,7 +187,7 @@ export const useUpdaterStore = defineStore('updater', () => {
         try {
           const pid = window.NL_PID;
           const cmd = `powershell -Command "(Get-Process -Id ${pid}).Path"`;
-          const res = await Neutralino.os.execCommand(cmd);
+          const res = await os.execCommand(cmd);
           if (res.exitCode === 0 && res.stdOut.trim()) {
             const fullPath = res.stdOut.trim();
             const parts = fullPath.split(/[\\/]/);
@@ -207,7 +207,7 @@ export const useUpdaterStore = defineStore('updater', () => {
       // 4. Persist installed version metadata
       installedVersion.value = manifest.version;
       try {
-        await Neutralino.storage.setData(
+        await storage.setData(
           'updater_config',
           JSON.stringify({
             ignoredVersion: ignoredVersion.value,
@@ -221,14 +221,14 @@ export const useUpdaterStore = defineStore('updater', () => {
       // 5. Create Swapper Batch Script
       updateStatus.value = 'Staging installation...';
       const batContent = createSwapperBat(exeName);
-      await Neutralino.filesystem.writeFile('updater.bat', batContent);
+      await filesystem.writeFile('updater.bat', batContent);
 
       updateStatus.value = 'Update staged! Restarting in 3 seconds...';
 
       // 6. Trigger swapper and exit
       setTimeout(async () => {
-        await Neutralino.os.execCommand('cmd /c start /min updater.bat');
-        await Neutralino.app.exit();
+        await os.execCommand('cmd /c start /min updater.bat');
+        await app.exit();
       }, 3000);
     } catch (err: any) {
       console.error('Update failed:', err);
@@ -241,7 +241,7 @@ export const useUpdaterStore = defineStore('updater', () => {
     ignoredVersion.value = version;
     if (window.NL_PORT) {
       try {
-        await Neutralino.storage.setData(
+        await storage.setData(
           'updater_config',
           JSON.stringify({
             ignoredVersion: version,
@@ -312,18 +312,17 @@ $res.Close()
       let isResolved = false;
       let procId: number | null = null;
 
-      interface SpawnedProcessEvent {
-        detail: {
-          id: number;
-          action: 'stdOut' | 'stdErr' | 'exit';
-          data: unknown;
-        };
+      interface SpawnedProcessData {
+        id: number;
+        action: 'stdOut' | 'stdErr' | 'exit';
+        data: unknown;
       }
 
-      const handler = (evt: SpawnedProcessEvent) => {
-        if (procId !== null && evt.detail.id === procId) {
-          if (evt.detail.action === 'stdOut') {
-            const data = String(evt.detail.data ?? '');
+      const handler = (evt: any) => {
+        const detail: SpawnedProcessData = evt?.detail !== undefined ? evt.detail : evt;
+        if (procId !== null && detail?.id === procId) {
+          if (detail.action === 'stdOut') {
+            const data = String(detail.data ?? '');
             processOutput += data;
             const matches = data.match(/PROGRESS:(\d+)/g);
             if (matches && matches.length > 0) {
@@ -335,22 +334,19 @@ $res.Close()
                 }
               }
             }
-          } else if (evt.detail.action === 'stdErr') {
-            processOutput += String(evt.detail.data ?? '');
-          } else if (evt.detail.action === 'exit') {
-            Neutralino.events.off(
-              'spawnedProcess',
-              handler as unknown as (evt: CustomEvent) => void
-            );
+          } else if (detail.action === 'stdErr') {
+            processOutput += String(detail.data ?? '');
+          } else if (detail.action === 'exit') {
+            events.off('spawnedProcess', handler);
             if (!isResolved) {
               isResolved = true;
-              if (evt.detail.data === 0) {
+              if (detail.data === 0) {
                 downloadProgress.value = 100;
                 resolve();
               } else {
                 reject(
                   new Error(
-                    `Download failed with exit code ${evt.detail.data}: ${processOutput.trim()}`
+                    `Download failed with exit code ${detail.data}: ${processOutput.trim()}`
                   )
                 );
               }
@@ -360,11 +356,11 @@ $res.Close()
       };
 
       try {
-        Neutralino.events.on('spawnedProcess', handler);
-        const proc = await Neutralino.os.spawnProcess(cmd);
+        events.on('spawnedProcess', handler);
+        const proc = await os.spawnProcess(cmd);
         procId = proc.id;
       } catch (err) {
-        Neutralino.events.off('spawnedProcess', handler);
+        events.off('spawnedProcess', handler);
         reject(err);
       }
     });
