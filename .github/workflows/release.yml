@@ -110,36 +110,6 @@ jobs:
           git commit -m "chore: update manifest.json for release v$VERSION [skip ci]" || echo "No changes to commit"
           git push origin main || echo "Failed to push to main"
 
-      - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install komac
-        shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: cargo binstall komac -y --force
-
-      - name: Sync WinGet Fork and Clean Stale Branches
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.WINGET_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
-          KOMAC_FORK_OWNER: vantoan1511
-        run: |
-          Write-Host "Syncing vantoan1511/winget-pkgs fork from upstream microsoft/winget-pkgs..."
-          gh repo sync vantoan1511/winget-pkgs -b master --force
-          Write-Host "Cleaning up stale merged branches..."
-          komac cleanup --only-merged
-
-      - name: Submit to WinGet Community Repository
-        uses: vedantmgoyal9/winget-releaser@v2
-        with:
-          identifier: vantoan1511.TableView
-          installers-regex: 'setup\.exe$'
-          token: ${{ secrets.WINGET_TOKEN }}
-
       - name: Clean Up Preview Releases for this Version
         if: always()
         env:

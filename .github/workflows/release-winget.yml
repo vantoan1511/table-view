@@ -1,0 +1,109 @@
+name: Release to WinGet
+
+on:
+  workflow_run:
+    workflows: ["Release Table View"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to publish to WinGet (e.g. v0.1.2). Leave empty for latest release.'
+        required: false
+        type: string
+
+jobs:
+  publish-winget:
+    name: Submit to WinGet
+    runs-on: windows-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success')
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Resolve Release Tag
+        id: resolve_tag
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $inputTag = "${{ github.event.inputs.release_tag }}".Trim()
+          $targetTag = ""
+
+          if ($inputTag) {
+            Write-Host "Using user-specified release tag: $inputTag"
+            $targetTag = $inputTag
+          } elseif ("${{ github.event.workflow_run.head_branch }}") {
+            $branch = "${{ github.event.workflow_run.head_branch }}"
+            Write-Host "Triggered by workflow_run with head_branch: $branch"
+            if ($branch.StartsWith("refs/tags/")) {
+              $targetTag = $branch.Substring(10)
+            } elseif ($branch -match '^v\d+') {
+              $targetTag = $branch
+            }
+          }
+
+          if (-not $targetTag) {
+            Write-Host "Determining tag from latest published GitHub release..."
+            $targetTag = gh release view -R ${{ github.repository }} --json tagName -q .tagName
+          }
+
+          if (-not $targetTag) {
+            Write-Error "Could not determine target release tag."
+            exit 1
+          }
+
+          Write-Host "Resolved target release tag: $targetTag"
+
+          # Verify that target release exists and has setup.exe
+          $assets = gh release view $targetTag -R ${{ github.repository }} --json assets -q ".assets[].name"
+          Write-Host "Release assets found: $assets"
+          if ($assets -notcontains "setup.exe") {
+            Write-Error "Release $targetTag does not contain setup.exe! Found assets: $assets"
+            exit 1
+          }
+
+          Write-Host "Verified setup.exe exists in release $targetTag."
+          "RELEASE_TAG=$targetTag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Add Cargo Bin to PATH
+        shell: pwsh
+        run: echo "$HOME\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install komac
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cargo binstall komac -y --force
+
+      - name: Sync WinGet Fork and Clean Stale Branches
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          KOMAC_FORK_OWNER: vantoan1511
+        run: |
+          Write-Host "Syncing vantoan1511/winget-pkgs fork from upstream microsoft/winget-pkgs..."
+          gh repo sync vantoan1511/winget-pkgs -b master --force
+          Write-Host "Cleaning up stale merged branches..."
+          komac cleanup --only-merged
+
+      - name: Submit to WinGet Community Repository
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: vantoan1511.TableView
+          installers-regex: 'setup\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
+          release-tag: ${{ env.RELEASE_TAG }}
+          fork-user: vantoan1511
