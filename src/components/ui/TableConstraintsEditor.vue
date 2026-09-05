@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import DropdownMenu from './DropdownMenu.vue';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Select from 'primevue/select';
 
 import { DbType } from '@/types';
 
@@ -105,25 +107,27 @@ const saveConstraint = (c: ConstraintDef) => {
           >
             <!-- Constraint Name -->
             <td class="px-4 py-2">
-              <input
+              <InputText
                 v-if="c._editing && (mode === 'create' || c._isNew)"
                 v-model.trim="c.name"
-                type="text"
-                class="bg-surface border-primary/50 focus:border-primary text-text-primary w-full rounded border px-2 py-1 outline-none"
-                :class="{ 'border-danger! !focus:border-danger': !c.name.trim() }"
+                size="small"
+                class="w-full"
+                :invalid="!c.name.trim()"
               />
               <span v-else class="text-text-primary">{{ c.name }}</span>
             </td>
 
             <!-- Constraint Type -->
             <td class="px-4 py-2">
-              <DropdownMenu
+              <Select
                 v-if="c._editing && (mode === 'create' || c._isNew)"
                 :model-value="c.constraintType"
                 @update:model-value="(val) => (c.constraintType = String(val))"
                 :options="constraintTypeOptions"
-                class="w-full"
-                button-class="w-full justify-between !bg-surface text-text-primary text-[13px]"
+                optionLabel="label"
+                optionValue="value"
+                size="small"
+                class="w-full text-xs"
               />
               <span
                 v-else
@@ -134,13 +138,13 @@ const saveConstraint = (c: ConstraintDef) => {
 
             <!-- Definition -->
             <td class="px-4 py-2">
-              <input
+              <InputText
                 v-if="c._editing && (mode === 'create' || c._isNew)"
                 v-model="c.definition"
-                type="text"
                 placeholder="e.g. (id) or (user_id) REFERENCES users(id)"
-                class="bg-surface border-primary/50 focus:border-primary text-text-primary w-full rounded border px-2 py-1 text-[12px] outline-none"
-                :class="{ 'border-danger! !focus:border-danger': !c.definition.trim() }"
+                size="small"
+                class="w-full font-mono text-[12px]"
+                :invalid="!c.definition.trim()"
               />
               <span v-else class="text-text-secondary font-mono text-[12px]">{{
                 c.definition || '—'
@@ -149,32 +153,47 @@ const saveConstraint = (c: ConstraintDef) => {
 
             <!-- Actions -->
             <td class="px-4 py-2 text-right">
-              <div class="flex items-center justify-end gap-2">
-                <button
+              <div class="flex items-center justify-end gap-1">
+                <Button
                   v-if="c._editing"
-                  @click="saveConstraint(c)"
                   v-tooltip.top="'Save'"
-                  class="text-success hover:text-success/80 cursor-pointer transition-colors"
+                  size="small"
+                  variant="text"
+                  severity="success"
+                  class="h-7! w-7! p-0!"
                   :disabled="!c.name.trim() || !c.definition.trim()"
+                  @click="saveConstraint(c)"
                 >
-                  <Check :size="14" />
-                </button>
-                <button
+                  <template #icon>
+                    <Check :size="14" />
+                  </template>
+                </Button>
+                <Button
                   v-else-if="mode === 'create' || c._isNew"
-                  @click="editConstraint(c)"
                   v-tooltip.top="'Edit'"
-                  class="text-text-tertiary hover:text-primary cursor-pointer transition-colors"
+                  size="small"
+                  variant="text"
+                  severity="secondary"
+                  class="h-7! w-7! p-0!"
+                  @click="editConstraint(c)"
                 >
-                  <Edit2 :size="14" />
-                </button>
+                  <template #icon>
+                    <Edit2 :size="14" />
+                  </template>
+                </Button>
 
-                <button
-                  @click="removeConstraint(c.id)"
+                <Button
                   v-tooltip.top="'Delete'"
-                  class="text-text-tertiary hover:text-danger cursor-pointer transition-colors"
+                  size="small"
+                  variant="text"
+                  severity="danger"
+                  class="h-7! w-7! p-0!"
+                  @click="removeConstraint(c.id)"
                 >
-                  <Trash2 :size="14" />
-                </button>
+                  <template #icon>
+                    <Trash2 :size="14" />
+                  </template>
+                </Button>
               </div>
             </td>
           </tr>
@@ -189,13 +208,10 @@ const saveConstraint = (c: ConstraintDef) => {
 
     <!-- Add Constraint Button -->
     <div class="mt-4">
-      <button
-        @click="addConstraint"
-        class="border-primary/30 text-primary hover:bg-primary/10 flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors"
-      >
+      <Button size="small" variant="outlined" severity="primary" @click="addConstraint">
         <Plus :size="14" />
         <span>Add Constraint</span>
-      </button>
+      </Button>
     </div>
   </div>
 </template>

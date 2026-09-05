@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import Dialog from 'primevue/dialog';
+import InputText from 'primevue/inputtext';
+import Button from 'primevue/button';
+import Checkbox from 'primevue/checkbox';
 import ConfirmDialog from '../ui/ConfirmDialog.vue';
 import CreateDatabaseDialog from '../ui/CreateDatabaseDialog.vue';
 import CreateSchemaDialog from '../ui/CreateSchemaDialog.vue';
@@ -9,7 +13,7 @@ import { useGridStore } from '@/stores/grid';
 import { useSchemaStore } from '@/stores/schema';
 import { useToastStore } from '@/stores/toast';
 
-import { AlertTriangle, Trash2, X } from 'lucide-vue-next';
+import { AlertTriangle, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -212,152 +216,142 @@ const confirmDatabaseDelete = async () => {
       "
     />
 
-    <Teleport to="body">
-      <div v-if="databaseToDelete" class="fixed inset-0 z-200 flex items-center justify-center">
-        <!-- Scrim -->
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="closeDatabaseDelete" />
-
-        <!-- Dialog Container -->
-        <div
-          class="bg-surface shadow-modal border-border relative z-10 mx-4 w-full max-w-md animate-[scale-in_0.15s_ease-out] overflow-hidden rounded-xl border text-left"
-          role="dialog"
-          aria-modal="true"
-        >
-          <!-- Header -->
-          <div class="flex items-start gap-3 p-5 pb-3">
-            <div class="bg-danger-light text-danger shrink-0 rounded-lg p-2">
-              <Trash2 :size="18" />
-            </div>
-            <div class="min-w-0 flex-1 pt-0.5">
-              <h3 class="text-text-primary text-[14px] leading-tight font-semibold">
-                Delete Database: Step {{ confirmStep }} of 2
-              </h3>
-              <p class="text-text-tertiary mt-0.5 text-[11px]">Highly Critical Action</p>
-            </div>
-            <Button rounded variant="text" severity="secondary" @click="closeDatabaseDelete">
-              <template #icon>
-                <X class="h-4 w-4" />
-              </template>
-            </Button>
+    <Dialog
+      :visible="!!databaseToDelete"
+      modal
+      :closable="true"
+      :style="{ width: '32rem' }"
+      @update:visible="
+        (val) => {
+          if (!val) closeDatabaseDelete();
+        }
+      "
+    >
+      <template #header>
+        <div class="flex items-center gap-2.5" v-if="databaseToDelete">
+          <div class="bg-danger-light text-danger shrink-0 rounded-lg p-1.5">
+            <Trash2 :size="16" />
           </div>
-
-          <!-- Divider -->
-          <div class="bg-border mx-5 h-px" />
-
-          <!-- Body Content (Step 1) -->
-          <div v-if="confirmStep === 1" class="flex flex-col gap-4 p-5 py-4">
-            <div
-              class="bg-danger/10 border-danger/20 text-danger flex items-start gap-2.5 rounded-lg border p-3.5 text-[13px] leading-relaxed"
-            >
-              <AlertTriangle :size="16" class="mt-0.5 shrink-0" />
-              <div>
-                <p class="text-danger font-semibold">WARNING: Permanent Data Loss</p>
-                <p class="text-text-secondary mt-1 opacity-90">
-                  You are about to drop database
-                  <strong class="text-text-primary underline">{{ databaseToDelete.name }}</strong
-                  >. This will immediately destroy all tables, schemas, views, and stored data. This
-                  action is <strong class="text-danger font-bold uppercase">irreversible</strong>.
-                </p>
-                <p
-                  v-if="isDeletingActiveDb"
-                  class="bg-danger/20 border-danger/20 text-text-primary mt-2 rounded border p-1.5 text-[12px] font-medium"
-                >
-                  Note: This is the currently open/active database. Dropping it will close active
-                  connections and switch your session context.
-                </p>
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-1.5">
-              <label class="text-text-secondary text-[12px] font-medium">
-                To confirm, type
-                <span
-                  class="bg-hover text-text-primary border-border rounded border px-1.5 py-0.5 font-mono text-[11px] font-semibold select-all"
-                  >{{ databaseToDelete.name }}</span
-                >
-                below:
-              </label>
-              <input
-                v-model="typedDbName"
-                type="text"
-                placeholder="Enter database name"
-                class="bg-hover border-border focus:border-primary/50 text-text-primary w-full rounded-lg border px-3 py-2 text-[13px] transition-colors outline-none"
-                @keyup.enter="typedDbName === databaseToDelete.name && (confirmStep = 2)"
-              />
-            </div>
-          </div>
-
-          <!-- Body Content (Step 2) -->
-          <div v-else class="flex flex-col gap-4 p-5 py-4">
-            <div
-              class="bg-warning/10 border-warning/20 text-warning flex items-start gap-2.5 rounded-lg border p-3.5 text-[13px] leading-relaxed"
-            >
-              <AlertTriangle :size="16" class="mt-0.5 shrink-0" />
-              <div>
-                <p class="text-warning font-semibold">Step 2: Backup Verification</p>
-                <p class="text-text-secondary mt-1 opacity-90">
-                  Have you backed up your data? We highly recommend exporting or copying important
-                  information before proceeding.
-                </p>
-              </div>
-            </div>
-
-            <div
-              class="hover:bg-hover border-border flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition-colors"
-              @click="backedUpChecked = !backedUpChecked"
-            >
-              <Checkbox
-                v-model="backedUpChecked"
-                inputId="backup-confirm-check"
-                binary
-                class="mt-1 shrink-0"
-                @click.stop
-              />
-              <label
-                for="backup-confirm-check"
-                class="text-text-secondary cursor-pointer text-[13px] leading-relaxed select-none"
-                @click.stop
-              >
-                I have backed up my database and understand that this action is permanent and cannot
-                be undone.
-              </label>
-            </div>
-          </div>
-
-          <!-- Divider -->
-          <div class="bg-border mx-5 h-px" />
-
-          <!-- Footer -->
-          <div class="flex items-center justify-end gap-2 p-4">
-            <Button variant="text" severity="secondary" size="small" @click="closeDatabaseDelete">
-              Cancel
-            </Button>
-
-            <!-- Step 1 Button -->
-            <Button
-              v-if="confirmStep === 1"
-              severity="danger"
-              size="small"
-              :disabled="typedDbName !== databaseToDelete.name"
-              @click="confirmStep = 2"
-            >
-              Next Step
-            </Button>
-
-            <!-- Step 2 Button -->
-            <Button
-              v-else
-              severity="danger"
-              size="small"
-              :disabled="!backedUpChecked"
-              @click="confirmDatabaseDelete"
-            >
-              Confirm & Drop Database
-            </Button>
+          <div>
+            <h3 class="text-text-primary text-[14px] leading-tight font-semibold">
+              Delete Database: Step {{ confirmStep }} of 2
+            </h3>
+            <p class="text-text-tertiary text-[11px]">Highly Critical Action</p>
           </div>
         </div>
+      </template>
+
+      <!-- Body Content (Step 1) -->
+      <div v-if="confirmStep === 1 && databaseToDelete" class="space-y-4 py-2">
+        <div
+          class="bg-danger/10 border-danger/20 text-danger flex items-start gap-2.5 rounded-lg border p-3.5 text-[13px] leading-relaxed"
+        >
+          <AlertTriangle :size="16" class="mt-0.5 shrink-0" />
+          <div>
+            <p class="text-danger font-semibold">WARNING: Permanent Data Loss</p>
+            <p class="text-text-secondary mt-1 opacity-90">
+              You are about to drop database
+              <strong class="text-text-primary underline">{{ databaseToDelete.name }}</strong
+              >. This will immediately destroy all tables, schemas, views, and stored data. This
+              action is <strong class="text-danger font-bold uppercase">irreversible</strong>.
+            </p>
+            <p
+              v-if="isDeletingActiveDb"
+              class="bg-danger/20 border-danger/20 text-text-primary mt-2 rounded border p-1.5 text-[12px] font-medium"
+            >
+              Note: This is the currently open/active database. Dropping it will close active
+              connections and switch your session context.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-text-secondary text-[12px] font-medium">
+            To confirm, type
+            <span
+              class="bg-hover text-text-primary border-border rounded border px-1.5 py-0.5 font-mono text-[11px] font-semibold select-all"
+              >{{ databaseToDelete.name }}</span
+            >
+            below:
+          </label>
+          <InputText
+            v-model="typedDbName"
+            type="text"
+            placeholder="Enter database name"
+            fluid
+            @keyup.enter="typedDbName === databaseToDelete.name && (confirmStep = 2)"
+          />
+        </div>
       </div>
-    </Teleport>
+
+      <!-- Body Content (Step 2) -->
+      <div v-else-if="databaseToDelete" class="space-y-4 py-2">
+        <div
+          class="bg-warning/10 border-warning/20 text-warning flex items-start gap-2.5 rounded-lg border p-3.5 text-[13px] leading-relaxed"
+        >
+          <AlertTriangle :size="16" class="mt-0.5 shrink-0" />
+          <div>
+            <p class="text-warning font-semibold">Step 2: Backup Verification</p>
+            <p class="text-text-secondary mt-1 opacity-90">
+              Have you backed up your data? We highly recommend exporting or copying important
+              information before proceeding.
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="hover:bg-hover border-border flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition-colors"
+          @click="backedUpChecked = !backedUpChecked"
+        >
+          <Checkbox
+            v-model="backedUpChecked"
+            inputId="backup-confirm-check"
+            binary
+            class="mt-1 shrink-0"
+            @click.stop
+          />
+          <label
+            for="backup-confirm-check"
+            class="text-text-secondary cursor-pointer text-[13px] leading-relaxed select-none"
+            @click.stop
+          >
+            I have backed up my database and understand that this action is permanent and cannot be
+            undone.
+          </label>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <template #footer>
+        <div class="flex items-center justify-end gap-2 pt-2" v-if="databaseToDelete">
+          <Button variant="text" severity="secondary" size="small" @click="closeDatabaseDelete">
+            Cancel
+          </Button>
+
+          <!-- Step 1 Button -->
+          <Button
+            v-if="confirmStep === 1"
+            severity="danger"
+            size="small"
+            :disabled="typedDbName !== databaseToDelete.name"
+            @click="confirmStep = 2"
+          >
+            Next Step
+          </Button>
+
+          <!-- Step 2 Button -->
+          <Button
+            v-else
+            severity="danger"
+            size="small"
+            :disabled="!backedUpChecked"
+            @click="confirmDatabaseDelete"
+          >
+            Confirm & Drop Database
+          </Button>
+        </div>
+      </template>
+    </Dialog>
 
     <CreateTableDialog
       v-if="gridStore.showCreateTableDialog && gridStore.createTableTarget"
@@ -381,16 +375,3 @@ const confirmDatabaseDelete = async () => {
     />
   </div>
 </template>
-
-<style scoped>
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-</style>

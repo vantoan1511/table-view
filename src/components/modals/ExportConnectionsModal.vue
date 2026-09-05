@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import Dialog from 'primevue/dialog';
+import Checkbox from 'primevue/checkbox';
+import Button from 'primevue/button';
 import { useConnectionsStore } from '@/stores/connections';
-import { X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 const connectionsStore = useConnectionsStore();
@@ -50,132 +52,106 @@ const handleExport = async () => {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      v-if="connectionsStore.showExportModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
-      @click.self="handleClose"
-    >
-      <div
-        class="bg-surface shadow-modal animate-in modal-container flex max-h-[90vh] w-120 flex-col overflow-hidden rounded-xl"
-      >
-        <!-- Header -->
-        <div class="border-border flex items-center justify-between border-b px-5 py-3.5">
-          <h2 class="text-text-primary text-[15px] font-semibold">Export Connections</h2>
-          <Button rounded variant="text" severity="secondary" @click="handleClose">
-            <template #icon>
-              <X class="h-4 w-4" />
-            </template>
-          </Button>
+  <Dialog
+    :visible="connectionsStore.showExportModal"
+    modal
+    :closable="true"
+    header="Export Connections"
+    :style="{ width: '32rem' }"
+    @update:visible="
+      (val) => {
+        if (!val) handleClose();
+      }
+    "
+  >
+    <div class="py-2">
+      <div class="border-border rounded-lg border">
+        <div class="border-border bg-sidebar/50 flex items-center gap-3 border-b px-3 py-2">
+          <Checkbox
+            :model-value="isAllSelected"
+            @update:model-value="toggleSelectAll"
+            inputId="select-all-export"
+            binary
+          />
+          <label
+            for="select-all-export"
+            class="text-text-secondary cursor-pointer text-[13px] font-medium select-none"
+            >Select All</label
+          >
         </div>
-
-        <!-- Body -->
-        <div class="flex-1 overflow-y-auto px-5 py-4">
-          <div class="border-border rounded-lg border">
-            <div class="border-border bg-sidebar/50 flex items-center gap-3 border-b px-3 py-2">
-              <Checkbox
-                :model-value="isAllSelected"
-                @update:model-value="toggleSelectAll"
-                inputId="select-all-export"
-                binary
-              />
-              <label
-                for="select-all-export"
-                class="text-text-secondary cursor-pointer text-[13px] font-medium select-none"
-                >Select All</label
-              >
-            </div>
-            <div class="max-h-60 overflow-y-auto">
-              <div
-                v-for="conn in connectionsStore.connections"
-                :key="conn.id"
-                class="border-border hover:bg-sidebar/30 flex items-center gap-3 border-b px-3 py-2 last:border-b-0"
-              >
-                <Checkbox
-                  :model-value="selectedIds.includes(conn.id)"
-                  @update:model-value="
-                    (val) => {
-                      if (val) selectedIds.push(conn.id);
-                      else selectedIds = selectedIds.filter((id) => id !== conn.id);
-                    }
-                  "
-                  :inputId="'conn-' + conn.id"
-                  binary
-                />
-                <label
-                  :for="'conn-' + conn.id"
-                  class="flex flex-1 cursor-pointer items-center gap-2 select-none"
-                >
-                  <div
-                    class="h-2 w-2 shrink-0 rounded-full"
-                    :class="conn.color ? `bg-conn-${conn.color}` : 'bg-conn-gray'"
-                  />
-                  <span class="text-text-primary text-[13px]">{{ conn.name }}</span>
-                  <span class="text-text-tertiary font-mono text-[11px]"
-                    >{{ conn.host }}:{{ conn.port }}</span
-                  >
-                </label>
-              </div>
-              <div
-                v-if="connectionsStore.connections.length === 0"
-                class="text-text-tertiary px-3 py-4 text-center text-[13px]"
-              >
-                No connections available to export.
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-4 flex items-start gap-2">
+        <div class="max-h-60 overflow-y-auto">
+          <div
+            v-for="conn in connectionsStore.connections"
+            :key="conn.id"
+            class="border-border hover:bg-sidebar/30 flex items-center gap-3 border-b px-3 py-2 last:border-b-0"
+          >
             <Checkbox
-              v-model="includePasswords"
-              inputId="include-passwords-export"
+              :model-value="selectedIds.includes(conn.id)"
+              @update:model-value="
+                (val) => {
+                  if (val) selectedIds.push(conn.id);
+                  else selectedIds = selectedIds.filter((id) => id !== conn.id);
+                }
+              "
+              :inputId="'conn-' + conn.id"
               binary
-              class="mt-0.5"
             />
-            <label for="include-passwords-export" class="flex cursor-pointer flex-col select-none">
-              <span class="text-text-primary text-[13px] font-medium"
-                >Include passwords / credentials</span
+            <label
+              :for="'conn-' + conn.id"
+              class="flex flex-1 cursor-pointer items-center gap-2 select-none"
+            >
+              <div
+                class="h-2 w-2 shrink-0 rounded-full"
+                :class="conn.color ? `bg-conn-${conn.color}` : 'bg-conn-gray'"
+              />
+              <span class="text-text-primary text-[13px]">{{ conn.name }}</span>
+              <span class="text-text-tertiary font-mono text-[11px]"
+                >{{ conn.host }}:{{ conn.port }}</span
               >
-              <span class="text-text-tertiary text-[11px]">
-                Passwords will be encrypted, but anyone with Table View can import and use them.
-              </span>
             </label>
           </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="border-border bg-muted flex items-center justify-between border-t px-5 py-3">
-          <div class="text-text-tertiary text-[12px]">
-            {{ selectedIds.length }} connection(s) selected
-          </div>
-          <div class="flex items-center gap-2">
-            <Button variant="text" severity="secondary" size="small" @click="handleClose">
-              Cancel
-            </Button>
-            <Button :disabled="selectedIds.length === 0" size="small" @click="handleExport">
-              Export
-            </Button>
+          <div
+            v-if="connectionsStore.connections.length === 0"
+            class="text-text-tertiary px-3 py-4 text-center text-[13px]"
+          >
+            No connections available to export.
           </div>
         </div>
       </div>
+
+      <div class="mt-4 flex items-start gap-2">
+        <Checkbox
+          v-model="includePasswords"
+          inputId="include-passwords-export"
+          binary
+          class="mt-0.5"
+        />
+        <label for="include-passwords-export" class="flex cursor-pointer flex-col select-none">
+          <span class="text-text-primary text-[13px] font-medium"
+            >Include passwords / credentials</span
+          >
+          <span class="text-text-tertiary text-[11px]">
+            Passwords will be encrypted, but anyone with Table View can import and use them.
+          </span>
+        </label>
+      </div>
     </div>
-  </Teleport>
+
+    <!-- Footer -->
+    <template #footer>
+      <div class="flex w-full items-center justify-between pt-2">
+        <div class="text-text-tertiary text-[12px]">
+          {{ selectedIds.length }} connection(s) selected
+        </div>
+        <div class="flex items-center gap-2">
+          <Button variant="text" severity="secondary" size="small" @click="handleClose">
+            Cancel
+          </Button>
+          <Button :disabled="selectedIds.length === 0" size="small" @click="handleExport">
+            Export
+          </Button>
+        </div>
+      </div>
+    </template>
+  </Dialog>
 </template>
-
-<style scoped>
-.animate-in {
-  animation: modal-in 0.2s ease-out;
-}
-
-@keyframes modal-in {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-</style>

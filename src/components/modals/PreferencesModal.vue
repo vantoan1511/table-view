@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import ToggleSwitch from '@/components/ui/ToggleSwitch.vue';
+import Dialog from 'primevue/dialog';
+import Select from 'primevue/select';
+import InputNumber from 'primevue/inputnumber';
+import Button from 'primevue/button';
+import ToggleSwitch from 'primevue/toggleswitch';
 
 import { defaultShortcuts, usePreferencesStore } from '@/stores/preferences';
 import { useToastStore } from '@/stores/toast';
@@ -16,10 +20,28 @@ import {
   Settings,
   Shield,
   Table,
-  Terminal,
-  X
+  Terminal
 } from 'lucide-vue-next';
 import { computed, reactive, ref, watch } from 'vue';
+
+const themeOptions = [
+  { label: 'Light', value: 'light' },
+  { label: 'Dark', value: 'dark' },
+  { label: 'System Preference', value: 'system' }
+];
+
+const languageOptions = [
+  { label: 'English (US)', value: 'en' },
+  { label: 'Tiếng Việt', value: 'vi' }
+];
+
+const maxRowsOptions = [
+  { label: '100 rows', value: 100 },
+  { label: '500 rows', value: 500 },
+  { label: '1,000 rows', value: 1000 },
+  { label: '5,000 rows', value: 5000 },
+  { label: '10,000 rows', value: 10000 }
+];
 
 const preferencesStore = usePreferencesStore();
 const toastStore = useToastStore();
@@ -310,472 +332,401 @@ const savePreferences = async () => {
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="fade">
+  <Dialog
+    :visible="preferencesStore.isOpen"
+    modal
+    :closable="true"
+    :style="{ width: '56rem' }"
+    :pt="{
+      root: { class: 'overflow-hidden' },
+      content: { class: 'p-0! overflow-hidden flex flex-col' }
+    }"
+    @update:visible="
+      (val) => {
+        if (!val) preferencesStore.close();
+      }
+    "
+  >
+    <template #header>
+      <div class="text-text-primary flex items-center gap-2.5">
+        <Settings :size="18" class="text-primary shrink-0" />
+        <span class="text-sm font-semibold">Preferences</span>
+      </div>
+    </template>
+
+    <!-- Body -->
+    <div class="flex max-h-[70vh] min-h-125">
+      <!-- Sidebar -->
       <div
-        v-if="preferencesStore.isOpen"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="preferences-modal-title"
-        class="modal-backdrop fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-        @keydown.escape="preferencesStore.close"
-        @click.self="preferencesStore.close"
+        role="tablist"
+        aria-label="Preferences Navigation"
+        class="border-border bg-sidebar flex w-56 shrink-0 flex-col gap-1 overflow-y-auto border-r p-3"
       >
-        <div
-          class="bg-surface border-border animate-in zoom-in modal-container flex h-145 max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border shadow-2xl duration-200"
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          role="tab"
+          :id="`tab-${tab.id}`"
+          :aria-selected="activeTab === tab.id"
+          :aria-controls="`panel-${tab.id}`"
+          @click="activeTab = tab.id"
+          class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors select-none"
+          :class="
+            activeTab === tab.id
+              ? 'bg-primary/10 text-primary'
+              : 'text-text-secondary hover:bg-hover hover:text-text-primary'
+          "
         >
-          <!-- Header -->
-          <div class="border-border flex items-center justify-between border-b px-5 py-4">
-            <div class="text-text-primary flex items-center gap-2.5">
-              <Settings :size="18" class="text-primary shrink-0" />
-              <h2 id="preferences-modal-title" class="text-sm font-semibold">Preferences</h2>
-            </div>
-            <Button rounded variant="text" severity="secondary" @click="preferencesStore.close">
-              <template #icon>
-                <X class="h-4 w-4" />
-              </template>
-            </Button>
+          <component :is="tab.icon" :size="14" class="shrink-0" />
+          <span>{{ tab.name }}</span>
+        </button>
+      </div>
+
+      <!-- Content Area -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <!-- General Settings Tab -->
+        <div v-if="activeTab === 'general'" class="max-w-2xl space-y-6">
+          <div>
+            <h3 class="text-text-primary text-sm font-medium">General Settings</h3>
+            <p class="text-text-tertiary mt-0.5 text-[11px]">
+              Configure global application behavior and preferences.
+            </p>
           </div>
 
-          <!-- Body -->
-          <div class="flex min-h-0 flex-1">
-            <!-- Sidebar -->
-            <div
-              role="tablist"
-              aria-label="Preferences Navigation"
-              class="border-border bg-surface flex w-56 shrink-0 flex-col gap-1 overflow-y-auto border-r p-3"
-            >
-              <button
-                v-for="tab in tabs"
-                :key="tab.id"
-                role="tab"
-                :id="`tab-${tab.id}`"
-                :aria-selected="activeTab === tab.id"
-                :aria-controls="`panel-${tab.id}`"
-                @click="activeTab = tab.id"
-                class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors select-none"
-                :class="
-                  activeTab === tab.id
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-text-secondary hover:bg-hover hover:text-text-primary'
-                "
-              >
-                <component :is="tab.icon" :size="14" class="shrink-0" />
-                <span>{{ tab.name }}</span>
-              </button>
+          <!-- Application Section -->
+          <div class="space-y-4">
+            <h4 class="text-text-tertiary text-[10px] font-bold tracking-wider uppercase">
+              Application
+            </h4>
+
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium">Interface Theme</span>
+                <span class="text-text-tertiary text-[11px]">
+                  Select how Table View looks on your device.
+                </span>
+              </div>
+              <Select
+                v-model="settings.theme"
+                :options="themeOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-44 text-xs"
+              />
             </div>
 
-            <!-- Content Area -->
-            <div class="flex-1 overflow-y-auto p-6">
-              <!-- General Settings Tab -->
-              <div v-if="activeTab === 'general'" class="max-w-2xl space-y-6">
-                <div>
-                  <h3 class="text-text-primary text-sm font-medium">General Settings</h3>
-                  <p class="text-text-tertiary mt-0.5 text-[11px]">
-                    Configure global application behavior and preferences.
-                  </p>
-                </div>
-
-                <div class="bg-border/50 h-px" />
-
-                <!-- Application Section -->
-                <div class="space-y-4">
-                  <h4 class="text-text-tertiary text-[10px] font-bold tracking-wider uppercase">
-                    Application
-                  </h4>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">Interface Theme</span>
-                      <span class="text-text-tertiary text-[11px]">
-                        Select how Table View looks on your device.
-                      </span>
-                    </div>
-                    <select
-                      v-model="settings.theme"
-                      class="bg-surface border-border text-text-primary focus:border-primary focus:ring-primary w-40 cursor-pointer rounded-lg border px-3 py-1.5 text-xs focus:ring-1 focus:outline-none"
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="system">System Preference</option>
-                    </select>
-                  </div>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">Language</span>
-                      <span class="text-text-tertiary text-[11px]">
-                        Choose the language for the user interface.
-                      </span>
-                    </div>
-                    <select
-                      v-model="settings.language"
-                      class="bg-surface border-border text-text-primary focus:border-primary focus:ring-primary w-40 cursor-pointer rounded-lg border px-3 py-1.5 text-xs focus:ring-1 focus:outline-none"
-                    >
-                      <option value="en">English (US)</option>
-                      <option value="vi">Tiếng Việt</option>
-                    </select>
-                  </div>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium"
-                        >Connection Timeout (seconds)</span
-                      >
-                      <span class="text-text-tertiary text-[11px]">
-                        Maximum time to wait when establishing a database connection.
-                      </span>
-                    </div>
-                    <input
-                      v-model.number="settings.connectionTimeout"
-                      type="number"
-                      min="1"
-                      max="300"
-                      class="bg-surface border-border text-text-primary focus:border-primary focus:ring-primary w-40 rounded-lg border px-3 py-1.5 text-xs focus:ring-1 focus:outline-none"
-                    />
-                  </div>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">Start Minimized</span>
-                      <span class="text-text-tertiary text-[11px]">
-                        Launch the app minimized to the system tray.
-                      </span>
-                    </div>
-                    <ToggleSwitch v-model="settings.startMinimized" />
-                  </div>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">Automatic Updates</span>
-                      <span class="text-text-tertiary text-[11px]">
-                        Keep Table View up to date with automatic releases.
-                      </span>
-                    </div>
-                    <ToggleSwitch v-model="settings.autoUpdate" />
-                  </div>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium"
-                        >Preview Channel Updates</span
-                      >
-                      <span class="text-text-tertiary text-[11px]">
-                        Opt-in to pre-release preview builds of Table View.
-                      </span>
-                    </div>
-                    <ToggleSwitch v-model="settings.optInPreview" />
-                  </div>
-                </div>
-
-                <div class="bg-border/50 h-px" />
-
-                <!-- Data & Files Section -->
-                <div class="space-y-4">
-                  <h4 class="text-text-tertiary text-[10px] font-bold tracking-wider uppercase">
-                    Data & Files
-                  </h4>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">Default Row Limit</span>
-                      <span class="text-text-tertiary text-[11px]">
-                        Maximum number of rows to retrieve in table grid query.
-                      </span>
-                    </div>
-                    <select
-                      v-model="settings.maxRows"
-                      class="bg-surface border-border text-text-primary focus:border-primary focus:ring-primary w-40 cursor-pointer rounded-lg border px-3 py-1.5 text-xs focus:ring-1 focus:outline-none"
-                    >
-                      <option :value="100">100 rows</option>
-                      <option :value="500">500 rows</option>
-                      <option :value="1000">1,000 rows</option>
-                      <option :value="5000">5,000 rows</option>
-                      <option :value="10000">10,000 rows</option>
-                    </select>
-                  </div>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">
-                        Auto-save Query History
-                      </span>
-                      <span class="text-text-tertiary text-[11px]">
-                        Locally persist executed queries in session history.
-                      </span>
-                    </div>
-                    <ToggleSwitch v-model="settings.autoSaveHistory" />
-                  </div>
-                </div>
-
-                <div class="bg-border/50 h-px" />
-
-                <!-- Other Settings Section -->
-                <div class="space-y-4">
-                  <h4 class="text-text-tertiary text-[10px] font-bold tracking-wider uppercase">
-                    Other Settings
-                  </h4>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium"
-                        >Play Sound on Finish</span
-                      >
-                      <span class="text-text-tertiary text-[11px]">
-                        Play a notification sound when a long query completes.
-                      </span>
-                    </div>
-                    <ToggleSwitch v-model="settings.playCompletionSound" />
-                  </div>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">
-                        Help Improve Table View
-                      </span>
-                      <span class="text-text-tertiary text-[11px]">
-                        Send anonymous performance and usage telemetry data.
-                      </span>
-                    </div>
-                    <ToggleSwitch v-model="settings.telemetry" />
-                  </div>
-
-                  <div class="flex items-center justify-between py-1">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">
-                        Enable Experimental Features
-                      </span>
-                      <span class="text-text-tertiary text-[11px]">
-                        Enable experimental features.
-                      </span>
-                    </div>
-                    <ToggleSwitch v-model="settings.experimentalFeatures" />
-                  </div>
-                </div>
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium">Language</span>
+                <span class="text-text-tertiary text-[11px]">
+                  Choose the language for the user interface.
+                </span>
               </div>
+              <Select
+                v-model="settings.language"
+                :options="languageOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-44 text-xs"
+              />
+            </div>
 
-              <!-- Shortcuts Tab -->
-              <div v-else-if="activeTab === 'shortcuts'" class="max-w-2xl space-y-6">
-                <div>
-                  <h3 class="text-text-primary text-sm font-medium">Keyboard Shortcuts</h3>
-                  <p class="text-text-tertiary mt-0.5 text-[11px]">
-                    Click any key combination below to customize its shortcut.
-                  </p>
-                </div>
-
-                <div class="bg-border/50 h-px" />
-
-                <div
-                  v-for="(category, index) in shortcutCategories"
-                  :key="category.title"
-                  class="space-y-4"
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium"
+                  >Connection Timeout (seconds)</span
                 >
-                  <h4 class="text-text-tertiary text-[10px] font-bold tracking-wider uppercase">
-                    {{ category.title }}
-                  </h4>
-
-                  <div
-                    v-for="shortcut in category.shortcuts"
-                    :key="shortcut.name"
-                    class="flex items-center justify-between py-1"
-                  >
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-text-primary text-xs font-medium">{{ shortcut.name }}</span>
-                      <span class="text-text-tertiary text-[11px]">{{ shortcut.desc }}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <button
-                        v-if="isShortcutChanged(shortcut.id)"
-                        type="button"
-                        @click.stop="resetShortcutToDefault(shortcut.id)"
-                        class="text-text-tertiary hover:text-text-primary hover:bg-hover border-border flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border transition-colors"
-                        title="Reset shortcut to default"
-                      >
-                        <RotateCcw :size="12" />
-                      </button>
-
-                      <button
-                        type="button"
-                        @click="openEditDialog(shortcut)"
-                        class="border-border hover:bg-hover hover:border-primary/50 group flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 transition-all"
-                        title="Click to edit shortcut"
-                      >
-                        <template v-for="(key, keyIndex) in shortcut.keys" :key="keyIndex">
-                          <kbd
-                            class="bg-surface border-border text-text-primary group-hover:text-primary flex h-5 min-w-5 items-center justify-center rounded border px-1.5 font-mono text-[10px] shadow-xs"
-                          >
-                            {{ formatKey(key) }}
-                          </kbd>
-                        </template>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div v-if="index < shortcutCategories.length - 1" class="bg-border/50 h-px" />
-                </div>
+                <span class="text-text-tertiary text-[11px]">
+                  Maximum time to wait when establishing a database connection.
+                </span>
               </div>
+              <InputNumber v-model="settings.connectionTimeout" :min="1" :max="300" class="w-44" />
+            </div>
 
-              <!-- Placeholder Tabs -->
-              <div
-                v-else
-                class="flex h-full flex-col items-center justify-center space-y-4 text-center"
-              >
-                <div
-                  class="bg-muted border-border/50 flex h-14 w-14 items-center justify-center rounded-2xl border"
-                >
-                  <component :is="getCurrentTabIcon" :size="24" class="text-text-tertiary" />
-                </div>
-                <div>
-                  <h3 class="text-text-primary text-xs font-semibold">{{ getCurrentTabName }}</h3>
-                  <p class="text-text-secondary mt-1 text-[11px]">
-                    This panel is under construction in this prototype.
-                  </p>
-                </div>
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium">Start Minimized</span>
+                <span class="text-text-tertiary text-[11px]">
+                  Launch the app minimized to the system tray.
+                </span>
               </div>
+              <ToggleSwitch v-model="settings.startMinimized" />
+            </div>
+
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium">Automatic Updates</span>
+                <span class="text-text-tertiary text-[11px]">
+                  Keep Table View up to date with automatic releases.
+                </span>
+              </div>
+              <ToggleSwitch v-model="settings.autoUpdate" />
+            </div>
+
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium">Preview Channel Updates</span>
+                <span class="text-text-tertiary text-[11px]">
+                  Opt-in to pre-release preview builds of Table View.
+                </span>
+              </div>
+              <ToggleSwitch v-model="settings.optInPreview" />
             </div>
           </div>
 
-          <!-- Footer -->
-          <div class="border-border flex shrink-0 items-center justify-between border-t px-5 py-3">
-            <Button variant="text" severity="secondary" size="small" @click="resetToDefaults">
-              Reset to Defaults
-            </Button>
-            <div class="flex items-center gap-2">
-              <Button
-                variant="text"
-                severity="secondary"
-                size="small"
-                @click="preferencesStore.close"
-              >
-                Cancel
-              </Button>
-              <Button size="small" @click="savePreferences"> Save Changes </Button>
+          <!-- Data & Files Section -->
+          <div class="space-y-4">
+            <h4 class="text-text-tertiary text-[10px] font-bold tracking-wider uppercase">
+              Data & Files
+            </h4>
+
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium">Default Row Limit</span>
+                <span class="text-text-tertiary text-[11px]">
+                  Maximum number of rows to retrieve in table grid query.
+                </span>
+              </div>
+              <Select
+                v-model="settings.maxRows"
+                :options="maxRowsOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-44 text-xs"
+              />
+            </div>
+
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium"> Auto-save Query History </span>
+                <span class="text-text-tertiary text-[11px]">
+                  Locally persist executed queries in session history.
+                </span>
+              </div>
+              <ToggleSwitch v-model="settings.autoSaveHistory" />
+            </div>
+          </div>
+
+          <!-- Other Settings Section -->
+          <div class="space-y-4">
+            <h4 class="text-text-tertiary text-[10px] font-bold tracking-wider uppercase">
+              Other Settings
+            </h4>
+
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium">Play Sound on Finish</span>
+                <span class="text-text-tertiary text-[11px]">
+                  Play a notification sound when a long query completes.
+                </span>
+              </div>
+              <ToggleSwitch v-model="settings.playCompletionSound" />
+            </div>
+
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium"> Help Improve Table View </span>
+                <span class="text-text-tertiary text-[11px]">
+                  Send anonymous performance and usage telemetry data.
+                </span>
+              </div>
+              <ToggleSwitch v-model="settings.telemetry" />
+            </div>
+
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium">
+                  Enable Experimental Features
+                </span>
+                <span class="text-text-tertiary text-[11px]"> Enable experimental features. </span>
+              </div>
+              <ToggleSwitch v-model="settings.experimentalFeatures" />
             </div>
           </div>
         </div>
+
+        <!-- Shortcuts Tab -->
+        <div v-else-if="activeTab === 'shortcuts'" class="max-w-2xl space-y-6">
+          <div>
+            <h3 class="text-text-primary text-sm font-medium">Keyboard Shortcuts</h3>
+            <p class="text-text-tertiary mt-0.5 text-[11px]">
+              Click any key combination below to customize its shortcut.
+            </p>
+          </div>
+
+          <div v-for="category in shortcutCategories" :key="category.title" class="space-y-4">
+            <h4 class="text-text-tertiary text-[10px] font-bold tracking-wider uppercase">
+              {{ category.title }}
+            </h4>
+
+            <div
+              v-for="shortcut in category.shortcuts"
+              :key="shortcut.name"
+              class="flex items-center justify-between py-1"
+            >
+              <div class="flex flex-col gap-0.5">
+                <span class="text-text-primary text-xs font-medium">{{ shortcut.name }}</span>
+                <span class="text-text-tertiary text-[11px]">{{ shortcut.desc }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <Button
+                  v-if="isShortcutChanged(shortcut.id)"
+                  v-tooltip.top="'Reset shortcut to default'"
+                  variant="text"
+                  severity="secondary"
+                  size="small"
+                  class="h-7! w-7! p-0!"
+                  @click.stop="resetShortcutToDefault(shortcut.id)"
+                >
+                  <RotateCcw :size="12" />
+                </Button>
+
+                <button
+                  type="button"
+                  @click="openEditDialog(shortcut)"
+                  class="border-border hover:bg-hover hover:border-primary/50 group flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 transition-all"
+                  v-tooltip.top="'Click to edit shortcut'"
+                >
+                  <template v-for="(key, keyIndex) in shortcut.keys" :key="keyIndex">
+                    <kbd
+                      class="bg-surface border-border text-text-primary group-hover:text-primary flex h-5 min-w-5 items-center justify-center rounded border px-1.5 font-mono text-[10px] shadow-xs"
+                    >
+                      {{ formatKey(key) }}
+                    </kbd>
+                  </template>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Placeholder Tabs -->
+        <div v-else class="flex h-full flex-col items-center justify-center space-y-4 text-center">
+          <div
+            class="bg-muted border-border/50 flex h-14 w-14 items-center justify-center rounded-2xl border"
+          >
+            <component :is="getCurrentTabIcon" :size="24" class="text-text-tertiary" />
+          </div>
+          <div>
+            <h3 class="text-text-primary text-xs font-semibold">{{ getCurrentTabName }}</h3>
+            <p class="text-text-secondary mt-1 text-[11px]">
+              This panel is under construction in this prototype.
+            </p>
+          </div>
+        </div>
       </div>
-    </Transition>
-  </Teleport>
+    </div>
+
+    <!-- Footer -->
+    <template #footer>
+      <div
+        class="border-border flex w-full shrink-0 items-center justify-between border-t px-5 py-3"
+      >
+        <Button variant="text" severity="secondary" size="small" @click="resetToDefaults">
+          Reset to Defaults
+        </Button>
+        <div class="flex items-center gap-2">
+          <Button variant="text" severity="secondary" size="small" @click="preferencesStore.close">
+            Cancel
+          </Button>
+          <Button size="small" @click="savePreferences"> Save Changes </Button>
+        </div>
+      </div>
+    </template>
+  </Dialog>
 
   <!-- Edit Shortcut Dialog -->
-  <Teleport to="body">
-    <Transition name="fade">
+  <Dialog
+    :visible="!!activeEditShortcut"
+    modal
+    :closable="true"
+    header="Edit Keyboard Shortcut"
+    :style="{ width: '28rem' }"
+    @update:visible="
+      (val) => {
+        if (!val) closeEditDialog();
+      }
+    "
+  >
+    <div class="space-y-4 py-2" v-if="activeEditShortcut">
+      <div>
+        <span class="text-text-primary text-xs font-medium">{{ activeEditShortcut.name }}</span>
+        <p class="text-text-tertiary mt-0.5 text-[11px]">{{ activeEditShortcut.desc }}</p>
+      </div>
+
       <div
-        v-if="activeEditShortcut"
-        class="fixed inset-0 z-200 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
-        @click.self="closeEditDialog"
+        class="bg-surface border-border flex min-h-20 flex-col items-center justify-center rounded-lg border border-dashed p-4"
       >
-        <div
-          class="bg-surface border-border animate-in zoom-in w-full max-w-md rounded-xl border p-5 shadow-2xl duration-150"
-        >
-          <div class="border-border flex items-center justify-between border-b pb-3">
-            <h3 class="text-text-primary text-sm font-semibold">Edit Keyboard Shortcut</h3>
-            <Button
-              rounded
-              variant="text"
-              severity="secondary"
-              size="small"
-              @click="closeEditDialog"
+        <p class="text-text-tertiary mb-2 text-[11px]">
+          Press any key combination on your keyboard...
+        </p>
+        <div class="flex min-h-7 items-center gap-1.5">
+          <template v-for="(key, idx) in tempKeys" :key="idx">
+            <kbd
+              class="bg-primary/10 border-primary/30 text-primary flex h-7 min-w-7 items-center justify-center rounded-md border px-2 font-mono text-xs font-semibold shadow-xs"
             >
-              <template #icon>
-                <X class="h-4 w-4" />
-              </template>
-            </Button>
-          </div>
-
-          <div class="space-y-4 py-4">
-            <div>
-              <span class="text-text-primary text-xs font-medium">{{
-                activeEditShortcut.name
-              }}</span>
-              <p class="text-text-tertiary mt-0.5 text-[11px]">{{ activeEditShortcut.desc }}</p>
-            </div>
-
-            <div
-              class="bg-surface border-border flex min-h-20 flex-col items-center justify-center rounded-lg border border-dashed p-4"
-            >
-              <p class="text-text-tertiary mb-2 text-[11px]">
-                Press any key combination on your keyboard...
-              </p>
-              <div class="flex min-h-7 items-center gap-1.5">
-                <template v-for="(key, idx) in tempKeys" :key="idx">
-                  <kbd
-                    class="bg-primary/10 border-primary/30 text-primary flex h-7 min-w-7 items-center justify-center rounded-md border px-2 font-mono text-xs font-semibold shadow-xs"
-                  >
-                    {{ formatKey(key) }}
-                  </kbd>
-                </template>
-                <span v-if="tempKeys.length === 0" class="text-text-tertiary text-xs italic"
-                  >Waiting for keys...</span
-                >
-              </div>
-            </div>
-
-            <!-- Status / Conflict Validation Messages -->
-            <div
-              v-if="conflictingShortcutName"
-              class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-xs text-red-400"
-            >
-              <AlertCircle :size="16" class="shrink-0" />
-              <span
-                >Shortcut conflicts with <strong>{{ conflictingShortcutName }}</strong
-                >.</span
-              >
-            </div>
-
-            <div
-              v-else-if="isIdenticalShortcut"
-              class="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-2.5 text-xs text-blue-400"
-            >
-              <Info :size="16" class="shrink-0" />
-              <span>This is the currently assigned shortcut combination.</span>
-            </div>
-
-            <div
-              v-else
-              class="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-xs text-emerald-400"
-            >
-              <Check :size="16" class="shrink-0" />
-              <span>New key combination recorded. Click Save to apply.</span>
-            </div>
-          </div>
-
-          <div class="border-border flex items-center justify-between border-t pt-3">
-            <Button
-              icon="pi pi-refresh"
-              label="Reset Default"
-              variant="text"
-              severity="secondary"
-              size="small"
-              @click="resetCurrentShortcutToDefault"
-            />
-
-            <div class="flex items-center gap-2">
-              <Button variant="text" severity="secondary" size="small" @click="closeEditDialog">
-                Cancel
-              </Button>
-              <Button
-                size="small"
-                :disabled="!!conflictingShortcutName || tempKeys.length === 0"
-                @click="saveCurrentShortcut"
-              >
-                Save
-              </Button>
-            </div>
-          </div>
+              {{ formatKey(key) }}
+            </kbd>
+          </template>
+          <span v-if="tempKeys.length === 0" class="text-text-tertiary text-xs italic"
+            >Waiting for keys...</span
+          >
         </div>
       </div>
-    </Transition>
-  </Teleport>
-</template>
 
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>
+      <!-- Status / Conflict Validation Messages -->
+      <div
+        v-if="conflictingShortcutName"
+        class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-xs text-red-400"
+      >
+        <AlertCircle :size="16" class="shrink-0" />
+        <span
+          >Shortcut conflicts with <strong>{{ conflictingShortcutName }}</strong
+          >.</span
+        >
+      </div>
+
+      <div
+        v-else-if="isIdenticalShortcut"
+        class="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-2.5 text-xs text-blue-400"
+      >
+        <Info :size="16" class="shrink-0" />
+        <span>This is the currently assigned shortcut combination.</span>
+      </div>
+
+      <div
+        v-else
+        class="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-xs text-emerald-400"
+      >
+        <Check :size="16" class="shrink-0" />
+        <span>New key combination recorded. Click Save to apply.</span>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="flex w-full items-center justify-between pt-2">
+        <Button
+          icon="pi pi-refresh"
+          label="Reset Default"
+          variant="text"
+          severity="secondary"
+          size="small"
+          @click="resetCurrentShortcutToDefault"
+        />
+
+        <div class="flex items-center gap-2">
+          <Button variant="text" severity="secondary" size="small" @click="closeEditDialog">
+            Cancel
+          </Button>
+          <Button
+            size="small"
+            :disabled="!!conflictingShortcutName || tempKeys.length === 0"
+            @click="saveCurrentShortcut"
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+    </template>
+  </Dialog>
+</template>

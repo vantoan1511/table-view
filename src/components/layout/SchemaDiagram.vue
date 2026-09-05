@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import Button from 'primevue/button';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
+import InputText from 'primevue/inputtext';
+
 import {
   Database,
   Download,
@@ -669,83 +674,112 @@ const exportToSvg = () => {
       </div>
 
       <!-- Toolbar Controls -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5">
         <!-- Search bar -->
-        <div class="relative flex items-center">
-          <Search class="text-text-tertiary absolute left-2.5 h-3.5 w-3.5" />
-          <input
+        <IconField>
+          <InputIcon>
+            <Search class="text-text-tertiary h-3.5 w-3.5" />
+          </InputIcon>
+          <InputText
             v-model="searchQuery"
             type="text"
             placeholder="Search tables..."
-            class="border-border/40 bg-surface-elevated text-text-primary placeholder:text-text-tertiary h-8 w-44 rounded-md border pr-3 pl-8 text-xs transition-all outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30"
+            size="small"
+            class="h-7! w-40! text-xs!"
           />
-        </div>
+        </IconField>
 
-        <div class="bg-border/40 mx-1 h-4 w-px"></div>
-
-        <button
-          @click="zoomOut"
+        <Button
+          variant="text"
+          severity="secondary"
+          size="small"
+          class="h-7! w-7! p-0!"
           v-tooltip.bottom="'Zoom Out'"
-          class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+          @click="zoomOut"
         >
-          <ZoomOut class="h-4 w-4" />
-        </button>
+          <template #icon>
+            <ZoomOut class="h-3.5 w-3.5" />
+          </template>
+        </Button>
 
-        <span class="text-text-secondary w-12 text-center font-mono text-xs select-none">
+        <span class="text-text-secondary w-10 text-center font-mono text-xs select-none">
           {{ Math.round(zoom * 100) }}%
         </span>
 
-        <button
-          @click="zoomIn"
+        <Button
+          variant="text"
+          severity="secondary"
+          size="small"
+          class="h-7! w-7! p-0!"
           v-tooltip.bottom="'Zoom In'"
-          class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+          @click="zoomIn"
         >
-          <ZoomIn class="h-4 w-4" />
-        </button>
+          <template #icon>
+            <ZoomIn class="h-3.5 w-3.5" />
+          </template>
+        </Button>
 
-        <button
-          @click="zoomToFit"
+        <Button
+          variant="text"
+          severity="secondary"
+          size="small"
+          class="h-7! w-7! p-0!"
           v-tooltip.bottom="'Zoom to Fit'"
-          class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+          @click="zoomToFit"
         >
-          <Maximize class="h-4 w-4" />
-        </button>
+          <template #icon>
+            <Maximize class="h-3.5 w-3.5" />
+          </template>
+        </Button>
 
-        <button
-          @click="resetZoom"
+        <Button
+          variant="text"
+          severity="secondary"
+          size="small"
+          class="h-7! w-7! p-0!"
           v-tooltip.bottom="'Reset Viewport'"
-          class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+          @click="resetZoom"
         >
-          <RefreshCw class="h-4 w-4" />
-        </button>
+          <template #icon>
+            <RefreshCw class="h-3.5 w-3.5" />
+          </template>
+        </Button>
 
-        <div class="bg-border/40 mx-1 h-4 w-px"></div>
-
-        <button
-          @click="performAutoLayout(true)"
+        <Button
+          variant="outlined"
+          severity="secondary"
+          size="small"
+          class="h-7! gap-1.5 px-2.5! text-xs!"
           v-tooltip.bottom="'Auto Layout'"
-          class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors"
+          @click="performAutoLayout(true)"
         >
           <Maximize class="h-3.5 w-3.5 rotate-45" />
           <span>Auto Layout</span>
-        </button>
+        </Button>
 
-        <button
-          @click="exportToSvg"
+        <Button
+          severity="primary"
+          size="small"
+          class="h-7! gap-1.5 px-2.5! text-xs!"
           v-tooltip.bottom="'Export diagram to SVG image'"
-          class="flex h-8 items-center gap-1.5 rounded-md border border-indigo-500/30 bg-indigo-500/10 px-3 text-xs font-medium text-indigo-400 transition-colors hover:bg-indigo-500/20"
+          @click="exportToSvg"
         >
           <Download class="h-3.5 w-3.5" />
           <span>Export SVG</span>
-        </button>
+        </Button>
 
-        <button
-          @click="loadData(true)"
+        <Button
+          variant="text"
+          severity="secondary"
+          size="small"
+          class="h-7! w-7! p-0!"
           v-tooltip.bottom="'Refresh Metadata'"
-          class="border-border/40 bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+          @click="loadData(true)"
         >
-          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
-        </button>
+          <template #icon>
+            <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': isLoading }" />
+          </template>
+        </Button>
       </div>
     </div>
 
@@ -759,12 +793,7 @@ const exportToSvg = () => {
       </div>
       <h3 class="text-text-primary mb-1 text-base font-semibold">Failed to Load Schema Details</h3>
       <p class="text-text-secondary mb-6 max-w-md text-sm">{{ errorMsg }}</p>
-      <button
-        @click="loadData(true)"
-        class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-600/20 transition-colors hover:bg-indigo-500"
-      >
-        Retry Connection
-      </button>
+      <Button severity="primary" @click="loadData(true)"> Retry Connection </Button>
     </div>
 
     <!-- Loading Screen -->
@@ -881,7 +910,10 @@ const exportToSvg = () => {
                 <Table
                   class="text-text-tertiary h-3.5 w-3.5 shrink-0 transition-colors group-hover:text-indigo-400"
                 />
-                <span :title="table.name" class="text-text-primary truncate text-xs font-semibold">
+                <span
+                  v-tooltip.top="table.name"
+                  class="text-text-primary truncate text-xs font-semibold"
+                >
                   {{ table.name }}
                 </span>
               </div>
@@ -911,7 +943,7 @@ const exportToSvg = () => {
                 <!-- Name & Key Indicators -->
                 <div
                   class="group/col relative flex min-w-0 items-center gap-1.5"
-                  :title="
+                  v-tooltip.top="
                     col.foreignKey
                       ? `References ${col.foreignKey.targetTable}.${col.foreignKey.targetColumn}`
                       : undefined
@@ -942,7 +974,7 @@ const exportToSvg = () => {
 
                 <!-- Data type -->
                 <span
-                  :title="col.dataType"
+                  v-tooltip.top="col.dataType"
                   class="text-text-tertiary max-w-[90px] truncate font-mono text-[9px]"
                 >
                   {{ col.dataType.toLowerCase() }}

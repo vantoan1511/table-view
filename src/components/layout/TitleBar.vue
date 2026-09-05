@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import Button from 'primevue/button';
+import ContextMenu from 'primevue/contextmenu';
+import InputText from 'primevue/inputtext';
+
 import { useConnectionsStore } from '@/stores/connections';
 import { useTabsStore } from '@/stores/tabs';
 import { TabType, type Tab } from '@/types';
 import { Code2, LayoutGrid, Minus, Plus, Trash2, X } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const tabsStore = useTabsStore();
 const connectionsStore = useConnectionsStore();
@@ -16,26 +20,19 @@ const getTabColorClass = (connectionId?: string) => {
 };
 
 // ─── Tab Context Menu ────────────────────────────────────────────────────────
-const showMenu = ref(false);
-const menuPos = ref({ x: 0, y: 0 });
+const menuRef = ref();
 const menuTargetTabId = ref<string | null>(null);
 const targetTab = ref<Tab | null | undefined>(null);
 
 const onContextMenu = (e: MouseEvent, tabId: string) => {
   e.preventDefault();
-  showMenu.value = true;
-  menuPos.value = { x: e.clientX, y: e.clientY };
   menuTargetTabId.value = tabId;
   targetTab.value = tabsStore.getById(tabId);
-};
-
-const closeMenu = () => {
-  showMenu.value = false;
+  menuRef.value?.show(e);
 };
 
 const closeTab = () => {
   if (menuTargetTabId.value) tabsStore.closeTab(menuTargetTabId.value);
-  closeMenu();
 };
 
 const closeOthers = () => {
@@ -45,13 +42,11 @@ const closeOthers = () => {
       .map((t: Tab) => t.id);
     toClose.forEach((id: string) => tabsStore.closeTab(id));
   }
-  closeMenu();
 };
 
 const closeAll = () => {
   const toClose = tabsStore.tabs.map((t: Tab) => t.id);
   toClose.forEach((id: string) => tabsStore.closeTab(id));
-  closeMenu();
 };
 
 const openNewQueryConsole = () => {
@@ -60,15 +55,51 @@ const openNewQueryConsole = () => {
 
 const minimizeTab = () => {
   if (menuTargetTabId.value) tabsStore.minimizeTab(menuTargetTabId.value);
-  closeMenu();
 };
 
 const deleteTab = () => {
   if (menuTargetTabId.value) {
     tabsStore.deleteTab(menuTargetTabId.value);
   }
-  closeMenu();
 };
+
+const menuItems = computed(() => {
+  const items: any[] = [
+    {
+      label: 'Close Tab',
+      lucideIcon: X,
+      command: () => closeTab()
+    },
+    {
+      label: 'Minimize',
+      lucideIcon: Minus,
+      command: () => minimizeTab()
+    },
+    { separator: true },
+    {
+      label: 'Close Others',
+      command: () => closeOthers()
+    },
+    {
+      label: 'Close All',
+      command: () => closeAll()
+    }
+  ];
+
+  if (targetTab.value?.type === TabType.SQL) {
+    items.push(
+      { separator: true },
+      {
+        label: 'Delete',
+        lucideIcon: Trash2,
+        class: 'text-danger',
+        command: () => deleteTab()
+      }
+    );
+  }
+
+  return items;
+});
 
 const onDragStart = (event: DragEvent, tabId: string) => {
   if (event.dataTransfer) {
@@ -96,10 +127,6 @@ const onDrop = (event: DragEvent, targetTabId: string) => {
     tabsStore.reorderTab(draggingId, targetTabId);
   }
 };
-
-onMounted(() => {
-  window.addEventListener('click', closeMenu);
-});
 
 // ─── Renaming Logic ──────────────────────────────────────────────────────────
 const renamingTabId = ref<string | null>(null);
@@ -165,10 +192,11 @@ const finishRenaming = () => {
         >
           {{ tab.title }}
         </span>
-        <input
+        <InputText
           v-else
           v-model="tempTitle"
-          class="bg-muted border-primary/50 text-text-primary flex-1 rounded border px-1 text-[13px] outline-none"
+          size="small"
+          class="h-6! flex-1 px-1! text-[13px]!"
           @blur="finishRenaming"
           @keydown.enter="finishRenaming"
           @keydown.esc="renamingTabId = null"
@@ -184,57 +212,32 @@ const finishRenaming = () => {
         </span>
       </button>
 
-      <button
-        class="text-text-tertiary hover:bg-hover/50 hover:text-text-secondary mb-px flex h-[calc(var(--titlebar-height)-8px)] w-8 shrink-0 cursor-pointer items-center justify-center rounded-t-lg"
+      <Button
+        variant="text"
+        severity="secondary"
+        size="small"
+        class="mb-px! h-[calc(var(--titlebar-height)-8px)]! w-8! shrink-0! rounded-t-lg! rounded-b-none! p-0!"
+        v-tooltip="'New Query Console'"
         @click="openNewQueryConsole"
       >
-        <Plus :size="14" />
-      </button>
+        <template #icon>
+          <Plus :size="14" />
+        </template>
+      </Button>
     </nav>
 
-    <!-- Context Menu Overlay -->
-    <div
-      v-if="showMenu"
-      class="bg-surface border-border fixed z-100 min-w-40 rounded-lg border py-1 text-[12px] shadow-lg"
-      :style="{ left: menuPos.x + 'px', top: menuPos.y + 'px' }"
-      @click.stop
-    >
-      <button
-        class="hover:bg-hover text-text-primary flex w-full items-center gap-2 px-3 py-1.5 text-left"
-        @click="closeTab"
-      >
-        <X :size="13" />
-        Close Tab
-      </button>
-      <button
-        class="hover:bg-hover text-text-primary flex w-full items-center gap-2 px-3 py-1.5 text-left"
-        @click="minimizeTab"
-      >
-        <Minus :size="13" />
-        Minimize
-      </button>
-      <div class="bg-border my-1 h-px"></div>
-      <button
-        class="hover:bg-hover text-text-primary w-full px-3 py-1.5 text-left"
-        @click="closeOthers"
-      >
-        Close Others
-      </button>
-      <button
-        class="hover:bg-hover text-text-primary w-full px-3 py-1.5 text-left"
-        @click="closeAll"
-      >
-        Close All
-      </button>
-      <div class="bg-border my-1 h-px"></div>
-      <button
-        v-if="targetTab?.type === TabType.SQL"
-        class="hover:bg-danger/10 text-danger flex w-full items-center gap-2 px-3 py-1.5 text-left"
-        @click="deleteTab"
-      >
-        <Trash2 :size="13" />
-        Delete
-      </button>
-    </div>
+    <!-- Context Menu -->
+    <ContextMenu ref="menuRef" :model="menuItems">
+      <template #item="{ item, props }">
+        <a
+          v-bind="props.action"
+          class="flex items-center gap-2 px-3 py-1.5 text-xs"
+          :class="item.class || 'text-text-primary'"
+        >
+          <component :is="item.lucideIcon" v-if="item.lucideIcon" :size="13" class="shrink-0" />
+          <span>{{ item.label }}</span>
+        </a>
+      </template>
+    </ContextMenu>
   </header>
 </template>

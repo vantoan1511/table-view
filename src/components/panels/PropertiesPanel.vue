@@ -102,13 +102,13 @@ const navigateToTable = (tableName: string) => {
               <span
                 v-if="col.isPrimaryKey"
                 class="rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-500"
-                title="Primary Key"
+                v-tooltip.top="'Primary Key'"
                 >PK</span
               >
               <span
                 v-if="getForeignKeyReference(col.name)"
                 class="cursor-pointer rounded border border-indigo-500/20 bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-bold text-indigo-400"
-                title="Foreign Key - Click to navigate"
+                v-tooltip.top="'Foreign Key - Click to navigate'"
                 @click="navigateToTable(getForeignKeyReference(col.name)!.targetTable)"
                 >FK</span
               >
@@ -160,9 +160,11 @@ const navigateToTable = (tableName: string) => {
               class="bg-surface-alt border-border/30 flex flex-col gap-1 rounded-lg border p-2"
             >
               <div class="flex items-center justify-between text-[10.5px]">
-                <span class="text-text-tertiary truncate font-mono" :title="rel.constraintName">{{
-                  rel.constraintName
-                }}</span>
+                <span
+                  class="text-text-tertiary truncate font-mono"
+                  v-tooltip.top="rel.constraintName"
+                  >{{ rel.constraintName }}</span
+                >
               </div>
               <div class="flex items-center gap-1.5 font-mono text-[11px]">
                 <span class="text-text-primary font-medium">{{ rel.sourceColumn }}</span>
@@ -191,9 +193,11 @@ const navigateToTable = (tableName: string) => {
               class="bg-surface-alt border-border/30 flex flex-col gap-1 rounded-lg border p-2"
             >
               <div class="flex items-center justify-between text-[10.5px]">
-                <span class="text-text-tertiary truncate font-mono" :title="rel.constraintName">{{
-                  rel.constraintName
-                }}</span>
+                <span
+                  class="text-text-tertiary truncate font-mono"
+                  v-tooltip.top="rel.constraintName"
+                  >{{ rel.constraintName }}</span
+                >
               </div>
               <div class="flex items-center gap-1.5 font-mono text-[11px]">
                 <button

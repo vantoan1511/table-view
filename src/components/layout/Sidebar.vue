@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import Button from 'primevue/button';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
+import InputText from 'primevue/inputtext';
 import DatabaseTree from '@/components/sidebar/DatabaseTree.vue';
 import { useConnectionsStore } from '@/stores/connections';
 import { useSchemaStore } from '@/stores/schema';
@@ -27,18 +31,19 @@ const schemaStore = useSchemaStore();
 
     <!-- Search filter -->
     <div class="border-border shrink-0 border-b px-2.5 py-2">
-      <div
-        class="bg-surface border-border focus-within:border-primary/50 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors"
-      >
-        <Search :size="12" class="text-text-tertiary shrink-0" />
-        <input
-          type="text"
+      <IconField class="w-full">
+        <InputIcon>
+          <Search :size="12" />
+        </InputIcon>
+        <InputText
+          :model-value="schemaStore.filterQuery"
           placeholder="Search tables"
-          class="text-text-primary placeholder-text-tertiary flex-1 border-none bg-transparent text-[12px] outline-none"
-          :value="schemaStore.filterQuery"
-          @input="schemaStore.setFilter(($event.target as HTMLInputElement).value)"
+          size="small"
+          fluid
+          class="text-[12px]"
+          @update:model-value="(val) => schemaStore.setFilter(val ?? '')"
         />
-      </div>
+      </IconField>
     </div>
 
     <!-- Unified tree -->

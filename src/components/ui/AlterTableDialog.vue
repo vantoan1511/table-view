@@ -6,7 +6,8 @@ import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
 import { DbType } from '@/types';
-import { X } from 'lucide-vue-next';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
 import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps<{
@@ -140,75 +141,63 @@ const applyChanges = async () => {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-    <div
-      class="bg-surface border-border flex max-h-[85vh] w-175 flex-col overflow-hidden rounded-xl border shadow-2xl"
-    >
-      <!-- Header -->
-      <div class="border-border flex items-center justify-between border-b px-5 py-4">
-        <h3 class="text-text-primary text-base font-semibold">Alter Table: {{ tableName }}</h3>
-        <button
-          @click="$emit('close')"
-          class="text-text-tertiary hover:text-text-primary transition-colors"
-        >
-          <X :size="18" />
-        </button>
+  <Dialog
+    visible
+    modal
+    :header="`Alter Table: ${tableName}`"
+    :style="{ width: '52rem' }"
+    :closable="true"
+    @update:visible="
+      (val) => {
+        if (!val) emit('close');
+      }
+    "
+  >
+    <!-- Tabs -->
+    <div class="border-border hide-scrollbar -mx-5 -mt-2 mb-4 flex border-b px-5">
+      <button
+        v-for="tab in tabs"
+        :key="tab"
+        @click="activeTab = tab"
+        class="border-b-2 px-4 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors"
+        :class="
+          activeTab === tab
+            ? 'border-primary text-primary'
+            : 'text-text-tertiary hover:text-text-secondary border-transparent'
+        "
+      >
+        {{ tab }}
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="max-h-[60vh] min-h-75 overflow-y-auto">
+      <div v-if="loading" class="flex justify-center py-10">
+        <div
+          class="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
+        ></div>
       </div>
 
-      <!-- Tabs -->
-      <div class="border-border hide-scrollbar flex overflow-x-auto border-b px-5">
-        <button
-          v-for="tab in tabs"
-          :key="tab"
-          @click="activeTab = tab"
-          class="border-b-2 px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors"
-          :class="
-            activeTab === tab
-              ? 'border-primary text-primary'
-              : 'text-text-tertiary hover:text-text-secondary border-transparent'
-          "
-        >
-          {{ tab }}
-        </button>
+      <div v-else-if="activeTab === 'Columns'">
+        <TableColumnsEditor v-model="columns" :db-type="dbType" mode="alter" />
       </div>
 
-      <!-- Body -->
-      <div class="flex-1 overflow-y-auto p-5">
-        <div v-if="loading" class="flex justify-center py-10">
-          <div
-            class="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
-          ></div>
-        </div>
-
-        <div v-else-if="activeTab === 'Columns'">
-          <TableColumnsEditor v-model="columns" :db-type="dbType" mode="alter" />
-        </div>
-
-        <div v-else-if="activeTab === 'Constraints'">
-          <TableConstraintsEditor v-model="constraints" :db-type="dbType" mode="alter" />
-        </div>
-
-        <div v-else class="text-text-tertiary flex h-40 items-center justify-center text-[13px]">
-          {{ activeTab }} configuration is not available yet.
-        </div>
+      <div v-else-if="activeTab === 'Constraints'">
+        <TableConstraintsEditor v-model="constraints" :db-type="dbType" mode="alter" />
       </div>
 
-      <!-- Footer -->
-      <div class="border-border bg-muted/30 flex items-center justify-end gap-3 border-t px-5 py-4">
-        <button
-          @click="$emit('close')"
-          class="text-text-secondary hover:text-text-primary border-border bg-surface hover:bg-hover rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          @click="applyChanges"
-          class="bg-primary hover:bg-primary-hover rounded-lg px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-colors"
-          :disabled="loading"
-        >
-          Apply Changes
-        </button>
+      <div v-else class="text-text-tertiary flex h-40 items-center justify-center text-[13px]">
+        {{ activeTab }} configuration is not available yet.
       </div>
     </div>
-  </div>
+
+    <template #footer>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <Button variant="outlined" severity="secondary" @click="$emit('close')">Cancel</Button>
+        <Button severity="primary" :disabled="loading" @click="applyChanges">
+          Apply Changes
+        </Button>
+      </div>
+    </template>
+  </Dialog>
 </template>
