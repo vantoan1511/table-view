@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import DropdownMenu from './DropdownMenu.vue';
+import Button from 'primevue/button';
+import Checkbox from 'primevue/checkbox';
+import InputText from 'primevue/inputtext';
+import Select from 'primevue/select';
 
 import { DbType } from '@/types';
 
@@ -234,12 +237,12 @@ const togglePrimaryKey = (col: ColumnDef) => {
           >
             <!-- Column Name -->
             <td class="px-4 py-2">
-              <input
+              <InputText
                 v-if="col._editing"
                 v-model.trim="col.name"
-                type="text"
-                class="bg-surface border-primary/50 focus:border-primary text-text-primary w-full rounded border px-2 py-1 outline-none"
-                :class="{ 'border-danger! !focus:border-danger': !col.name.trim() }"
+                size="small"
+                class="w-full"
+                :invalid="!col.name.trim()"
               />
               <span v-else class="text-text-primary">{{ col.name }}</span>
             </td>
@@ -250,14 +253,16 @@ const togglePrimaryKey = (col: ColumnDef) => {
                 v-if="col._editing && (mode === 'create' || col._isNew)"
                 class="flex flex-col gap-2"
               >
-                <DropdownMenu
+                <Select
                   :model-value="parseDataType(col.dataType).baseType"
                   @update:model-value="
                     (val) => updateDataType(col, { baseType: val ? String(val) : '' })
                   "
                   :options="typeOptions"
-                  class="w-full"
-                  button-class="w-full justify-between !bg-surface text-text-primary text-[13px]"
+                  optionLabel="label"
+                  optionValue="value"
+                  size="small"
+                  class="w-full text-xs"
                 />
 
                 <!-- Additional constraints based on datatype -->
@@ -265,14 +270,15 @@ const togglePrimaryKey = (col: ColumnDef) => {
                   <span class="text-text-secondary text-[11px] font-medium whitespace-nowrap"
                     >Length:</span
                   >
-                  <input
+                  <InputText
                     type="number"
                     min="1"
-                    :value="parseDataType(col.dataType).length"
-                    @input="
-                      (e) => updateDataType(col, { length: (e.target as HTMLInputElement).value })
+                    :model-value="parseDataType(col.dataType).length"
+                    @update:model-value="
+                      (val) => updateDataType(col, { length: String(val ?? '') })
                     "
-                    class="bg-surface border-border focus:border-primary text-text-primary w-full rounded border px-2 py-0.5 text-center text-[12px] outline-none"
+                    size="small"
+                    class="w-full text-center text-[12px]"
                   />
                 </div>
 
@@ -282,32 +288,32 @@ const togglePrimaryKey = (col: ColumnDef) => {
                   >
                   <div class="flex w-full items-center gap-1">
                     <span class="flex-1">
-                      <input
+                      <InputText
                         v-tooltip.top="'Precision (total digits)'"
                         type="number"
                         min="1"
-                        :value="parseDataType(col.dataType).precision"
-                        @input="
-                          (e) =>
-                            updateDataType(col, { precision: (e.target as HTMLInputElement).value })
+                        :model-value="parseDataType(col.dataType).precision"
+                        @update:model-value="
+                          (val) => updateDataType(col, { precision: String(val ?? '') })
                         "
                         placeholder="10"
-                        class="bg-surface border-border focus:border-primary text-text-primary w-full rounded border px-1 py-0.5 text-center text-[12px] outline-none"
+                        size="small"
+                        class="w-full text-center text-[12px]"
                       />
                     </span>
                     <span class="text-text-tertiary">,</span>
                     <span class="flex-1">
-                      <input
+                      <InputText
                         v-tooltip.top="'Scale (decimal digits)'"
                         type="number"
                         min="0"
-                        :value="parseDataType(col.dataType).scale"
-                        @input="
-                          (e) =>
-                            updateDataType(col, { scale: (e.target as HTMLInputElement).value })
+                        :model-value="parseDataType(col.dataType).scale"
+                        @update:model-value="
+                          (val) => updateDataType(col, { scale: String(val ?? '') })
                         "
                         placeholder="2"
-                        class="bg-surface border-border focus:border-primary text-text-primary w-full rounded border px-1 py-0.5 text-center text-[12px] outline-none"
+                        size="small"
+                        class="w-full text-center text-[12px]"
                       />
                     </span>
                   </div>
@@ -338,57 +344,72 @@ const togglePrimaryKey = (col: ColumnDef) => {
 
             <!-- Default Value -->
             <td class="px-4 py-2">
-              <input
+              <InputText
                 v-if="col._editing && (mode === 'create' || col._isNew)"
                 v-model="col.default"
-                type="text"
                 placeholder="—"
-                class="bg-surface border-primary/50 focus:border-primary text-text-primary w-full rounded border px-2 py-1 outline-none"
+                size="small"
+                class="w-full"
               />
               <span v-else class="text-text-secondary">{{ col.default || '—' }}</span>
             </td>
 
             <!-- Foreign Key -->
             <td class="px-4 py-2">
-              <input
+              <InputText
                 v-if="col._editing && (mode === 'create' || col._isNew)"
                 v-model="col._fkStr"
-                type="text"
                 placeholder="[schema.]table.col"
-                title="Format: table.column or schema.table.column"
-                class="bg-surface border-primary/50 focus:border-primary text-text-primary w-full rounded border px-2 py-1 text-[12px] outline-none"
+                v-tooltip.top="'Format: table.column or schema.table.column'"
+                size="small"
+                class="w-full font-mono text-[12px]"
               />
               <span v-else class="text-text-secondary text-[12px]">{{ col._fkStr || '—' }}</span>
             </td>
 
             <!-- Actions -->
             <td class="px-4 py-2 text-right">
-              <div class="flex items-center justify-end gap-2">
-                <button
+              <div class="flex items-center justify-end gap-1">
+                <Button
                   v-if="col._editing"
-                  @click="saveColumn(col)"
                   v-tooltip.top="'Save'"
-                  class="text-success hover:text-success/80 cursor-pointer transition-colors"
+                  size="small"
+                  variant="text"
+                  severity="success"
+                  class="h-7! w-7! p-0!"
                   :disabled="!col.name.trim()"
+                  @click="saveColumn(col)"
                 >
-                  <Check :size="14" />
-                </button>
-                <button
+                  <template #icon>
+                    <Check :size="14" />
+                  </template>
+                </Button>
+                <Button
                   v-else
-                  @click="editColumn(col)"
                   v-tooltip.top="'Edit'"
-                  class="text-text-tertiary hover:text-primary cursor-pointer transition-colors"
+                  size="small"
+                  variant="text"
+                  severity="secondary"
+                  class="h-7! w-7! p-0!"
+                  @click="editColumn(col)"
                 >
-                  <Edit2 :size="14" />
-                </button>
+                  <template #icon>
+                    <Edit2 :size="14" />
+                  </template>
+                </Button>
 
-                <button
-                  @click="removeColumn(col.id)"
+                <Button
                   v-tooltip.top="'Delete'"
-                  class="text-text-tertiary hover:text-danger cursor-pointer transition-colors"
+                  size="small"
+                  variant="text"
+                  severity="danger"
+                  class="h-7! w-7! p-0!"
+                  @click="removeColumn(col.id)"
                 >
-                  <Trash2 :size="14" />
-                </button>
+                  <template #icon>
+                    <Trash2 :size="14" />
+                  </template>
+                </Button>
               </div>
             </td>
           </tr>
@@ -406,13 +427,10 @@ const togglePrimaryKey = (col: ColumnDef) => {
 
     <!-- Add Column Button -->
     <div class="mt-4">
-      <button
-        @click="addColumn"
-        class="border-primary/30 text-primary hover:bg-primary/10 flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors"
-      >
+      <Button size="small" variant="outlined" severity="primary" @click="addColumn">
         <Plus :size="14" />
         <span>Add Column</span>
-      </button>
+      </Button>
     </div>
   </div>
 </template>

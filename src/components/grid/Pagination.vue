@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
-import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
+import Button from 'primevue/button';
+import Select from 'primevue/select';
 
 import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
@@ -53,10 +54,6 @@ const rowsOptions = [25, 50, 100, 250, 500, 1000].map((value) => ({
   label: String(value),
   value
 }));
-
-const setRowsPerPage = (count: DropdownValue) => {
-  gridStore.setRowsPerPage(Number(count));
-};
 
 const handleInsert = async () => {
   gridStore.createNewRow();
@@ -124,71 +121,90 @@ const confirmDelete = async () => {
     <!-- Center: Page navigation -->
     <div class="flex items-center gap-0.5">
       <!-- First -->
-      <button
-        class="hover:bg-hover flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-30"
+      <Button
+        variant="text"
+        severity="secondary"
+        size="small"
+        class="h-7! w-7! p-0!"
         :disabled="gridStore.currentPage === 1"
         @click="gridStore.setPage(1)"
       >
-        <ChevronsLeft :size="14" />
-      </button>
+        <template #icon>
+          <ChevronsLeft :size="14" />
+        </template>
+      </Button>
       <!-- Prev -->
-      <button
-        class="hover:bg-hover flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-30"
+      <Button
+        variant="text"
+        severity="secondary"
+        size="small"
+        class="h-7! w-7! p-0!"
         :disabled="gridStore.currentPage === 1"
         @click="gridStore.setPage(gridStore.currentPage - 1)"
       >
-        <ChevronLeft :size="14" />
-      </button>
+        <template #icon>
+          <ChevronLeft :size="14" />
+        </template>
+      </Button>
 
       <!-- Pages -->
       <template v-for="page in visiblePages" :key="page">
         <span
           v-if="page === '...'"
-          class="text-text-tertiary flex h-7 w-7 items-center justify-center"
+          class="text-text-tertiary flex h-7 w-7 items-center justify-center text-[12px]"
           >…</span
         >
-        <button
+        <Button
           v-else
-          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-[12px] transition-colors"
-          :class="
-            page === gridStore.currentPage
-              ? 'bg-primary text-text-inverse font-medium'
-              : 'hover:bg-hover text-text-secondary'
-          "
+          size="small"
+          class="h-7! w-7! p-0! text-[12px]!"
+          :variant="page === gridStore.currentPage ? 'outlined' : 'text'"
+          :severity="page === gridStore.currentPage ? 'primary' : 'secondary'"
           @click="gridStore.setPage(page as number)"
         >
           {{ page }}
-        </button>
+        </Button>
       </template>
 
       <!-- Next -->
-      <button
-        class="hover:bg-hover flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-30"
+      <Button
+        variant="text"
+        severity="secondary"
+        size="small"
+        class="h-7! w-7! p-0!"
         :disabled="gridStore.currentPage === gridStore.totalPages"
         @click="gridStore.setPage(gridStore.currentPage + 1)"
       >
-        <ChevronRight :size="14" />
-      </button>
+        <template #icon>
+          <ChevronRight :size="14" />
+        </template>
+      </Button>
       <!-- Last -->
-      <button
-        class="hover:bg-hover flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-30"
+      <Button
+        variant="text"
+        severity="secondary"
+        size="small"
+        class="h-7! w-7! p-0!"
         :disabled="gridStore.currentPage === gridStore.totalPages"
         @click="gridStore.setPage(gridStore.totalPages)"
       >
-        <ChevronsRight :size="14" />
-      </button>
+        <template #icon>
+          <ChevronsRight :size="14" />
+        </template>
+      </Button>
     </div>
 
     <!-- Right: Rows per page -->
     <div class="flex items-center gap-1.5">
       <span>Rows per page</span>
-      <DropdownMenu
+      <Select
         :model-value="gridStore.rowsPerPage"
         :options="rowsOptions"
-        placement="top"
-        align="right"
-        aria-label="Rows per page"
-        @update:model-value="setRowsPerPage"
+        optionLabel="label"
+        optionValue="value"
+        size="small"
+        class="w-22 text-xs"
+        @update:model-value="(val) => gridStore.setRowsPerPage(Number(val))"
       />
     </div>
   </div>

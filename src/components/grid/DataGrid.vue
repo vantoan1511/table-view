@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ContextMenu from '@/components/ui/ContextMenu.vue';
-import Skeleton from '@/components/ui/Skeleton.vue';
+import Skeleton from 'primevue/skeleton';
 import GridCell from './GridCell.vue';
 import GridHeaderCell from './GridHeaderCell.vue';
 import GridToolbar from './GridToolbar.vue';

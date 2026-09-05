@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import AlterTableDialog from '@/components/ui/AlterTableDialog.vue';
-import DropdownMenu, { type DropdownValue } from '@/components/ui/DropdownMenu.vue';
+import Button from 'primevue/button';
+import Checkbox from 'primevue/checkbox';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
+import InputText from 'primevue/inputtext';
+import Popover from 'primevue/popover';
+import Select from 'primevue/select';
 
 import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
@@ -42,7 +48,10 @@ watch(
   { immediate: true }
 );
 
-const setRowsPerPage = (count: DropdownValue) => {
+const columnsPopover = ref();
+const morePopover = ref();
+
+const setRowsPerPage = (count: string | number) => {
   gridStore.setRowsPerPage(Number(count));
 };
 
@@ -321,28 +330,36 @@ const handleExport = async () => {
 
     <!-- Filter Query Input -->
     <div v-if="gridStore.activeTableName" class="relative min-w-0 flex-1">
-      <div
-        class="bg-surface border-border focus-within:border-primary/50 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors"
-      >
-        <Filter :size="12" class="text-text-tertiary shrink-0" />
-        <input
-          ref="filterInputRef"
-          type="text"
-          placeholder="Filter condition (e.g. id > 10)..."
-          class="text-text-primary placeholder-text-tertiary flex-1 border-none bg-transparent text-[12px] outline-none"
-          v-model="gridStore.filterText"
-          @input="handleInput"
-          @keydown="handleKeyDown"
-          @click="handleInput"
-          @blur="handleBlur"
-        />
-        <button
+      <div class="relative flex items-center">
+        <IconField class="w-full">
+          <InputIcon>
+            <Filter :size="12" class="text-text-tertiary" />
+          </InputIcon>
+          <InputText
+            ref="filterInputRef"
+            type="text"
+            placeholder="Filter condition (e.g. id > 10)..."
+            v-model="gridStore.filterText"
+            size="small"
+            class="w-full pr-7 text-xs"
+            @input="handleInput"
+            @keydown="handleKeyDown"
+            @click="handleInput"
+            @blur="handleBlur"
+          />
+        </IconField>
+        <Button
           v-if="gridStore.filterText"
-          class="text-text-tertiary hover:text-text-primary shrink-0 cursor-pointer"
+          variant="text"
+          severity="secondary"
+          size="small"
+          class="absolute right-1 h-6! w-6! p-0!"
           @click="clearFilter"
         >
-          <X :size="12" />
-        </button>
+          <template #icon>
+            <X :size="12" />
+          </template>
+        </Button>
       </div>
 
       <!-- Autocomplete Dropdown -->
@@ -388,209 +405,196 @@ const handleExport = async () => {
     <div class="flex min-w-0 items-center gap-2">
       <!-- Level 1 & 2 Actions Group -->
       <div class="hidden items-center gap-1.5 @[500px]:flex">
-        <!-- Columns -->
-        <DropdownMenu
+        <!-- Columns Button & Popover -->
+        <Button
           v-tooltip.bottom="'Configure Columns'"
-          :model-value="''"
-          :options="[]"
-          aria-label="Columns configuration"
-          align="right"
-          :show-chevron="true"
-          button-class="border-border text-text-secondary hover:bg-hover group rounded-lg px-2.5 py-1.5"
-          menu-class="min-w-52"
+          variant="outlined"
+          severity="secondary"
+          size="small"
+          @click="(event) => columnsPopover.toggle(event)"
         >
-          <template #trigger>
-            <Columns3 :size="13" />
-            <span class="hidden @[850px]:inline">Columns</span>
-          </template>
-          <div
-            class="text-text-tertiary px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
-          >
-            Columns
-          </div>
-          <div class="max-h-64 overflow-y-auto">
-            <button
-              v-for="col in gridStore.columns"
-              :key="col.name"
-              class="hover:bg-hover flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-[12px]"
-              @click="gridStore.toggleColumnVisibility(col.name)"
+          <Columns3 class="h-3.5 w-3.5" />
+          <span class="hidden text-xs @[850px]:inline">Columns</span>
+        </Button>
+        <Popover ref="columnsPopover">
+          <div class="min-w-52 p-1">
+            <div
+              class="text-text-tertiary px-2 py-1 text-[11px] font-semibold tracking-wider uppercase"
             >
-              <span
-                class="border-border flex h-3 w-3 shrink-0 items-center justify-center rounded border"
-                :class="
-                  gridStore.columnVisibility[col.name] !== false
-                    ? 'bg-primary border-primary'
-                    : 'bg-surface'
-                "
+              Columns
+            </div>
+            <div class="max-h-64 space-y-1 overflow-y-auto">
+              <div
+                v-for="col in gridStore.columns"
+                :key="col.name"
+                class="hover:bg-hover flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-xs"
+                @click="gridStore.toggleColumnVisibility(col.name)"
               >
-                <svg
-                  v-if="gridStore.columnVisibility[col.name] !== false"
-                  class="h-2 w-2 text-white"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                >
-                  <polyline
-                    points="1,6 4,9 11,2"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </span>
-              <span class="truncate">{{ col.name }}</span>
-              <span class="text-text-tertiary ml-auto text-[10px]">{{ col.dataType }}</span>
-            </button>
+                <Checkbox
+                  :model-value="gridStore.columnVisibility[col.name] !== false"
+                  binary
+                  @click.stop="gridStore.toggleColumnVisibility(col.name)"
+                />
+                <span class="flex-1 truncate">{{ col.name }}</span>
+                <span class="text-text-tertiary text-[10px]">{{ col.dataType }}</span>
+              </div>
+            </div>
           </div>
-        </DropdownMenu>
+        </Popover>
 
         <!-- Export -->
-        <button
+        <Button
           v-tooltip.bottom="'Export Data'"
-          class="border-border text-text-secondary hover:bg-hover group relative flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors"
+          variant="outlined"
+          severity="secondary"
+          size="small"
           @click="handleExport"
         >
-          <Download :size="13" />
-          <span class="hidden @[850px]:inline">Export</span>
-        </button>
+          <Download class="h-3.5 w-3.5" />
+          <span class="hidden text-xs @[850px]:inline">Export</span>
+        </Button>
 
         <!-- Row Count -->
-        <DropdownMenu
+        <Select
           :model-value="gridStore.rowsPerPage"
           :options="rowsOptions"
-          aria-label="Rows per page"
-          button-class="border-border text-text-secondary hover:bg-hover rounded-lg px-2.5 py-1.5"
+          optionLabel="label"
+          optionValue="value"
+          size="small"
+          class="w-24 text-xs"
           @update:model-value="setRowsPerPage"
-        >
-          <template #trigger>
-            <span class="whitespace-nowrap">
-              {{ gridStore.rowsPerPage }} <span class="hidden @[850px]:inline">rows</span>
-            </span>
-          </template>
-        </DropdownMenu>
-
-        <!-- Divider -->
-        <div class="bg-border mx-0.5 hidden h-5 w-px @[600px]:block" />
+        />
 
         <!-- Alter Table -->
-        <button
+        <Button
           v-tooltip.bottom="'Alter Table Structure'"
-          class="border-border text-text-secondary hover:bg-hover group relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-colors"
+          variant="outlined"
+          severity="secondary"
+          size="small"
+          class="h-8! w-8! p-0!"
           @click="gridStore.showAlterTableDialog = true"
         >
-          <Wrench :size="14" />
-        </button>
+          <template #icon>
+            <Wrench :size="14" />
+          </template>
+        </Button>
 
         <!-- Refresh -->
-        <button
+        <Button
           v-tooltip.bottom="'Refresh Table'"
-          class="border-border text-text-secondary hover:bg-hover group relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-colors"
+          variant="outlined"
+          severity="secondary"
+          size="small"
+          class="h-8! w-8! p-0!"
           @click="handleRefresh"
         >
-          <RefreshCw :size="14" />
-        </button>
+          <template #icon>
+            <RefreshCw :size="14" />
+          </template>
+        </Button>
       </div>
 
       <!-- Level 3: Speed Dial / More Button -->
       <div class="flex items-center @[500px]:hidden">
-        <DropdownMenu
+        <Button
           v-tooltip.bottom="'More Actions'"
-          :model-value="''"
-          :options="[]"
-          aria-label="More actions"
-          align="right"
-          :show-chevron="false"
-          button-class="border-border text-text-secondary hover:bg-hover group h-8 w-8 justify-center rounded-lg p-0"
-          menu-class="min-w-64"
+          variant="outlined"
+          severity="secondary"
+          size="small"
+          class="h-8! w-8! p-0!"
+          @click="(event) => morePopover.toggle(event)"
         >
-          <template #trigger>
+          <template #icon>
             <MoreHorizontal :size="16" />
           </template>
-          <template #default="{ close }">
-            <button
-              class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
+        </Button>
+        <Popover ref="morePopover">
+          <div class="flex min-w-60 flex-col gap-1 p-1">
+            <Button
+              variant="text"
+              severity="secondary"
+              size="small"
+              class="w-full justify-start!"
               @click="
                 handleRefresh();
-                close();
+                morePopover.hide();
               "
             >
-              <RefreshCw :size="14" /> <span>Refresh</span>
-            </button>
-            <button
-              class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
+              <RefreshCw class="h-3.5 w-3.5" />
+              <span>Refresh</span>
+            </Button>
+            <Button
+              variant="text"
+              severity="secondary"
+              size="small"
+              class="w-full justify-start!"
               @click="
                 gridStore.showAlterTableDialog = true;
-                close();
+                morePopover.hide();
               "
             >
-              <Wrench :size="14" /> <span>Alter Table</span>
-            </button>
-            <button
-              class="hover:bg-hover flex w-full items-center gap-2 px-3 py-2 text-[12px]"
+              <Wrench class="h-3.5 w-3.5" />
+              <span>Alter Table</span>
+            </Button>
+            <Button
+              variant="text"
+              severity="secondary"
+              size="small"
+              class="w-full justify-start!"
               @click="
                 handleExport();
-                close();
+                morePopover.hide();
               "
             >
-              <Download :size="14" /> <span>Export CSV</span>
-            </button>
+              <Download class="h-3.5 w-3.5" />
+              <span>Export CSV</span>
+            </Button>
 
-            <div class="bg-border my-1 h-px"></div>
             <div
-              class="text-text-tertiary flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
+              class="text-text-tertiary flex items-center gap-2 px-2 pt-2 text-[11px] font-semibold tracking-wider uppercase"
             >
               <LayoutGrid :size="13" /> Rows per page
             </div>
-            <button
-              v-for="option in rowsOptions"
-              :key="option.value"
-              class="hover:bg-hover flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-[12px]"
-              @click="setRowsPerPage(option.value)"
-            >
-              <span>{{ option.label }}</span>
-              <span v-if="gridStore.rowsPerPage === option.value" class="text-primary">✓</span>
-            </button>
+            <div class="flex items-center px-2 py-1">
+              <Select
+                :model-value="gridStore.rowsPerPage"
+                :options="rowsOptions"
+                optionLabel="label"
+                optionValue="value"
+                size="small"
+                class="w-full text-xs"
+                @update:model-value="
+                  (val) => {
+                    setRowsPerPage(val);
+                    morePopover.hide();
+                  }
+                "
+              />
+            </div>
 
-            <div class="bg-border my-1 h-px"></div>
             <div
-              class="text-text-tertiary flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
+              class="text-text-tertiary flex items-center gap-2 px-2 pt-2 text-[11px] font-semibold tracking-wider uppercase"
             >
               <Columns3 :size="13" /> Columns
             </div>
-            <div class="max-h-52 overflow-y-auto">
-              <button
+            <div class="max-h-52 space-y-1 overflow-y-auto">
+              <div
                 v-for="col in gridStore.columns"
                 :key="col.name"
-                class="hover:bg-hover flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-[12px]"
+                class="hover:bg-hover flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-xs"
                 @click="gridStore.toggleColumnVisibility(col.name)"
               >
-                <span
-                  class="border-border flex h-3 w-3 shrink-0 items-center justify-center rounded border"
-                  :class="
-                    gridStore.columnVisibility[col.name] !== false
-                      ? 'bg-primary border-primary'
-                      : 'bg-surface'
-                  "
-                >
-                  <svg
-                    v-if="gridStore.columnVisibility[col.name] !== false"
-                    class="h-2 w-2 text-white"
-                    viewBox="0 0 12 12"
-                    fill="none"
-                  >
-                    <polyline
-                      points="1,6 4,9 11,2"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                </span>
-                <span class="truncate">{{ col.name }}</span>
-                <span class="text-text-tertiary ml-auto text-[10px]">{{ col.dataType }}</span>
-              </button>
+                <Checkbox
+                  :model-value="gridStore.columnVisibility[col.name] !== false"
+                  binary
+                  @click.stop="gridStore.toggleColumnVisibility(col.name)"
+                />
+                <span class="flex-1 truncate">{{ col.name }}</span>
+                <span class="text-text-tertiary text-[10px]">{{ col.dataType }}</span>
+              </div>
             </div>
-          </template>
-        </DropdownMenu>
+          </div>
+        </Popover>
       </div>
     </div>
   </div>

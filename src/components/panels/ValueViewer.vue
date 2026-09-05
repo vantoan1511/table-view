@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from 'primevue/button';
 import { useGridStore } from '@/stores/grid';
 import { formatGridCellValue } from '@/stores/grid/valueConversion';
 import { Check, Clipboard, Edit3, FileText, X } from 'lucide-vue-next';
@@ -103,33 +104,45 @@ const setBooleanLocal = (valStr: string) => {
       <div class="flex shrink-0 items-center gap-1.5">
         <template v-if="gridStore.selectedCell">
           <template v-if="isEditing">
-            <button
-              class="bg-success/10 hover:bg-success/20 text-success flex cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-[11px] font-bold transition-colors"
+            <Button
+              size="small"
+              severity="success"
+              variant="text"
+              class="h-7! text-[11px]!"
               @click="gridStore.saveEditCell"
             >
               <Check :size="13" /> Save
-            </button>
-            <button
-              class="bg-danger/10 hover:bg-danger/20 text-danger flex cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-[11px] font-bold transition-colors"
+            </Button>
+            <Button
+              size="small"
+              severity="danger"
+              variant="text"
+              class="h-7! text-[11px]!"
               @click="gridStore.cancelEditCell"
             >
               <X :size="13" /> Discard
-            </button>
+            </Button>
           </template>
           <template v-else>
-            <button
-              class="bg-primary/10 hover:bg-primary/20 text-primary flex cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-[11px] font-bold transition-colors"
+            <Button
+              size="small"
+              severity="primary"
+              variant="text"
+              class="h-7! text-[11px]!"
               @click="startEdit"
             >
               <Edit3 :size="13" /> Edit
-            </button>
-            <button
+            </Button>
+            <Button
               v-tooltip.top="'Copy to clipboard'"
-              class="text-text-tertiary hover:text-text-primary hover:bg-hover cursor-pointer rounded p-1.5 transition-colors"
+              variant="text"
+              severity="secondary"
+              size="small"
+              class="h-7! w-7! p-0!"
               @click="copyToClipboard"
             >
               <Clipboard :size="14" />
-            </button>
+            </Button>
           </template>
         </template>
       </div>
@@ -165,51 +178,38 @@ const setBooleanLocal = (valStr: string) => {
           </div>
 
           <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="flex items-center gap-1.5 rounded-md border px-4 py-2 text-xs font-semibold transition-all duration-200"
-              :class="[
-                localValue.toLowerCase() === 'true'
-                  ? 'bg-success/15 border-success text-success shadow-success/10 shadow-lg'
-                  : 'bg-surface border-border text-text-secondary hover:border-text-primary',
-                isEditing ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-              ]"
+            <Button
+              size="small"
+              :variant="localValue.toLowerCase() === 'true' ? 'outlined' : 'text'"
+              severity="success"
               :disabled="!isEditing"
               @click="setBooleanLocal('true')"
             >
               True
-            </button>
+            </Button>
 
-            <button
-              type="button"
-              class="flex items-center gap-1.5 rounded-md border px-4 py-2 text-xs font-semibold transition-all duration-200"
-              :class="[
-                localValue.toLowerCase() === 'false'
-                  ? 'bg-danger/15 border-danger text-danger shadow-danger/10 shadow-lg'
-                  : 'bg-surface border-border text-text-secondary hover:border-text-primary',
-                isEditing ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-              ]"
+            <Button
+              size="small"
+              :variant="localValue.toLowerCase() === 'false' ? 'outlined' : 'text'"
+              severity="danger"
               :disabled="!isEditing"
               @click="setBooleanLocal('false')"
             >
               False
-            </button>
+            </Button>
 
-            <button
+            <Button
               v-if="gridStore.selectedCell.column.isNullable !== false"
-              type="button"
-              class="flex items-center gap-1.5 rounded-md border px-4 py-2 text-xs font-semibold transition-all duration-200"
-              :class="[
-                localValue === '' || localValue.toUpperCase() === 'NULL'
-                  ? 'bg-text-tertiary/15 border-text-tertiary text-text-tertiary shadow-lg'
-                  : 'bg-surface border-border text-text-secondary hover:border-text-primary',
-                isEditing ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-              ]"
+              size="small"
+              :variant="
+                localValue === '' || localValue.toUpperCase() === 'NULL' ? 'outlined' : 'text'
+              "
+              severity="secondary"
               :disabled="!isEditing"
               @click="setBooleanLocal('')"
             >
               Null
-            </button>
+            </Button>
           </div>
 
           <p v-if="!isEditing" class="text-text-tertiary text-[11px]">

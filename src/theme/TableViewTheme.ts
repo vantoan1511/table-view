@@ -110,6 +110,98 @@ export const TableViewTheme = definePreset(Aura, {
           }
         }
       }
+    },
+    dialog: {
+      colorScheme: {
+        light: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+            color: 'var(--color-text-primary)'
+          }
+        },
+        dark: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+            color: 'var(--color-text-primary)'
+          }
+        }
+      }
+    },
+    inputtext: {
+      colorScheme: {
+        light: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+            hoverBorderColor: 'var(--color-border-strong)',
+            focusBorderColor: 'var(--color-primary)',
+            color: 'var(--color-text-primary)'
+          }
+        },
+        dark: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+            hoverBorderColor: 'var(--color-border-strong)',
+            focusBorderColor: 'var(--color-primary)',
+            color: 'var(--color-text-primary)'
+          }
+        }
+      }
+    },
+    contextmenu: {
+      colorScheme: {
+        light: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+            color: 'var(--color-text-primary)'
+          },
+          item: {
+            focusBackground: 'var(--color-hover)',
+            color: 'var(--color-text-primary)'
+          }
+        },
+        dark: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+            color: 'var(--color-text-primary)'
+          },
+          item: {
+            focusBackground: 'var(--color-hover)',
+            color: 'var(--color-text-primary)'
+          }
+        }
+      }
+    },
+    menu: {
+      colorScheme: {
+        light: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+            color: 'var(--color-text-primary)'
+          },
+          item: {
+            focusBackground: 'var(--color-hover)',
+            color: 'var(--color-text-primary)'
+          }
+        },
+        dark: {
+          root: {
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+            color: 'var(--color-text-primary)'
+          },
+          item: {
+            focusBackground: 'var(--color-hover)',
+            color: 'var(--color-text-primary)'
+          }
+        }
+      }
     }
   }
 });

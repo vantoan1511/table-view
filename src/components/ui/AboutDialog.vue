@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
+import Dialog from 'primevue/dialog';
+
 import { useAboutStore } from '@/stores/about';
 import { useUpdaterStore } from '@/stores/updater';
 import { os } from '@/services/nativeService';
-import { Coffee, Github, Globe, Heart, X } from 'lucide-vue-next';
+import { Coffee, Github, Globe, Heart, Layers } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
 const aboutStore = useAboutStore();
@@ -34,107 +35,75 @@ const openLink = (url: string) => {
   <Dialog
     :visible="aboutStore.isOpen"
     modal
-    :style="{ width: '24rem' }"
-    :closable="false"
-    :showHeader="false"
-    :pt="{
-      root: { class: '!p-0 !overflow-hidden !rounded-2xl' },
-      content: { class: '!p-0 !overflow-hidden !rounded-2xl' }
-    }"
+    header="About Table View"
+    :style="{ width: '26rem' }"
     @update:visible="
       (val) => {
         if (!val) aboutStore.close();
       }
     "
   >
-    <div class="relative overflow-hidden">
-      <!-- Branded Header -->
-      <div
-        class="from-primary to-primary-hover relative flex h-32 items-center justify-center overflow-hidden bg-linear-to-br"
-      >
-        <!-- Close button -->
-        <button
-          type="button"
-          @click="aboutStore.close"
-          class="absolute top-3 right-3 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-none bg-white/20 text-white backdrop-blur-md transition-colors hover:bg-white/30"
+    <div class="flex flex-col items-center gap-5 py-1 text-center">
+      <!-- App Icon & Title -->
+      <div class="flex flex-col items-center gap-2">
+        <div
+          class="bg-primary/10 text-primary border-primary/20 flex h-13 w-13 items-center justify-center rounded-xl border"
         >
-          <X :size="16" />
-        </button>
-
-        <!-- Decorative background elements -->
-        <div class="absolute inset-0 opacity-10">
-          <svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M0 0 L100 100 M100 0 L0 100" stroke="white" stroke-width="0.5" />
-          </svg>
+          <Layers :size="26" />
         </div>
-
-        <div class="relative flex flex-col items-center gap-2">
-          <div
-            class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-md"
+        <div>
+          <h2 class="text-text-primary text-base font-bold tracking-tight">Table View</h2>
+          <span
+            class="bg-hover text-text-secondary mt-1 inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase"
           >
-            <svg
-              class="h-8 w-8 text-white"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="9" y1="21" x2="9" y2="9" />
-            </svg>
-          </div>
-          <h2 class="text-xl font-bold tracking-tight text-white">Table View</h2>
+            Version {{ version }}
+          </span>
         </div>
       </div>
 
-      <!-- Content -->
-      <div class="space-y-6 p-6">
-        <div class="space-y-2.5 text-center">
-          <div
-            class="bg-primary/10 text-primary inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wider uppercase"
-          >
-            Version {{ version }}
-          </div>
-          <p class="text-text-secondary px-2 text-[13px] leading-relaxed">
-            A modern, high-performance database management tool designed for developers who value
-            speed, simplicity, and a beautiful user interface.
-          </p>
-        </div>
+      <!-- Description -->
+      <p class="text-text-secondary max-w-sm text-xs leading-relaxed">
+        A lightweight, high-performance desktop database management client designed for technical
+        users who value speed, efficiency, and clarity.
+      </p>
 
-        <div class="grid grid-cols-2 gap-3">
-          <Button
-            variant="text"
-            severity="secondary"
-            @click="openLink('https://github.com/vantoan1511/table-view')"
-          >
-            <Github class="h-4 w-4" />
-            GitHub
-          </Button>
-          <Button
-            variant="text"
-            severity="secondary"
-            @click="openLink('https://github.com/vantoan1511')"
-          >
-            <Globe class="h-4 w-4" />
-            Toan Nguyen
-          </Button>
-        </div>
+      <!-- Links -->
+      <div class="grid w-full grid-cols-2 gap-2">
+        <Button
+          variant="outlined"
+          severity="secondary"
+          size="small"
+          class="w-full justify-center gap-2"
+          @click="openLink('https://github.com/vantoan1511/table-view')"
+        >
+          <Github :size="14" />
+          <span>GitHub</span>
+        </Button>
+        <Button
+          variant="outlined"
+          severity="secondary"
+          size="small"
+          class="w-full justify-center gap-2"
+          @click="openLink('https://github.com/vantoan1511')"
+        >
+          <Globe :size="14" />
+          <span>Website</span>
+        </Button>
+      </div>
 
-        <div class="bg-border/50 h-px" />
-
-        <div class="flex flex-col gap-3">
-          <button
-            type="button"
-            @click="openLink('https://www.buymeacoffee.com/vantoan1511')"
-            class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-none bg-[#FFDD00] px-4 py-3 text-sm font-bold text-black shadow-sm transition-all hover:bg-[#FFDD00]/90 active:scale-[0.98]"
-          >
-            <Coffee class="h-4 w-4" />
-            Buy me a coffee
-          </button>
-          <div class="text-text-tertiary flex items-center justify-center gap-1.5 text-[11px]">
-            Made with <Heart :size="10" class="text-danger fill-danger" /> by Toan Nguyen
-          </div>
+      <!-- Footer Action -->
+      <div class="flex w-full flex-col items-center gap-3">
+        <Button
+          severity="warn"
+          size="small"
+          class="w-full justify-center gap-2 font-medium"
+          @click="openLink('https://www.buymeacoffee.com/vantoan1511')"
+        >
+          <Coffee :size="14" />
+          <span>Buy me a coffee</span>
+        </Button>
+        <div class="text-text-tertiary flex items-center justify-center gap-1.5 text-[11px]">
+          Made with <Heart :size="10" class="text-danger fill-danger" /> by Toan Nguyen
         </div>
       </div>
     </div>

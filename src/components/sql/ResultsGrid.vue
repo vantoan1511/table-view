@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import GridCell from '../grid/GridCell.vue';
 import GridHeaderCell from '../grid/GridHeaderCell.vue';
-import Skeleton from '@/components/ui/Skeleton.vue';
+import Skeleton from 'primevue/skeleton';
 
 import { useClickOutside } from '@/composables/useClickOutside';
 import { useGridResizing } from '@/composables/useGridResizing';

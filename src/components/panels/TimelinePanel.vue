@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import Button from 'primevue/button';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
+import InputText from 'primevue/inputtext';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 import { useGridStore } from '@/stores/grid';
@@ -152,24 +156,18 @@ const getFlagColorClass = (colorName?: string) => {
     <div
       class="border-border bg-sidebar/30 flex shrink-0 items-center justify-between gap-3 border-b px-3 py-2"
     >
-      <div
-        class="bg-surface border-border focus-within:border-primary/50 flex flex-1 items-center gap-2 rounded-lg border px-2.5 py-1 transition-colors"
-      >
-        <Search :size="12" class="text-text-tertiary shrink-0" />
-        <input
+      <IconField class="flex-1">
+        <InputIcon>
+          <Search :size="12" />
+        </InputIcon>
+        <InputText
           v-model="searchQuery"
-          type="text"
           placeholder="Search history..."
-          class="text-text-primary placeholder-text-tertiary flex-1 border-none bg-transparent py-0.5 text-[12px] outline-none"
+          size="small"
+          fluid
+          class="text-[12px]"
         />
-        <button
-          v-if="searchQuery"
-          class="text-text-tertiary hover:text-text-primary shrink-0 cursor-pointer"
-          @click="searchQuery = ''"
-        >
-          &times;
-        </button>
-      </div>
+      </IconField>
 
       <Button
         v-if="historyStore.history.length > 0"
@@ -229,7 +227,7 @@ const getFlagColorClass = (colorName?: string) => {
               </span>
 
               <!-- Time -->
-              <span class="text-text-tertiary text-[10px]" :title="entry.timestamp">
+              <span class="text-text-tertiary text-[10px]" v-tooltip="entry.timestamp">
                 {{ formatTime(entry.timestamp) }}
               </span>
 
@@ -253,36 +251,48 @@ const getFlagColorClass = (colorName?: string) => {
               class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
             >
               <template v-if="entry.type === 'sql' && entry.query">
-                <button
+                <Button
                   v-tooltip.top="'Copy SQL'"
-                  class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded p-1"
+                  variant="text"
+                  severity="secondary"
+                  size="small"
+                  class="h-6! w-6! p-0!"
                   @click.stop="handleCopy(entry.query)"
                 >
                   <Copy :size="12" />
-                </button>
-                <button
+                </Button>
+                <Button
                   v-tooltip.top="'Open in SQL Editor'"
-                  class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded p-1"
+                  variant="text"
+                  severity="secondary"
+                  size="small"
+                  class="h-6! w-6! p-0!"
                   @click.stop="openInEditor(entry)"
                 >
                   <ExternalLink :size="12" />
-                </button>
-                <button
+                </Button>
+                <Button
                   v-tooltip.top="'Re-run Query'"
-                  class="text-primary hover:text-primary-hover hover:bg-hover rounded p-1"
+                  variant="text"
+                  severity="primary"
+                  size="small"
+                  class="h-6! w-6! p-0!"
                   @click.stop="reRunQuery(entry)"
                 >
                   <Play :size="12" />
-                </button>
+                </Button>
               </template>
               <template v-else-if="entry.type === 'table' && entry.tableName">
-                <button
+                <Button
                   v-tooltip.top="'Copy Table Name'"
-                  class="text-text-tertiary hover:text-text-primary hover:bg-hover rounded p-1"
+                  variant="text"
+                  severity="secondary"
+                  size="small"
+                  class="h-6! w-6! p-0!"
                   @click.stop="handleCopy(entry.tableName)"
                 >
                   <Copy :size="12" />
-                </button>
+                </Button>
               </template>
             </div>
           </div>
@@ -297,7 +307,7 @@ const getFlagColorClass = (colorName?: string) => {
                   expandedEntryIds[entry.id] ? 'overflow-x-auto whitespace-pre' : 'truncate'
                 ]"
                 @click="toggleExpand(entry.id)"
-                title="Click to expand/collapse full SQL"
+                v-tooltip="'Click to expand/collapse full SQL'"
               >
                 {{ entry.query }}
               </div>

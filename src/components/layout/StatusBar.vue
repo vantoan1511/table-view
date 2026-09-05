@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import ContextMenu from '@/components/ui/ContextMenu.vue';
+import Menu from 'primevue/menu';
+import Button from 'primevue/button';
 
 import { useAboutStore } from '@/stores/about';
 import { useConnectionsStore } from '@/stores/connections';
@@ -35,14 +36,39 @@ const isDark = computed(() => {
   return preferencesStore.settings.theme === 'dark';
 });
 
-const showSettingsMenu = ref(false);
-const settingsMenuPos = ref({ x: 0, y: 0 });
+const settingsMenuRef = ref();
+
+const settingsMenuItems = computed(() => [
+  {
+    label: 'Preferences',
+    lucideIcon: Settings,
+    command: () => openSettings()
+  },
+  {
+    label: 'About Table View',
+    lucideIcon: Info,
+    command: () => aboutStore.open()
+  },
+  {
+    separator: true
+  },
+  {
+    label: isDark.value ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+    lucideIcon: isDark.value ? Sun : Moon,
+    command: () => toggleDarkMode()
+  },
+  {
+    separator: true
+  },
+  {
+    label: 'Check for Updates',
+    lucideIcon: RefreshCw,
+    command: () => handleCheckForUpdates()
+  }
+]);
 
 const toggleSettingsMenu = (e: MouseEvent) => {
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  // Position above the status bar
-  settingsMenuPos.value = { x: rect.left, y: rect.top - 8 };
-  showSettingsMenu.value = !showSettingsMenu.value;
+  settingsMenuRef.value?.toggle(e);
 };
 
 // ─── Row Count ────────────────────────────────────────────────────────────
@@ -88,75 +114,33 @@ const openSettings = () => {
   >
     <!-- Left: icons -->
     <div class="flex items-center gap-2">
-      <button
-        class="hover:bg-hover text-text-tertiary hover:text-text-secondary flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
-        @click.stop="toggleSettingsMenu"
-        title="Settings & About"
+      <Button
+        variant="text"
+        severity="secondary"
+        size="small"
+        class="h-6! w-6! p-0!"
+        v-tooltip="'Settings & About'"
+        @click="toggleSettingsMenu"
       >
         <Settings :size="13" />
-      </button>
+      </Button>
 
-      <ContextMenu
-        :show="showSettingsMenu"
-        :x="settingsMenuPos.x"
-        :y="settingsMenuPos.y"
-        @close="showSettingsMenu = false"
-        width-class="w-48 !-translate-y-full"
-      >
-        <div class="text-text-tertiary px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase">
-          Application
-        </div>
-        <button
-          @click="
-            openSettings();
-            showSettingsMenu = false;
-          "
-          class="hover:bg-hover text-text-primary flex w-full items-center gap-2 px-3 py-2 text-left transition-colors"
-        >
-          <Settings :size="13" class="text-text-tertiary" /> Preferences
-        </button>
-        <button
-          @click="
-            aboutStore.open();
-            showSettingsMenu = false;
-          "
-          class="hover:bg-hover text-text-primary flex w-full items-center gap-2 px-3 py-2 text-left transition-colors"
-        >
-          <Info :size="13" class="text-text-tertiary" /> About Table View
-        </button>
-
-        <div class="bg-border mx-2 my-1.5 h-px" />
-        <div class="text-text-tertiary px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase">
-          Appearance
-        </div>
-        <button
-          @click="
-            toggleDarkMode();
-            showSettingsMenu = false;
-          "
-          class="hover:bg-hover text-text-primary flex w-full items-center gap-2 px-3 py-2 text-left transition-colors"
-        >
-          <Sun v-if="isDark" :size="13" class="text-text-tertiary" />
-          <Moon v-else :size="13" class="text-text-tertiary" />
-          {{ isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode' }}
-        </button>
-
-        <div class="bg-border mx-2 my-1.5 h-px" />
-        <button
-          @click="
-            handleCheckForUpdates();
-            showSettingsMenu = false;
-          "
-          class="hover:bg-hover text-text-primary flex w-full items-center gap-2 px-3 py-2 text-left transition-colors"
-        >
-          <RefreshCw
-            :size="13"
-            class="text-text-tertiary"
-            :class="{ 'animate-spin': updaterStore.isChecking }"
-          />
-          Check for Updates
-        </button>
-      </ContextMenu>
+      <Menu ref="settingsMenuRef" :model="settingsMenuItems" :popup="true">
+        <template #item="{ item, props }">
+          <a
+            v-bind="props.action"
+            class="text-text-primary flex items-center gap-2 px-3 py-1.5 text-xs"
+          >
+            <component
+              :is="item.lucideIcon"
+              v-if="item.lucideIcon"
+              :size="13"
+              class="text-text-tertiary"
+            />
+            <span>{{ item.label }}</span>
+          </a>
+        </template>
+      </Menu>
     </div>
 
     <!-- Center: connection info -->
@@ -229,43 +213,43 @@ const openSettings = () => {
     </div>
 
     <!-- Right: Panel Toggles -->
-    <div class="border-border ml-3 flex shrink-0 items-center gap-1.5 border-l pl-3">
-      <button
+    <div class="border-border ml-3 flex shrink-0 items-center gap-1 border-l pl-3">
+      <Button
         v-tooltip.left="'Toggle Sidebar (Ctrl+B)'"
-        class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
-        :class="
-          layoutStore.isSidebarVisible
-            ? 'text-primary bg-primary/10'
-            : 'text-text-tertiary hover:text-text-secondary'
-        "
+        variant="text"
+        :severity="layoutStore.isSidebarVisible ? 'primary' : 'secondary'"
+        size="small"
+        class="h-6! w-6! p-0!"
         @click="layoutStore.toggleSidebar()"
       >
-        <PanelLeft :size="14" />
-      </button>
-      <button
+        <template #icon>
+          <PanelLeft :size="14" />
+        </template>
+      </Button>
+      <Button
         v-tooltip.left="'Toggle Console (Ctrl+J)'"
-        class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
-        :class="
-          layoutStore.isBottomVisible
-            ? 'text-primary bg-primary/10'
-            : 'text-text-tertiary hover:text-text-secondary'
-        "
+        variant="text"
+        :severity="layoutStore.isBottomVisible ? 'primary' : 'secondary'"
+        size="small"
+        class="h-6! w-6! p-0!"
         @click="layoutStore.togglePanel('console')"
       >
-        <PanelBottom :size="14" />
-      </button>
-      <button
+        <template #icon>
+          <PanelBottom :size="14" />
+        </template>
+      </Button>
+      <Button
         v-tooltip.top="'Toggle Inspector (Ctrl+I)'"
-        class="hover:bg-hover flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
-        :class="
-          layoutStore.isRightVisible
-            ? 'text-primary bg-primary/10'
-            : 'text-text-tertiary hover:text-text-secondary'
-        "
+        variant="text"
+        :severity="layoutStore.isRightVisible ? 'primary' : 'secondary'"
+        size="small"
+        class="h-6! w-6! p-0!"
         @click="layoutStore.togglePanel('inspector')"
       >
-        <PanelRight :size="14" />
-      </button>
+        <template #icon>
+          <PanelRight :size="14" />
+        </template>
+      </Button>
     </div>
   </footer>
 </template>

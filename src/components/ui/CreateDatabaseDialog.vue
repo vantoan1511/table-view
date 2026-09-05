@@ -94,7 +94,7 @@ const handleCreate = async () => {
             <Info
               :size="14"
               class="text-text-tertiary cursor-help"
-              title="An admin account will be created with the same name as the database."
+              v-tooltip.top="'An admin account will be created with the same name as the database.'"
             />
           </div>
           <span

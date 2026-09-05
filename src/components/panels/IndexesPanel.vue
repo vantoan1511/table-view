@@ -59,13 +59,13 @@ const indexes = computed(() => {
               <span
                 v-if="idx.isPrimaryKey"
                 class="rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-500"
-                title="Primary Key"
+                v-tooltip.top="'Primary Key'"
                 >PK</span
               >
               <span
                 v-else-if="idx.isUnique"
                 class="rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-500"
-                title="Unique Constraint"
+                v-tooltip.top="'Unique Constraint'"
                 >UNIQ</span
               >
             </div>
@@ -74,7 +74,10 @@ const indexes = computed(() => {
             <span
               >Type: <span class="text-primary font-mono">{{ idx.indexType || 'N/A' }}</span></span
             >
-            <span class="text-text-tertiary max-w-[60%] truncate" :title="idx.columns.join(', ')">
+            <span
+              class="text-text-tertiary max-w-[60%] truncate"
+              v-tooltip.top="idx.columns.join(', ')"
+            >
               Columns:
               <span class="text-text-primary font-mono font-medium">{{
                 idx.columns.join(', ')
