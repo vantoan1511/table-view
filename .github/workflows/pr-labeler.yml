@@ -1,0 +1,44 @@
+name: PR Auto-Labeler
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Auto-label PR based on Conventional Commit title
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          shopt -s nocasematch
+          LABEL=""
+          if [[ "$PR_TITLE" =~ ^feat(\([^\)]+\))?!?: ]]; then
+            LABEL="feat"
+          elif [[ "$PR_TITLE" =~ ^fix(\([^\)]+\))?!?: ]]; then
+            LABEL="fix"
+          elif [[ "$PR_TITLE" =~ ^docs(\([^\)]+\))?!?: ]]; then
+            LABEL="docs"
+          elif [[ "$PR_TITLE" =~ ^(chore|refactor|perf|ci|build|test|style)(\([^\)]+\))?!?: ]]; then
+            LABEL="${BASH_REMATCH[1]}"
+          fi
+          LABEL="${LABEL,,}"
+
+          if [ -n "$LABEL" ]; then
+            echo "Detected label: $LABEL from PR title: $PR_TITLE"
+            gh label create "$LABEL" --force || true
+            gh pr edit "$PR_NUMBER" --add-label "$LABEL" || true
+          else
+            echo "No matching Conventional Commit prefix found in title: $PR_TITLE"
+          fi
