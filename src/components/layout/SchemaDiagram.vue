@@ -35,6 +35,15 @@ const zoom = ref(1.0);
 const panX = ref(50);
 const panY = ref(50);
 const searchQuery = ref('');
+const debouncedSearchQuery = ref('');
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch(searchQuery, (val) => {
+  if (searchDebounceTimer !== null) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    debouncedSearchQuery.value = val;
+  }, 200);
+});
 
 // Table coordinate positions
 const tablePositions = ref<Record<string, { x: number; y: number }>>({});
@@ -70,6 +79,7 @@ const CARD_WIDTH = 220;
 const HEADER_HEIGHT = 40;
 const ROW_HEIGHT = 28;
 const MAX_COLUMNS_DISPLAY_HEIGHT = 220;
+const CULL_MARGIN = 200;
 
 // Get current details from store
 const cacheKey = computed(() =>
@@ -83,7 +93,7 @@ const errorMsg = computed(() => diagramStore.errors[cacheKey.value] || null);
 // Filtered tables based on search query
 const filteredTables = computed(() => {
   if (!schemaDetails.value) return [];
-  const query = searchQuery.value.toLowerCase().trim();
+  const query = debouncedSearchQuery.value.toLowerCase().trim();
   if (!query) return schemaDetails.value.tables;
   return schemaDetails.value.tables.filter((t) => t.name.toLowerCase().includes(query));
 });
@@ -166,6 +176,29 @@ const getTableHeight = (table: TableDetails): number => {
   const colHeight = Math.min(table.columns.length * ROW_HEIGHT, MAX_COLUMNS_DISPLAY_HEIGHT);
   return HEADER_HEIGHT + colHeight + 8;
 };
+
+// Viewport-culled tables to avoid rendering and diffing off-screen cards
+const visibleTables = computed(() => {
+  if (filteredTables.value.length === 0) return [];
+
+  // Transform viewport bounds into canvas coordinate space
+  const vpLeft = (-panX.value - CULL_MARGIN) / zoom.value;
+  const vpTop = (-panY.value - CULL_MARGIN) / zoom.value;
+  const vpRight = (viewportWidth.value - panX.value + CULL_MARGIN) / zoom.value;
+  const vpBottom = (viewportHeight.value - panY.value + CULL_MARGIN) / zoom.value;
+
+  return filteredTables.value.filter((table) => {
+    const pos = tablePositions.value[table.name];
+    if (!pos) return true; // always include tables without a position yet
+    const cardHeight = getTableHeight(table);
+    return (
+      pos.x < vpRight &&
+      pos.x + CARD_WIDTH > vpLeft &&
+      pos.y < vpBottom &&
+      pos.y + cardHeight > vpTop
+    );
+  });
+});
 
 // Load coordinate positions from LocalStorage
 const getStorageKey = () =>
@@ -287,6 +320,9 @@ onMounted(() => {
 onUnmounted(() => {
   if (rafId !== null) {
     cancelAnimationFrame(rafId);
+  }
+  if (searchDebounceTimer !== null) {
+    clearTimeout(searchDebounceTimer);
   }
   resizeObserver?.disconnect();
   window.removeEventListener('mouseup', handleGlobalMouseUp);
@@ -445,24 +481,47 @@ const handleGlobalMouseUp = () => {
 };
 
 // Compute Dynamic S-curves Bezier paths with pre-indexed lookups and viewport culling
-const connectionPaths = computed(() => {
+interface ConnectionPath {
+  id: string;
+  path: string;
+  isActive: boolean;
+}
+
+const connectionPaths = computed<ConnectionPath[]>(() => buildConnectionPaths());
+
+const buildConnectionPaths = (): ConnectionPath[] => {
   if (!schemaDetails.value) return [];
 
   const { indexedRelations } = schemaIndex.value;
   const hTable = hoveredTable.value;
   const hCol = hoveredColumn.value;
 
-  const paths: Array<{
-    id: string;
-    path: string;
-    isActive: boolean;
-  }> = [];
+  // Viewport bounds in canvas space for edge culling
+  const vpLeft = (-panX.value - CULL_MARGIN) / zoom.value;
+  const vpTop = (-panY.value - CULL_MARGIN) / zoom.value;
+  const vpRight = (viewportWidth.value - panX.value + CULL_MARGIN) / zoom.value;
+  const vpBottom = (viewportHeight.value - panY.value + CULL_MARGIN) / zoom.value;
+
+  const paths: ConnectionPath[] = [];
 
   for (const rel of indexedRelations) {
     const sourcePos = tablePositions.value[rel.sourceTable];
     const targetPos = tablePositions.value[rel.targetTable];
 
     if (!sourcePos || !targetPos) continue;
+
+    // Skip edges where both endpoints are outside viewport
+    const sourceVisible =
+      sourcePos.x < vpRight &&
+      sourcePos.x + CARD_WIDTH > vpLeft &&
+      sourcePos.y < vpBottom &&
+      sourcePos.y + HEADER_HEIGHT + MAX_COLUMNS_DISPLAY_HEIGHT > vpTop;
+    const targetVisible =
+      targetPos.x < vpRight &&
+      targetPos.x + CARD_WIDTH > vpLeft &&
+      targetPos.y < vpBottom &&
+      targetPos.y + HEADER_HEIGHT + MAX_COLUMNS_DISPLAY_HEIGHT > vpTop;
+    if (!sourceVisible && !targetVisible) continue;
 
     const sIdx = rel.sourceColIdx !== -1 ? rel.sourceColIdx : 0;
     const tIdx = rel.targetColIdx !== -1 ? rel.targetColIdx : 0;
@@ -515,7 +574,7 @@ const connectionPaths = computed(() => {
   }
 
   return paths;
-});
+};
 
 // Export Workspace as Standalone SVG file
 const exportToSvg = () => {
@@ -828,7 +887,7 @@ const exportToSvg = () => {
       <!-- Transforming Interactive Canvas (Hardware Accelerated) -->
       <div
         ref="canvasRef"
-        class="pointer-events-none absolute inset-0 z-10 origin-top-left"
+        class="pointer-events-none absolute inset-0 z-10 origin-top-left will-change-transform"
         :style="{
           transform: `translate(${panX}px, ${panY}px) scale(${zoom})`
         }"
@@ -886,8 +945,16 @@ const exportToSvg = () => {
         <!-- HTML Table Cards Layer -->
         <div class="pointer-events-auto absolute inset-0">
           <div
-            v-for="table in filteredTables"
+            v-for="table in visibleTables"
             :key="table.name"
+            v-memo="[
+              table,
+              tablePositions[table.name]?.x,
+              tablePositions[table.name]?.y,
+              hoveredTable === table.name,
+              draggedTable === table.name,
+              hoveredColumn?.tableName === table.name ? hoveredColumn.columnName : null
+            ]"
             class="table-card group absolute flex cursor-grab flex-col rounded-xl border border-(--color-border) bg-[#0f172a] shadow-lg transition-colors active:cursor-grabbing"
             :class="{
               'border-indigo-500/70 ring-2 ring-indigo-500/30': hoveredTable === table.name,
