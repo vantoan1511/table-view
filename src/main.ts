@@ -4,7 +4,7 @@ import 'primeicons/primeicons.css';
 import { useErrorStore } from '@/stores/error';
 import { useUpdaterStore } from '@/stores/updater';
 import { initLogger, setupConsoleOverride } from '@/utils/logger';
-import * as Neutralino from '@neutralinojs/lib';
+import { app as neuApp, init as neuInit, window as neuWindow } from '@/services/nativeService';
 import { TableViewTheme } from '@/theme/TableViewTheme';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
@@ -55,17 +55,17 @@ window.addEventListener('unhandledrejection', (event) => {
 
 // Initialize Neutralino if running in Neutralino environment
 if (window.NL_PORT) {
-  Neutralino.init();
+  neuInit();
 
   // Set window title with active version (non-blocking)
   const setWindowTitle = async () => {
     try {
-      const config = await Neutralino.app.getConfig();
+      const config = await neuApp.getConfig();
       const updaterStore = useUpdaterStore(pinia);
       await updaterStore.init();
       const version = updaterStore.getCurrentAppVersion();
       const appName = config?.applicationName || 'Table View';
-      await Neutralino.window.setTitle(`${appName} v${version}`);
+      await neuWindow.setTitle(`${appName} v${version}`);
     } catch (err) {
       console.warn('Failed to set window title with version:', err);
     }

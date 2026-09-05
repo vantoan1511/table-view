@@ -9,13 +9,12 @@ import { useConnectionsStore } from '@/stores/connections';
 import { useErrorStore } from '@/stores/error';
 
 import { ConnectionColor, DbType, OracleConnectType, OracleRole, type Connection } from '@/types';
-
-import * as Neutralino from '@neutralinojs/lib';
 import { CircleHelp, Download, Eye, EyeOff, Loader2, Send, X } from 'lucide-vue-next';
 import { reactive, ref, watch } from 'vue';
 
 import { DB_TYPES } from '@/lib/dbTypes';
-import { NativeService } from '@/services/native';
+import { BridgeService } from '@/services/bridge';
+import { NativeService } from '@/services/nativeService';
 import { decryptPassword } from '@/utils/crypto';
 
 const sslModeOptions = [
@@ -205,55 +204,23 @@ const handleImportConnection = async () => {
   }
 };
 
-const handleTestConnection = () => {
+const handleTestConnection = async () => {
   testStatus.value = 'testing';
 
   if (window.NL_PORT) {
-    const reqId = Date.now().toString();
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const cleanup = () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      Neutralino.events.off('dbBridge.testConnectionResult', onTestResult);
-    };
-
-    const onTestResult = (evt: any) => {
-      const payload = evt.detail;
-      if (payload.reqId === reqId) {
-        cleanup();
-        if (payload.success) {
-          testStatus.value = 'success';
-          setTimeout(() => {
-            testStatus.value = 'ready';
-          }, 2000);
-        } else {
-          testStatus.value = 'error';
-          errorStore.showError('Connection Test Failed', payload.error);
-          console.error('Connection failed:', payload.error);
-        }
-      }
-    };
-
-    timeoutId = setTimeout(() => {
-      if (testStatus.value === 'testing') {
-        testStatus.value = 'error';
-        errorStore.showError(
-          'Connection Test Timeout',
-          'Connection test timed out. Please check host, port, network firewall, or SSL settings.'
-        );
-        cleanup();
-      }
-    }, 30000);
-
-    Neutralino.events.on('dbBridge.testConnectionResult', onTestResult);
-    Neutralino.extensions.dispatch(
-      'com.github.vantoan1511.tableview.db-bridge',
-      'dbBridge.testConnection',
-      {
-        reqId,
+    try {
+      await BridgeService.request('dbBridge.testConnection', 'dbBridge.testConnectionResult', {
         config: form
-      }
-    );
+      });
+      testStatus.value = 'success';
+      setTimeout(() => {
+        testStatus.value = 'ready';
+      }, 2000);
+    } catch (err: any) {
+      testStatus.value = 'error';
+      errorStore.showError('Connection Test Failed', err.message || String(err));
+      console.error('Connection failed:', err);
+    }
   } else {
     // Dev fallback
     setTimeout(() => {

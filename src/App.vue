@@ -16,7 +16,7 @@ import { usePreferencesStore } from '@/stores/preferences';
 import { useTabsStore } from '@/stores/tabs';
 import { useUpdaterStore } from '@/stores/updater';
 
-import * as Neutralino from '@neutralinojs/lib';
+import { app, dbBridge, events } from '@/services/nativeService';
 import { defineAsyncComponent, onMounted } from 'vue';
 
 // Lazy load secondary components
@@ -78,7 +78,7 @@ onMounted(async () => {
 
   // Handle window close
   if (window.NL_PORT) {
-    Neutralino.events.on('windowClose', async () => {
+    events.on('windowClose', async () => {
       // Always exit immediately now, state is auto-persisted via watch
       exitApp();
     });
@@ -88,15 +88,11 @@ onMounted(async () => {
 const exitApp = async () => {
   if (window.NL_PORT) {
     try {
-      await Neutralino.extensions.dispatch(
-        'com.github.vantoan1511.tableview.db-bridge',
-        'dbBridge.shutdown',
-        {}
-      );
+      await dbBridge.dispatch('dbBridge.shutdown', {});
     } catch (e) {
       console.error('Failed to send shutdown signal:', e);
     }
-    Neutralino.app.exit();
+    app.exit();
   }
 };
 </script>

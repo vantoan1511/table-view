@@ -1,5 +1,5 @@
 import type { LayoutState } from '@/types';
-import * as Neutralino from '@neutralinojs/lib';
+import { storage } from '@/services/nativeService';
 import { defineStore } from 'pinia';
 
 export const useLayoutStore = defineStore('layout', {
@@ -48,7 +48,7 @@ export const useLayoutStore = defineStore('layout', {
     async init() {
       if (window.NL_PORT) {
         try {
-          const saved = await Neutralino.storage.getData('layout');
+          const saved = await storage.getData('layout');
           const layout = JSON.parse(saved);
 
           if (layout && typeof layout === 'object') {
@@ -98,7 +98,7 @@ export const useLayoutStore = defineStore('layout', {
             sidebarWidth: this.sidebarWidth,
             isSidebarVisible: this.isSidebarVisible
           };
-          await Neutralino.storage.setData('layout', JSON.stringify(layout));
+          await storage.setData('layout', JSON.stringify(layout));
         } catch (err) {
           console.error(`Failed to save layout state: ${err}`);
         }

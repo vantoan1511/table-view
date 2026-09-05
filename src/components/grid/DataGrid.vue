@@ -19,7 +19,7 @@ import type { GridColumn } from '@/types';
 import { Check, Copy, Plus, RefreshCw, Trash2, Wrench, X } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
-import { NativeService } from '@/services/native';
+import { NativeService } from '@/services/nativeService';
 
 const gridStore = useGridStore();
 const layoutStore = useLayoutStore();

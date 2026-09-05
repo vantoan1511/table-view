@@ -1,5 +1,5 @@
 // src/stores/tabs/useTabPersistence.ts
-import { NativeService } from '@/services/native';
+import { NativeService } from '@/services/nativeService';
 import type { Tab } from '@/types';
 import { type Ref } from 'vue';
 

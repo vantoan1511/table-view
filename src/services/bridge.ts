@@ -1,4 +1,4 @@
-import * as Neutralino from '@neutralinojs/lib';
+import { DB_BRIDGE_EXTENSION_ID, events, extensions, isAvailable } from './nativeService';
 
 /**
  * BridgeService centralizes communication with the NeutralinoJS Rust backend.
@@ -6,8 +6,6 @@ import * as Neutralino from '@neutralinojs/lib';
  * and improving error handling consistency.
  */
 export class BridgeService {
-  private static EXTENSION_ID = 'com.github.vantoan1511.tableview.db-bridge';
-
   /**
    * Dispatches a command to the Rust extension and waits for a specific result event.
    */
@@ -16,17 +14,16 @@ export class BridgeService {
     resultEvent: string,
     payload: any = {}
   ): Promise<T> {
-    if (!window.NL_PORT) {
+    if (!isAvailable()) {
       throw new Error('Neutralino runtime not available');
     }
 
     const reqId = Date.now().toString() + Math.random().toString(36).slice(2, 5);
 
     return new Promise((resolve, reject) => {
-      const onResult = (evt: any) => {
-        const data = evt.detail;
-        if (data.reqId === reqId) {
-          Neutralino.events.off(resultEvent, onResult);
+      const onResult = (data: any) => {
+        if (data?.reqId === reqId) {
+          events.off(resultEvent, onResult);
           if (data.success) {
             resolve(data);
           } else {
@@ -35,15 +32,15 @@ export class BridgeService {
         }
       };
 
-      Neutralino.events.on(resultEvent, onResult);
+      events.on(resultEvent, onResult);
 
-      Neutralino.extensions
-        .dispatch(this.EXTENSION_ID, command, {
+      extensions
+        .dispatch(DB_BRIDGE_EXTENSION_ID, command, {
           ...payload,
           reqId
         })
         .catch((err) => {
-          Neutralino.events.off(resultEvent, onResult);
+          events.off(resultEvent, onResult);
           reject(err);
         });
     });

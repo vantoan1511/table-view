@@ -6,7 +6,8 @@ import { useConnectionsStore } from '@/stores/connections';
 import { useGridStore } from '@/stores/grid';
 import { useToastStore } from '@/stores/toast';
 
-import * as Neutralino from '@neutralinojs/lib';
+import { BridgeService } from '@/services/bridge';
+import { os } from '@/services/nativeService';
 import {
   Columns3,
   Download,
@@ -257,46 +258,36 @@ const handleExport = async () => {
 
   try {
     const defaultName = `${gridStore.activeTableName}_export.csv`;
-    const path = await Neutralino.os.showSaveDialog('Export as CSV', {
+    const path = await os.showSaveDialog('Export as CSV', {
       defaultPath: defaultName,
       filters: [{ name: 'CSV files', extensions: ['csv'] }]
     });
 
     if (path) {
-      const reqId = Date.now().toString();
-
-      const onResult = (evt: any) => {
-        const payload = evt.detail;
-        if (payload.reqId === reqId) {
-          if (payload.success) {
-            toastStore.addToast({
-              title: 'Export Success',
-              message: 'Data exported successfully to ' + path,
-              severity: 'success'
-            });
-          } else {
-            toastStore.addToast({
-              title: 'Export Error',
-              message: payload.error,
-              severity: 'error'
-            });
-          }
-          Neutralino.events.off('dbBridge.exportCSVResult', onResult);
-        }
-      };
-
-      Neutralino.events.on('dbBridge.exportCSVResult', onResult);
-      Neutralino.extensions.dispatch(
-        'com.github.vantoan1511.tableview.db-bridge',
+      const res: any = await BridgeService.request(
         'dbBridge.exportCSV',
+        'dbBridge.exportCSVResult',
         {
-          reqId,
           connectionId: gridStore.activeConnectionId || connectionsStore.activeConnectionId,
           tableName: gridStore.activeTableName,
           exportPath: path,
           targetDatabase: gridStore.activeDbName
         }
       );
+
+      if (res?.success) {
+        toastStore.addToast({
+          title: 'Export Success',
+          message: 'Data exported successfully to ' + path,
+          severity: 'success'
+        });
+      } else {
+        toastStore.addToast({
+          title: 'Export Error',
+          message: res?.error,
+          severity: 'error'
+        });
+      }
     }
   } catch (err: any) {
     // Neutralino throws { code: 'NE_OS_DLGCDL' } when user cancels the dialog — not an error

@@ -59,7 +59,25 @@ export default [
         }
       ],
       'vue/no-mutating-props': 'warn',
-      '@typescript-eslint/ban-ts-comment': 'warn'
+      '@typescript-eslint/ban-ts-comment': 'warn',
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@neutralinojs/lib',
+              message:
+                'Direct imports of @neutralinojs/lib are forbidden. Use nativeService from "@/services/nativeService" or "@/services/bridge" instead.'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    files: ['src/services/nativeService.ts'],
+    rules: {
+      'no-restricted-imports': 'off'
     }
   }
 ];
