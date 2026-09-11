@@ -32,12 +32,9 @@ clap = { version = "4", features = ["derive"] }
 csv = "1"
 async-trait = "0.1"
 urlencoding = "2"
-oracle-rs = "0.1"
-deadpool-oracle = "0.1"
+# Official Oracle driver (beta release, upgrade when stable 26.x is released)
+oracledb = "26.0.0-beta.3"
 rustls = { version = "0.23", features = ["ring"] }
-
-[patch.crates-io]
-oracle-rs = { path = "vendor/oracle-rs" }
 
 [build-dependencies]
 winres = "0.1"
