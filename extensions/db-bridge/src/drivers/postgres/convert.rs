@@ -7,6 +7,63 @@ use sqlx::{Column, Row, TypeInfo, ValueRef};
 use std::collections::HashMap;
 use uuid;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PostgresType {
+    Int2,
+    Int4,
+    Int8,
+    Oid,
+    Float4,
+    Float8,
+    Numeric,
+    Bool,
+    Text,
+    Varchar,
+    Bpchar,
+    Name,
+    Uuid,
+    Timestamp,
+    Timestamptz,
+    Date,
+    Json,
+    Jsonb,
+    Bytea,
+    Other,
+}
+
+impl PostgresType {
+    pub fn from_type_name(name: &str) -> Self {
+        match name.to_ascii_uppercase().as_str() {
+            "INT2" => Self::Int2,
+            "INT4" => Self::Int4,
+            "INT8" => Self::Int8,
+            "OID" => Self::Oid,
+            "FLOAT4" => Self::Float4,
+            "FLOAT8" => Self::Float8,
+            "NUMERIC" => Self::Numeric,
+            "BOOL" => Self::Bool,
+            "TEXT" => Self::Text,
+            "VARCHAR" => Self::Varchar,
+            "BPCHAR" => Self::Bpchar,
+            "NAME" => Self::Name,
+            "UUID" => Self::Uuid,
+            "TIMESTAMP" => Self::Timestamp,
+            "TIMESTAMPTZ" => Self::Timestamptz,
+            "DATE" => Self::Date,
+            "JSON" => Self::Json,
+            "JSONB" => Self::Jsonb,
+            "BYTEA" => Self::Bytea,
+            _ => Self::Other,
+        }
+    }
+}
+
+impl From<&str> for PostgresType {
+    fn from(name: &str) -> Self {
+        Self::from_type_name(name)
+    }
+}
+
 pub fn get_column_value(row: &PgRow, i: usize) -> Value {
     let raw = match row.try_get_raw(i) {
         Ok(v) => v,
@@ -23,50 +80,53 @@ pub fn get_column_value(row: &PgRow, i: usize) -> Value {
     let type_info = col.type_info();
     let name = type_info.name();
 
-    match name {
-        "INT2" => {
+    match PostgresType::from_type_name(name) {
+        PostgresType::Int2 => {
             if let Ok(v) = row.try_get::<i16, _>(i) {
                 return Value::Number(i64::from(v).into());
             }
         }
-        "INT4" => {
+        PostgresType::Int4 => {
             if let Ok(v) = row.try_get::<i32, _>(i) {
                 return Value::Number(i64::from(v).into());
             }
         }
-        "INT8" => {
+        PostgresType::Int8 => {
             if let Ok(v) = row.try_get::<i64, _>(i) {
                 return Value::Number(v.into());
             }
         }
-        "OID" => {
+        PostgresType::Oid => {
             if let Ok(v) = row.try_get::<i32, _>(i) {
                 return Value::Number(i64::from(v).into());
             }
         }
-        "FLOAT4" | "FLOAT8" | "NUMERIC" => {
+        PostgresType::Float4 | PostgresType::Float8 | PostgresType::Numeric => {
             if let Ok(v) = row.try_get::<f64, _>(i) {
                 if let Some(num) = serde_json::Number::from_f64(v) {
                     return Value::Number(num);
                 }
             }
         }
-        "BOOL" => {
+        PostgresType::Bool => {
             if let Ok(v) = row.try_get::<bool, _>(i) {
                 return Value::Bool(v);
             }
         }
-        "TEXT" | "VARCHAR" | "BPCHAR" | "NAME" => {
+        PostgresType::Text
+        | PostgresType::Varchar
+        | PostgresType::Bpchar
+        | PostgresType::Name => {
             if let Ok(v) = row.try_get::<String, _>(i) {
                 return Value::String(v);
             }
         }
-        "UUID" => {
+        PostgresType::Uuid => {
             if let Ok(v) = row.try_get::<uuid::Uuid, _>(i) {
                 return Value::String(v.to_string());
             }
         }
-        "TIMESTAMP" | "TIMESTAMPTZ" => {
+        PostgresType::Timestamp | PostgresType::Timestamptz => {
             if let Ok(v) = row.try_get::<chrono::NaiveDateTime, _>(i) {
                 return Value::String(v.to_string());
             }
@@ -74,22 +134,22 @@ pub fn get_column_value(row: &PgRow, i: usize) -> Value {
                 return Value::String(v.to_string());
             }
         }
-        "DATE" => {
+        PostgresType::Date => {
             if let Ok(v) = row.try_get::<chrono::NaiveDate, _>(i) {
                 return Value::String(v.to_string());
             }
         }
-        "JSON" | "JSONB" => {
+        PostgresType::Json | PostgresType::Jsonb => {
             if let Ok(v) = row.try_get::<Value, _>(i) {
                 return v;
             }
         }
-        "BYTEA" => {
+        PostgresType::Bytea => {
             if let Ok(bytes) = row.try_get::<Vec<u8>, _>(i) {
                 return Value::String(hex::encode(bytes));
             }
         }
-        _ => {}
+        PostgresType::Other => {}
     }
 
     // Final fallback: try as string
