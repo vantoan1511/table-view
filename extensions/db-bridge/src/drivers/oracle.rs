@@ -29,6 +29,10 @@ pub struct OracleDriver {
     tx_conn: tokio::sync::Mutex<Option<oracledb::Connection>>,
 }
 
+/// Read LOBs in 16 KiB increments. Large enough for most Oracle TTC fetch
+/// batches, small enough to live on the stack without risking stack overflow.
+const LOB_READ_CHUNK_SIZE: usize = 16384;
+
 impl OracleDriver {
     pub fn new() -> Self {
         Self {
@@ -145,6 +149,54 @@ impl OracleDriver {
         }
     }
 
+    fn read_clob_to_json(lob: &mut oracledb::Lob) -> JsonValue {
+        // Use a fixed stack buffer to avoid a 64KB heap allocation per LOB cell.
+        let mut chunk = [0u8; LOB_READ_CHUNK_SIZE];
+        let mut buf = Vec::new();
+        let mut had_error = false;
+        loop {
+            match std::io::Read::read(lob, &mut chunk) {
+                Ok(0) => break,
+                Ok(n) => buf.extend_from_slice(&chunk[..n]),
+                Err(e) => {
+                    log::warn!("oracle: error reading CLOB locator: {}", e);
+                    had_error = true;
+                    break;
+                }
+            }
+        }
+        // Return Null rather than an empty string when a read error occurred
+        // before any data was received, so callers can distinguish failures
+        // from genuinely empty CLOBs.
+        if had_error && buf.is_empty() {
+            JsonValue::Null
+        } else {
+            JsonValue::String(String::from_utf8_lossy(&buf).into_owned())
+        }
+    }
+
+    fn read_blob_to_json(lob: &mut oracledb::Lob) -> JsonValue {
+        let mut chunk = [0u8; LOB_READ_CHUNK_SIZE];
+        let mut buf = Vec::new();
+        let mut had_error = false;
+        loop {
+            match std::io::Read::read(lob, &mut chunk) {
+                Ok(0) => break,
+                Ok(n) => buf.extend_from_slice(&chunk[..n]),
+                Err(e) => {
+                    log::warn!("oracle: error reading BLOB locator: {}", e);
+                    had_error = true;
+                    break;
+                }
+            }
+        }
+        if had_error && buf.is_empty() {
+            JsonValue::Null
+        } else {
+            JsonValue::String(hex::encode(buf))
+        }
+    }
+
     fn extract_column_value(
         row: &mut oracledb::Row,
         i: usize,
@@ -154,12 +206,16 @@ impl OracleDriver {
 
         if db_type.is_string_type() {
             if db_type == &oracledb::DB_TYPE_CLOB || db_type == &oracledb::DB_TYPE_NCLOB {
-                if let Ok(Some(mut lob)) = row.take::<Option<oracledb::Lob>>(i) {
-                    let mut buf = Vec::new();
-                    let _ = std::io::Read::read_to_end(&mut lob, &mut buf);
-                    return JsonValue::String(String::from_utf8_lossy(&buf).into_owned());
+                match row.take::<Option<oracledb::Lob>>(i) {
+                    Ok(Some(mut lob)) => return Self::read_clob_to_json(&mut lob),
+                    Ok(None) => return JsonValue::Null,
+                    Err(_) => {
+                        if let Ok(Some(s)) = row.get::<Option<String>>(i) {
+                            return JsonValue::String(s);
+                        }
+                        return JsonValue::Null;
+                    }
                 }
-                return JsonValue::Null;
             }
             if let Ok(Some(s)) = row.get::<Option<String>>(i) {
                 return JsonValue::String(s);
@@ -215,14 +271,21 @@ impl OracleDriver {
             return JsonValue::Null;
         }
 
-        if db_type.is_binary_type() {
+        // is_binary_type() covers RAW, LONG_RAW, and BLOB.
+        // DB_TYPE_BFILE is not included in that set, so we extend the guard
+        // explicitly so BFILE columns receive the same LOB-locator path.
+        if db_type.is_binary_type() || db_type == &oracledb::DB_TYPE_BFILE {
             if db_type == &oracledb::DB_TYPE_BLOB || db_type == &oracledb::DB_TYPE_BFILE {
-                if let Ok(Some(mut lob)) = row.take::<Option<oracledb::Lob>>(i) {
-                    let mut buf = Vec::new();
-                    let _ = std::io::Read::read_to_end(&mut lob, &mut buf);
-                    return JsonValue::String(hex::encode(buf));
+                match row.take::<Option<oracledb::Lob>>(i) {
+                    Ok(Some(mut lob)) => return Self::read_blob_to_json(&mut lob),
+                    Ok(None) => return JsonValue::Null,
+                    Err(_) => {
+                        if let Ok(Some(bytes)) = row.get::<Option<Vec<u8>>>(i) {
+                            return JsonValue::String(hex::encode(bytes));
+                        }
+                        return JsonValue::Null;
+                    }
                 }
-                return JsonValue::Null;
             }
             if let Ok(Some(bytes)) = row.get::<Option<Vec<u8>>>(i) {
                 return JsonValue::String(hex::encode(bytes));
@@ -332,7 +395,9 @@ impl OracleDriver {
         let is_query = matches!(first_word.as_str(), "select" | "with");
 
         let (rows, fields) = if is_query {
-            let cursor = conn.query(&cleaned_sql, &bind_refs).map_err(|e| e.to_string())?;
+            let mut stmt = conn.statement(&cleaned_sql).map_err(|e| e.to_string())?;
+            stmt.fetch_lobs();
+            let cursor = stmt.query(&bind_refs).map_err(|e| e.to_string())?;
             Self::cursor_to_maps(cursor)?
         } else {
             conn.execute(&cleaned_sql, &bind_refs).map_err(|e| e.to_string())?;
