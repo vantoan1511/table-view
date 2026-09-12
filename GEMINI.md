@@ -268,6 +268,7 @@ Prefer:
 - idiomatic Rust
 - modular crates
 - strong typing
+- strongly-typed enums over loose string literals for discrete types, states, or commands
 
 Avoid:
 
@@ -276,6 +277,7 @@ Avoid:
 - panic! for recoverable errors
 - unnecessary Arc<Mutex<T>>
 - global mutable state
+- stringly-typed APIs or matching on raw string literals when an enum can model the domain
 
 Prefer immutable data structures whenever practical.
 
