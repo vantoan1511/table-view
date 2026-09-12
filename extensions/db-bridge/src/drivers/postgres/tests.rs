@@ -89,3 +89,46 @@ fn test_unsafe_data_type() {
     assert!(res.is_err());
     assert!(res.unwrap_err().contains("Invalid or unsafe data type"));
 }
+
+#[test]
+fn test_postgres_type_from_type_name() {
+    use super::convert::PostgresType;
+
+    assert_eq!(PostgresType::from_type_name("INT2"), PostgresType::Int2);
+    assert_eq!(PostgresType::from_type_name("INT4"), PostgresType::Int4);
+    assert_eq!(PostgresType::from_type_name("INT8"), PostgresType::Int8);
+    assert_eq!(PostgresType::from_type_name("OID"), PostgresType::Oid);
+    assert_eq!(PostgresType::from_type_name("FLOAT4"), PostgresType::Float4);
+    assert_eq!(PostgresType::from_type_name("FLOAT8"), PostgresType::Float8);
+    assert_eq!(PostgresType::from_type_name("NUMERIC"), PostgresType::Numeric);
+    assert_eq!(PostgresType::from_type_name("BOOL"), PostgresType::Bool);
+    assert_eq!(PostgresType::from_type_name("TEXT"), PostgresType::Text);
+    assert_eq!(PostgresType::from_type_name("VARCHAR"), PostgresType::Varchar);
+    assert_eq!(PostgresType::from_type_name("BPCHAR"), PostgresType::Bpchar);
+    assert_eq!(PostgresType::from_type_name("NAME"), PostgresType::Name);
+    assert_eq!(PostgresType::from_type_name("UUID"), PostgresType::Uuid);
+    assert_eq!(PostgresType::from_type_name("TIMESTAMP"), PostgresType::Timestamp);
+    assert_eq!(PostgresType::from_type_name("TIMESTAMPTZ"), PostgresType::Timestamptz);
+    assert_eq!(PostgresType::from_type_name("DATE"), PostgresType::Date);
+    assert_eq!(PostgresType::from_type_name("JSON"), PostgresType::Json);
+    assert_eq!(PostgresType::from_type_name("JSONB"), PostgresType::Jsonb);
+    assert_eq!(PostgresType::from_type_name("BYTEA"), PostgresType::Bytea);
+
+    // Case insensitivity
+    assert_eq!(PostgresType::from_type_name("int2"), PostgresType::Int2);
+    assert_eq!(PostgresType::from_type_name("int4"), PostgresType::Int4);
+    assert_eq!(PostgresType::from_type_name("int8"), PostgresType::Int8);
+    assert_eq!(PostgresType::from_type_name("varchar"), PostgresType::Varchar);
+    assert_eq!(PostgresType::from_type_name("JsonB"), PostgresType::Jsonb);
+    assert_eq!(PostgresType::from_type_name("timestamptz"), PostgresType::Timestamptz);
+
+    // Unknown and fallback
+    assert_eq!(PostgresType::from_type_name("unknown"), PostgresType::Other);
+    assert_eq!(PostgresType::from_type_name("GEOMETRY"), PostgresType::Other);
+    assert_eq!(PostgresType::from_type_name(""), PostgresType::Other);
+
+    // From trait
+    assert_eq!(PostgresType::from("INT4"), PostgresType::Int4);
+    assert_eq!(PostgresType::from("numeric"), PostgresType::Numeric);
+}
+
