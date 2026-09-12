@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-12
+
+### Fixed
+
+- **Filter Bar**: Resolved filter bar input focus and cursor offset error (#79).
+
+### Refactored
+
+- **Oracle Driver**: Migrated Oracle driver from `oracle-rs` to `oracledb` thin client (#78).
+
+### Style
+
+- **Schema Diagram**: Polished diagram UI for light mode adhering to design system (#80).
+
+### CI/CD
+
+- **WinGet Automation**: Split WinGet submission into standalone workflow (#77).
+
 ## [0.6.9] - 2026-09-05
 
 ### Added
