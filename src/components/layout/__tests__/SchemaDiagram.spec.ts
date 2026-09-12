@@ -251,4 +251,155 @@ describe('SchemaDiagram Component', () => {
 
     wrapper.unmount();
   });
+
+  it('applies design token classes to canvas, grid pattern, and cards in light mode', async () => {
+    const store = useDiagramStore();
+    const key = store.getCacheKey('conn-1', 'public', 'testdb');
+    store.diagrams[key] = {
+      tables: [
+        {
+          name: 'users',
+          columns: [
+            { name: 'id', dataType: 'int', isPrimaryKey: true, nullable: false },
+            {
+              name: 'role_id',
+              dataType: 'int',
+              isPrimaryKey: false,
+              nullable: true,
+              foreignKey: { targetTable: 'roles', targetColumn: 'id' }
+            }
+          ]
+        }
+      ],
+      relations: []
+    };
+
+    const wrapper = mount(SchemaDiagram, {
+      props: { tab: mockTab },
+      global: {
+        plugins: [pinia],
+        directives: {
+          tooltip: () => {}
+        },
+        stubs: {
+          Button: true,
+          IconField: true,
+          InputIcon: true,
+          InputText: true
+        }
+      }
+    });
+
+    const vm = wrapper.vm as any;
+    vm.tablePositions = { users: { x: 100, y: 100 } };
+    await wrapper.vm.$nextTick();
+
+    // Verify root canvas has semantic sidebar surface
+    const root = wrapper.find('.bg-\\(--color-sidebar\\)');
+    expect(root.exists()).toBe(true);
+
+    // Verify SVG grid dots use border-strong token
+    const gridDot = wrapper.find('#grid-dots circle');
+    expect(gridDot.attributes('fill')).toBe('var(--color-border-strong)');
+
+    // Verify markers use semantic tokens
+    const arrow = wrapper.find('#arrow path');
+    expect(arrow.attributes('fill')).toBe('var(--color-border-strong)');
+    const arrowActive = wrapper.find('#arrow-active path');
+    expect(arrowActive.attributes('fill')).toBe('var(--color-primary)');
+
+    // Verify table card adheres to design system
+    const card = wrapper.find('.table-card');
+    expect(card.classes()).toContain('bg-(--color-surface)');
+    expect(card.classes()).toContain('rounded-lg');
+
+    // Verify card header
+    const header = card.find('.bg-\\(--color-sidebar\\)');
+    expect(header.exists()).toBe(true);
+
+    // Verify primary key styling
+    const pkText = wrapper.find('.text-amber-600');
+    expect(pkText.exists()).toBe(true);
+
+    // Verify foreign key styling
+    const fkText = wrapper.find('.text-\\(--color-primary\\)');
+    expect(fkText.exists()).toBe(true);
+
+    wrapper.unmount();
+  });
+
+  it('exports theme-aware SVG matching light and dark modes', async () => {
+    const store = useDiagramStore();
+    const key = store.getCacheKey('conn-1', 'public', 'testdb');
+    store.diagrams[key] = {
+      tables: [
+        {
+          name: 'users',
+          columns: [{ name: 'id', dataType: 'int', isPrimaryKey: true, nullable: false }]
+        }
+      ],
+      relations: []
+    };
+
+    let exportedBlobContent = '';
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+
+    URL.createObjectURL = vi.fn((blob: Blob) => {
+      // Read text from blob via FileReader-like sync reading or text() promise if available
+      return 'blob:mock-url';
+    });
+    URL.revokeObjectURL = vi.fn();
+
+    // Spy on Blob constructor to capture content
+    const originalBlob = global.Blob;
+    global.Blob = class extends originalBlob {
+      constructor(parts: any[], options?: any) {
+        super(parts, options);
+        exportedBlobContent = parts.join('');
+      }
+    } as any;
+
+    try {
+      const wrapper = mount(SchemaDiagram, {
+        props: { tab: mockTab },
+        global: {
+          plugins: [pinia],
+          directives: {
+            tooltip: () => {}
+          },
+          stubs: {
+            Button: true,
+            IconField: true,
+            InputIcon: true,
+            InputText: true
+          }
+        }
+      });
+
+      const vm = wrapper.vm as any;
+      vm.tablePositions = { users: { x: 100, y: 100 } };
+
+      // 1. In Light Mode (no .dark on documentElement)
+      document.documentElement.classList.remove('dark');
+      vm.exportToSvg();
+      expect(exportedBlobContent).toContain('#f9fafb'); // light canvas
+      expect(exportedBlobContent).toContain('#ffffff'); // light card fill
+      expect(exportedBlobContent).toContain('#1f2937'); // light text title
+
+      // 2. In Dark Mode (.dark on documentElement)
+      document.documentElement.classList.add('dark');
+      vm.exportToSvg();
+      expect(exportedBlobContent).toContain('#181825'); // dark canvas
+      expect(exportedBlobContent).toContain('#1e1e2e'); // dark card fill
+      expect(exportedBlobContent).toContain('#cdd6f4'); // dark text title
+
+      document.documentElement.classList.remove('dark');
+      wrapper.unmount();
+    } finally {
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+      global.Blob = originalBlob;
+    }
+  });
 });

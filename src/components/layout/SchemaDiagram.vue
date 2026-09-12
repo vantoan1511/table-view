@@ -608,17 +608,30 @@ const exportToSvg = () => {
   const shiftX = padding - minX;
   const shiftY = padding - minY;
 
-  let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0b0f19; font-family: sans-serif;">`;
+  const isDark =
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+
+  const bgColor = isDark ? '#181825' : '#f9fafb';
+  const cardBg = isDark ? '#1e1e2e' : '#ffffff';
+  const cardStroke = isDark ? '#313244' : '#e5e7eb';
+  const headerBg = isDark ? '#181825' : '#f9fafb';
+  const textTitle = isDark ? '#cdd6f4' : '#1f2937';
+  const textCol = isDark ? '#a6adc8' : '#374151';
+  const textType = isDark ? '#6c7086' : '#9ca3af';
+  const pkIcon = isDark ? '#fbbf24' : '#d97706';
+  const edgeStroke = isDark ? '#45475a' : '#9ca3af';
+
+  let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: ${bgColor}; font-family: sans-serif;">`;
 
   svgContent += `
     <style>
-      .table-card { fill: #131b2e; stroke: #2a364f; stroke-width: 1.5px; rx: 8px; }
-      .header-bg { fill: #1e2942; rx: 8px; }
-      .text-title { fill: #ffffff; font-size: 13px; font-weight: bold; }
-      .text-col { fill: #a0aec0; font-size: 11px; }
-      .text-type { fill: #718096; font-size: 10px; font-style: italic; }
-      .pk-icon { fill: #d69e2e; }
-      .edge { fill: none; stroke: #4a5568; stroke-width: 1.5px; opacity: 0.6; }
+      .table-card { fill: ${cardBg}; stroke: ${cardStroke}; stroke-width: 1.5px; rx: 8px; }
+      .header-bg { fill: ${headerBg}; rx: 8px; }
+      .text-title { fill: ${textTitle}; font-size: 13px; font-weight: bold; }
+      .text-col { fill: ${textCol}; font-size: 11px; }
+      .text-type { fill: ${textType}; font-size: 10px; font-style: italic; }
+      .pk-icon { fill: ${pkIcon}; }
+      .edge { fill: none; stroke: ${edgeStroke}; stroke-width: 1.5px; opacity: 0.8; }
     </style>
   `;
 
@@ -715,18 +728,18 @@ const exportToSvg = () => {
 </script>
 
 <template>
-  <div class="relative flex h-full w-full flex-col overflow-hidden bg-[#070b13]">
+  <div class="relative flex h-full w-full flex-col overflow-hidden bg-(--color-sidebar)">
     <!-- Diagram Toolbar -->
     <div
-      class="border-border/30 bg-surface/85 z-10 flex items-center justify-between border-b px-4 py-2.5 backdrop-blur-md"
+      class="z-10 flex items-center justify-between border-b border-(--color-border) bg-(--color-surface)/95 px-4 py-2 backdrop-blur-sm"
     >
       <div class="flex items-center gap-3">
-        <div class="rounded-lg bg-indigo-500/10 p-1.5 text-indigo-400">
+        <div class="rounded-md bg-(--color-primary-light) p-1.5 text-(--color-primary)">
           <Database class="h-4.5 w-4.5" />
         </div>
         <div>
-          <h2 class="text-text-primary text-sm font-semibold">
-            {{ tab.schema }}
+          <h2 class="text-text-primary flex items-baseline gap-2 text-sm font-semibold">
+            <span>{{ tab.schema }}</span>
             <span class="text-text-tertiary text-xs font-normal">Relationship Diagram</span>
           </h2>
         </div>
@@ -845,9 +858,11 @@ const exportToSvg = () => {
     <!-- Error Screen -->
     <div
       v-if="errorMsg"
-      class="flex flex-1 flex-col items-center justify-center bg-[#070b13] p-8 text-center"
+      class="flex flex-1 flex-col items-center justify-center bg-(--color-sidebar) p-8 text-center"
     >
-      <div class="mb-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-red-400">
+      <div
+        class="mb-4 rounded-xl border border-(--color-danger)/20 bg-(--color-danger-light) p-3 text-(--color-danger)"
+      >
         <Info class="h-10 w-10" />
       </div>
       <h3 class="text-text-primary mb-1 text-base font-semibold">Failed to Load Schema Details</h3>
@@ -858,16 +873,16 @@ const exportToSvg = () => {
     <!-- Loading Screen -->
     <div
       v-else-if="isLoading"
-      class="flex flex-1 flex-col items-center justify-center bg-[#070b13]"
+      class="flex flex-1 flex-col items-center justify-center bg-(--color-sidebar)"
     >
       <div class="relative flex h-20 w-20 items-center justify-center">
         <div
-          class="absolute h-14 w-14 animate-spin rounded-full border-4 border-indigo-500/10 border-t-indigo-500"
+          class="absolute h-14 w-14 animate-spin rounded-full border-4 border-(--color-primary-light) border-t-(--color-primary)"
         ></div>
         <div
-          class="animate-duration-1000 absolute h-8 w-8 animate-spin rounded-full border-4 border-indigo-500/20 border-b-indigo-400"
+          class="animate-duration-1000 absolute h-8 w-8 animate-spin rounded-full border-4 border-(--color-primary-light) border-b-(--color-primary)"
         ></div>
-        <Database class="h-5 w-5 animate-pulse text-indigo-400" />
+        <Database class="h-5 w-5 animate-pulse text-(--color-primary)" />
       </div>
       <p
         class="text-text-secondary mt-4 animate-pulse text-xs font-medium tracking-wider uppercase"
@@ -897,7 +912,7 @@ const exportToSvg = () => {
           <defs>
             <!-- Hardware-accelerated dot pattern inside transformed canvas -->
             <pattern id="grid-dots" width="24" height="24" patternUnits="userSpaceOnUse">
-              <circle cx="2" cy="2" r="1" fill="rgba(255, 255, 255, 0.05)" />
+              <circle cx="2" cy="2" r="1" fill="var(--color-border-strong)" opacity="0.5" />
             </pattern>
 
             <marker
@@ -909,7 +924,7 @@ const exportToSvg = () => {
               markerHeight="6"
               orient="auto-start-reverse"
             >
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a5568" />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--color-border-strong)" />
             </marker>
             <marker
               id="arrow-active"
@@ -920,7 +935,7 @@ const exportToSvg = () => {
               markerHeight="7"
               orient="auto-start-reverse"
             >
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1" />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--color-primary)" />
             </marker>
           </defs>
 
@@ -934,8 +949,8 @@ const exportToSvg = () => {
             :d="edge.path"
             :class="
               edge.isActive
-                ? 'stroke-indigo-500 stroke-[2px] opacity-100'
-                : 'stroke-border/50 stroke-[1.5px] opacity-60'
+                ? 'stroke-(--color-primary) stroke-[2px] opacity-100'
+                : 'stroke-(--color-border-strong) stroke-[1.5px] opacity-80 dark:opacity-60'
             "
             fill="none"
             :marker-end="edge.isActive ? 'url(#arrow-active)' : 'url(#arrow)'"
@@ -955,10 +970,12 @@ const exportToSvg = () => {
               draggedTable === table.name,
               hoveredColumn?.tableName === table.name ? hoveredColumn.columnName : null
             ]"
-            class="table-card group absolute flex cursor-grab flex-col rounded-xl border border-(--color-border) bg-[#0f172a] shadow-lg transition-colors active:cursor-grabbing"
+            class="table-card group absolute flex cursor-grab flex-col rounded-lg border border-(--color-border) bg-(--color-surface) shadow-sm transition-shadow duration-150 select-none active:cursor-grabbing"
             :class="{
-              'border-indigo-500/70 ring-2 ring-indigo-500/30': hoveredTable === table.name,
-              'shadow-2xl will-change-transform': draggedTable === table.name
+              'border-(--color-primary) shadow-md ring-2 ring-(--color-primary)/20':
+                hoveredTable === table.name,
+              'shadow-lg ring-2 ring-(--color-primary)/30 will-change-transform':
+                draggedTable === table.name
             }"
             :style="{
               width: `${CARD_WIDTH}px`,
@@ -971,11 +988,11 @@ const exportToSvg = () => {
           >
             <!-- Card Header -->
             <div
-              class="border-border/30 flex h-10 items-center justify-between rounded-t-xl border-b bg-[#1e293b]/70 px-3 select-none"
+              class="flex h-9 items-center justify-between border-b border-(--color-border) bg-(--color-sidebar) px-3 select-none"
             >
               <div class="flex min-w-0 items-center gap-1.5">
                 <Table
-                  class="text-text-tertiary h-3.5 w-3.5 shrink-0 transition-colors group-hover:text-indigo-400"
+                  class="text-text-tertiary h-3.5 w-3.5 shrink-0 transition-colors group-hover:text-(--color-primary)"
                 />
                 <span
                   v-tooltip.top="table.name"
@@ -985,22 +1002,20 @@ const exportToSvg = () => {
                 </span>
               </div>
               <span
-                class="bg-border/40 text-text-tertiary rounded-full px-1.5 py-0.5 font-mono text-[10px] font-medium"
+                class="text-text-secondary rounded bg-(--color-hover) px-1.5 py-0.5 font-mono text-[10px] font-medium"
               >
                 {{ table.columns.length }}
               </span>
             </div>
 
             <!-- Column list -->
-            <div
-              class="divide-border/10 custom-scrollbar flex max-h-[220px] flex-col divide-y overflow-y-auto py-1"
-            >
+            <div class="custom-scrollbar flex max-h-[220px] flex-col overflow-y-auto py-1">
               <div
                 v-for="col in table.columns"
                 :key="col.name"
-                class="hover:bg-surface-hover/80 flex h-7 items-center justify-between gap-1 px-3 text-[11px] transition-colors"
+                class="flex h-7 items-center justify-between gap-1.5 px-3 text-[11px] transition-colors hover:bg-(--color-hover)"
                 :class="{
-                  'bg-indigo-500/10 font-medium text-indigo-400':
+                  'bg-(--color-primary-light) font-medium text-(--color-primary)':
                     hoveredColumn?.tableName === table.name &&
                     hoveredColumn?.columnName === col.name
                 }"
@@ -1018,21 +1033,21 @@ const exportToSvg = () => {
                 >
                   <Key
                     v-if="col.isPrimaryKey"
-                    class="h-3 w-3 shrink-0 text-amber-500 drop-shadow-[0_0_2px_rgba(245,158,11,0.3)] filter"
+                    class="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400"
                   />
                   <Link
                     v-else-if="col.foreignKey"
-                    class="h-2.5 w-2.5 shrink-0 cursor-pointer text-indigo-400 drop-shadow-[0_0_2px_rgba(99,102,241,0.3)] filter"
+                    class="h-2.5 w-2.5 shrink-0 cursor-pointer text-(--color-primary)"
                     @click.stop="handleTableDoubleClick(col.foreignKey.targetTable)"
                   />
                   <span
                     class="truncate"
                     :class="
                       col.isPrimaryKey
-                        ? 'font-semibold text-amber-500'
+                        ? 'font-semibold text-amber-600 dark:text-amber-400'
                         : col.foreignKey
-                          ? 'font-medium text-indigo-400'
-                          : 'text-text-secondary'
+                          ? 'font-medium text-(--color-primary)'
+                          : 'text-text-primary'
                     "
                   >
                     {{ col.name }}
@@ -1042,7 +1057,7 @@ const exportToSvg = () => {
                 <!-- Data type -->
                 <span
                   v-tooltip.top="col.dataType"
-                  class="text-text-tertiary max-w-[90px] truncate font-mono text-[9px]"
+                  class="text-text-tertiary max-w-[90px] truncate font-mono text-[10px]"
                 >
                   {{ col.dataType.toLowerCase() }}
                 </span>
@@ -1063,10 +1078,10 @@ const exportToSvg = () => {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-border-strong);
   border-radius: 2px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-text-tertiary);
 }
 </style>
