@@ -24,7 +24,7 @@ import {
   Wrench,
   X
 } from 'lucide-vue-next';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vue';
 
 const gridStore = useGridStore();
 const toastStore = useToastStore();
@@ -72,10 +72,25 @@ const clearFilter = () => {
 };
 
 // ─── Filter Autocomplete ────────────────────────────────────────────────────────
-const filterInputRef = ref<HTMLInputElement | null>(null);
+const filterInputRef = ref<ComponentPublicInstance | HTMLInputElement | null>(null);
 const showSuggestions = ref(false);
 const activeSuggestionIndex = ref(0);
 const activeToken = ref('');
+
+const getInputElement = (): HTMLInputElement | null => {
+  if (!filterInputRef.value) return null;
+  if (filterInputRef.value instanceof HTMLInputElement) {
+    return filterInputRef.value;
+  }
+  const el = (filterInputRef.value as ComponentPublicInstance).$el;
+  if (el instanceof HTMLInputElement) {
+    return el;
+  }
+  if (el && typeof el === 'object' && 'querySelector' in el) {
+    return (el as HTMLElement).querySelector('input');
+  }
+  return null;
+};
 
 const getActiveToken = (text: string, cursorOffset: number) => {
   const textBeforeCursor = text.slice(0, cursorOffset);
@@ -84,7 +99,7 @@ const getActiveToken = (text: string, cursorOffset: number) => {
 };
 
 const updateCursorOffset = () => {
-  const inputEl = filterInputRef.value;
+  const inputEl = getInputElement();
   if (!inputEl) return;
   const cursorOffset = inputEl.selectionStart || 0;
   activeToken.value = getActiveToken(gridStore.filterText || '', cursorOffset);
@@ -175,7 +190,7 @@ const filteredSuggestions = computed(() => {
 });
 
 const selectSuggestion = (item: { label: string; value: string }) => {
-  const inputEl = filterInputRef.value;
+  const inputEl = getInputElement();
   if (!inputEl) return;
 
   const text = gridStore.filterText || '';
