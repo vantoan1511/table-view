@@ -273,7 +273,10 @@ impl DatabaseDriver for OracleDriver {
                 .set_auth_mode(auth_mode)
                 .set_min_connections(1)
                 .set_max_connections(5)
-                .set_connection_increment(1);
+                .set_connection_increment(1)
+                // Disable statement cache to prevent driver-level TTC packet corruption
+                // ("unknown TTC message type 97 at packet 1, offset 11") on repeated identical queries/refreshes.
+                .set_stmtcachesize(0);
 
             let pool = oracledb::create_pool(pool_config)?;
             let conn = pool.acquire()?;
