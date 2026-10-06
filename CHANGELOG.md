@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-10-06
+
+### Fixed
+
+- **Oracle Driver**: Disabled statement cache to prevent driver protocol error (`unknown TTC message type 97`) when refreshing or reloading table data (#86).
+- **Oracle Driver**: Enabled LOB prefetching and robust locator reads (#81).
+
+### Refactored
+
+- **PostgreSQL Driver**: Used `PostgresType` enum for column type matching instead of raw string literals (#84).
+- **PostgreSQL Driver**: Decomposed monolithic PostgreSQL driver into modular submodules (#83).
+- **Oracle Driver**: Decomposed monolithic Oracle driver into modular submodules (#82).
+
 ## [0.7.0] - 2026-09-12
 
 ### Fixed
