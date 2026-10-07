@@ -61,10 +61,13 @@ __screenshots__/
 # Rust
 target/
 Cargo.lock
+!extensions/db-bridge/Cargo.lock
 scratch/
 
 # Installer
+/Output/
 /scripts/Output/
+installer.iss
 .neutralino/
 
 .claude/

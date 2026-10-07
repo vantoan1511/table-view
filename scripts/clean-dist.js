@@ -33,6 +33,21 @@ if (fs.existsSync(distDir)) {
   }
 
   console.log('Dist directory cleanup complete.');
+
+  // Validate mandatory artifacts exist
+  const isWin = process.platform === 'win32';
+  const bridgeBinary = isWin ? path.join('bin', 'db-bridge.exe') : path.join('bin', 'db-bridge');
+  const requiredFiles = ['resources.neu', bridgeBinary];
+
+  for (const requiredFile of requiredFiles) {
+    const requiredPath = path.join(distDir, requiredFile);
+    if (!fs.existsSync(requiredPath)) {
+      console.error(`Fatal: Required distribution artifact is missing: ${requiredPath}`);
+      process.exit(1);
+    }
+  }
+  console.log('Distribution artifacts validated successfully.');
 } else {
-  console.log('Dist directory not found, skipping cleanup.');
+  console.error('Fatal: Dist directory not found at ' + distDir);
+  process.exit(1);
 }
