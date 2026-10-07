@@ -100,10 +100,10 @@ jobs:
           komac cleanup --only-merged
 
       - name: Submit to WinGet Community Repository
-        uses: vedantmgoyal9/winget-releaser@v2
-        with:
-          identifier: vantoan1511.TableView
-          installers-regex: 'setup\.exe$'
-          token: ${{ secrets.WINGET_TOKEN }}
-          release-tag: ${{ env.RELEASE_TAG }}
-          fork-user: vantoan1511
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          GH_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          Write-Host "Submitting Table View ${{ env.RELEASE_TAG }} to WinGet..."
+          komac update vantoan1511.TableView --version ${{ env.RELEASE_TAG }} --urls "https://github.com/${{ github.repository }}/releases/download/${{ env.RELEASE_TAG }}/setup.exe" --submit
