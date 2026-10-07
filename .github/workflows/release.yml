@@ -44,6 +44,10 @@ jobs:
           npm install -g @neutralinojs/neu
           neu update
 
+      - name: Build Rust Backend
+        shell: bash
+        run: node scripts/build-ext.js
+
       - name: Build Backend and Frontend
         shell: bash
         run: npm run neu:build

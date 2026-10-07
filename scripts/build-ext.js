@@ -6,7 +6,10 @@ import { join } from 'path';
 console.log('Building TableView Binaries (db-bridge)...');
 
 // Building TableView Workspace in extensions/db-bridge directory
-execSync('cargo build --release', { cwd: join('extensions', 'db-bridge'), stdio: 'inherit' });
+execSync('cargo build --release --locked', {
+  cwd: join('extensions', 'db-bridge'),
+  stdio: 'inherit'
+});
 
 // Create the bin directory
 const binDir = 'bin';
