@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
 
-import { NativeService } from '@/services/native';
+import { NativeService } from '@/services/nativeService';
 import { useUpdaterStore } from './updater';
 
 export const defaultShortcuts: Record<string, string[]> = {

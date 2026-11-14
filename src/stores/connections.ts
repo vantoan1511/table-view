@@ -2,8 +2,7 @@ import { OracleConnectType, OracleRole, type Connection } from '@/types';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-import { NativeService } from '@/services/native';
-import { storage } from '@/services/nativeService';
+import { NativeService, storage } from '@/services/nativeService';
 import { decryptPassword, encryptPassword } from '@/utils/crypto';
 import { useToastStore } from './toast';
 
