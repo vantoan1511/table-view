@@ -92,6 +92,12 @@ jobs:
             VERSION=$(node -p "require('./neutralino.config.json').version")
           fi
 
+          SHOULD_UPDATE=$(node scripts/update-manifest.js --check "$VERSION")
+          if [[ "$SHOULD_UPDATE" != "true" ]]; then
+            echo "Skipping manifest.json update for $VERSION (legacy manifest is capped at 0.7.9 non-prerelease releases)"
+            exit 0
+          fi
+
           echo "Updating manifest version to $VERSION"
 
           # Configure Git
@@ -106,8 +112,8 @@ jobs:
           git checkout main
           git pull origin main --rebase
 
-          # Use node to only update the version number in manifest.json
-          node -e "const fs = require('fs'); const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8')); manifest.version = '$VERSION'; fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));"
+          # Update manifest.json with version and tag-pinned download URLs
+          node scripts/update-manifest.js "$VERSION"
 
           # Commit and Push manifest.json only back to main
           git add manifest.json
