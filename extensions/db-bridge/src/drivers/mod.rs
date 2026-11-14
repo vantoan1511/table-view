@@ -52,9 +52,28 @@ fn default_oracle_role() -> String {
     "normal".to_string()
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            db_type: String::new(),
+            host: String::new(),
+            port: 0,
+            username: String::new(),
+            password: String::new(),
+            database: String::new(),
+            ssl: false,
+            ssl_mode: None,
+            connection_timeout: default_timeout(),
+            oracle_connect_type: default_oracle_connect_type(),
+            oracle_role: default_oracle_role(),
+            display_all_databases: false,
+        }
+    }
+}
+
 // ─── Result Types ───────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ColumnInfo {
     pub name: String,
     #[serde(rename = "dataTypeID")]
@@ -67,7 +86,7 @@ pub struct ColumnInfo {
     pub display_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct QueryResult {
     pub rows: Vec<HashMap<String, Value>>,
     pub fields: Vec<ColumnInfo>,
@@ -77,7 +96,7 @@ pub struct QueryResult {
     pub execution_time: u64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct TableDataResult {
     pub rows: Vec<HashMap<String, Value>>,
     pub fields: Vec<ColumnInfo>,
@@ -87,7 +106,7 @@ pub struct TableDataResult {
     pub execution_time: u64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct SchemaObject {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -96,7 +115,7 @@ pub struct SchemaObject {
     pub obj_type: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct SchemaResult {
     pub tables: Vec<SchemaObject>,
     pub views: Vec<SchemaObject>,

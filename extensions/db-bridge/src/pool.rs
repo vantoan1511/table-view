@@ -15,6 +15,12 @@ pub struct Pool {
     configs: HashMap<String, Config>,
 }
 
+impl Default for Pool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Pool {
     pub fn new() -> Self {
         Self {

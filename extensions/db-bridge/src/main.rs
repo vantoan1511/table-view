@@ -1,7 +1,7 @@
 mod bridge;
-mod drivers;
 mod handler;
-mod pool;
+
+pub use db_bridge::{drivers, pool};
 
 use bridge::{AuthInfo, Bridge};
 use drivers::Config;
@@ -12,7 +12,7 @@ use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
-    let _ = rustls::crypto::ring::default_provider().install_default();
+    db_bridge::init_crypto();
 
     // 1. Process command line arguments for standalone mode
     let args: Vec<String> = std::env::args().collect();
