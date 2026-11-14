@@ -1,5 +1,7 @@
 #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
 mod config;
+#[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
+mod theme;
 #[cfg(feature = "native-ui")]
 mod window;
 
