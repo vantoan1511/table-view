@@ -583,4 +583,156 @@ describe('Updater Store', () => {
     await store.checkForUpdates();
     expect(store.updateAvailable?.version).toBe('0.2.11-preview.2');
   });
+
+  it('clamps manifest version > 0.7.9 (e.g. 0.8.0) to 0.7.9 with v0.7.9 asset URLs and release notes', async () => {
+    // @ts-ignore
+    window.NL_APPVERSION = '0.7.1';
+
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue({
+      applicationId: 'com.github.vantoan1511.tableview',
+      version: '0.8.0',
+      resourcesURL: 'https://github.com/vantoan1511/table-view/releases/download/v0.8.0/resources.neu',
+      data: {
+        extensionUrl:
+          'https://github.com/vantoan1511/table-view/releases/download/v0.8.0/db-bridge.exe',
+        releaseNotes: '0.8.0 notes'
+      }
+    });
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ body: 'v0.7.9 release notes' })
+    });
+    global.fetch = mockFetch;
+
+    const store = useUpdaterStore();
+    await store.checkForUpdates();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://api.github.com/repos/vantoan1511/table-view/releases/tags/v0.7.9'
+    );
+    expect(store.updateAvailable?.version).toBe('0.7.9');
+    expect(store.updateAvailable?.resourcesURL).toBe(
+      'https://github.com/vantoan1511/table-view/releases/download/v0.7.9/resources.neu'
+    );
+    expect(store.updateAvailable?.data.extensionUrl).toBe(
+      'https://github.com/vantoan1511/table-view/releases/download/v0.7.9/db-bridge.exe'
+    );
+    expect(store.updateAvailable?.data.releaseNotes).toBe('v0.7.9 release notes');
+  });
+
+  it('clamps preview manifest version > 0.7.9 (e.g. 0.8.0-preview.1) to 0.7.9 when optInPreview is true', async () => {
+    const { usePreferencesStore } = await import('../preferences');
+    const preferencesStore = usePreferencesStore();
+    preferencesStore.settings.optInPreview = true;
+
+    // @ts-ignore
+    window.NL_APPVERSION = '0.7.1';
+
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue({
+      applicationId: 'com.github.vantoan1511.tableview',
+      version: '0.8.0-preview.1',
+      resourcesURL:
+        'https://github.com/vantoan1511/table-view/releases/download/v0.8.0-preview.1/resources.neu',
+      data: {
+        extensionUrl:
+          'https://github.com/vantoan1511/table-view/releases/download/v0.8.0-preview.1/db-bridge.exe'
+      }
+    });
+    global.fetch = vi.fn().mockResolvedValue({ ok: false });
+
+    const store = useUpdaterStore();
+    await store.checkForUpdates();
+
+    expect(store.updateAvailable?.version).toBe('0.7.9');
+    expect(store.updateAvailable?.resourcesURL).toBe(
+      'https://github.com/vantoan1511/table-view/releases/download/v0.7.9/resources.neu'
+    );
+    expect(store.updateAvailable?.data.extensionUrl).toBe(
+      'https://github.com/vantoan1511/table-view/releases/download/v0.7.9/db-bridge.exe'
+    );
+  });
+
+  it('allows 0.7.9-preview.1 on preview channel for older versions and upgrades 0.7.9-preview.1 to 0.7.9', async () => {
+    const { usePreferencesStore } = await import('../preferences');
+    const preferencesStore = usePreferencesStore();
+    preferencesStore.settings.optInPreview = true;
+
+    // @ts-ignore
+    window.NL_APPVERSION = '0.7.8';
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue({
+      applicationId: 'com.github.vantoan1511.tableview',
+      version: '0.7.9-preview.1',
+      resourcesURL:
+        'https://github.com/vantoan1511/table-view/releases/download/v0.7.9-preview.1/resources.neu',
+      data: {
+        extensionUrl:
+          'https://github.com/vantoan1511/table-view/releases/download/v0.7.9-preview.1/db-bridge.exe'
+      }
+    });
+    global.fetch = vi.fn().mockResolvedValue({ ok: false });
+
+    const store = useUpdaterStore();
+    await store.checkForUpdates();
+    expect(store.updateAvailable?.version).toBe('0.7.9-preview.1');
+
+    // Upgrade 0.7.9-preview.1 -> 0.7.9
+    store.updateAvailable = null;
+    // @ts-ignore
+    window.NL_APPVERSION = '0.7.9-preview.1';
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue({
+      applicationId: 'com.github.vantoan1511.tableview',
+      version: '0.7.9',
+      resourcesURL: 'https://github.com/vantoan1511/table-view/releases/download/v0.7.9/resources.neu',
+      data: {
+        extensionUrl:
+          'https://github.com/vantoan1511/table-view/releases/download/v0.7.9/db-bridge.exe'
+      }
+    });
+
+    await store.checkForUpdates();
+    expect(store.updateAvailable?.version).toBe('0.7.9');
+  });
+
+  it('does not offer legacy manifest or preview updates when current version is already 0.7.9 or higher', async () => {
+    const { usePreferencesStore } = await import('../preferences');
+    const preferencesStore = usePreferencesStore();
+    const toastStore = useToastStore();
+
+    // Fixture A: 0.7.9 with manifest 0.8.0
+    // @ts-ignore
+    window.NL_APPVERSION = '0.7.9';
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue({
+      applicationId: 'com.github.vantoan1511.tableview',
+      version: '0.8.0',
+      resourcesURL: 'https://github.com/vantoan1511/table-view/releases/download/v0.8.0/resources.neu',
+      data: {
+        extensionUrl:
+          'https://github.com/vantoan1511/table-view/releases/download/v0.8.0/db-bridge.exe'
+      }
+    });
+
+    const store = useUpdaterStore();
+    await store.checkForUpdates(true);
+
+    expect(store.updateAvailable).toBeNull();
+    expect(toastStore.toasts.length).toBe(1);
+    expect(toastStore.toasts[0].title).toBe('No Updates Available');
+
+    // Fixture B: 0.7.9 with optInPreview = true and manifest 0.7.9-preview.1
+    preferencesStore.settings.optInPreview = true;
+    vi.mocked(Neutralino.updater.checkForUpdates).mockResolvedValue({
+      applicationId: 'com.github.vantoan1511.tableview',
+      version: '0.7.9-preview.1',
+      resourcesURL:
+        'https://github.com/vantoan1511/table-view/releases/download/v0.7.9-preview.1/resources.neu',
+      data: {
+        extensionUrl:
+          'https://github.com/vantoan1511/table-view/releases/download/v0.7.9-preview.1/db-bridge.exe'
+      }
+    });
+
+    await store.checkForUpdates();
+    expect(store.updateAvailable).toBeNull();
+  });
 });

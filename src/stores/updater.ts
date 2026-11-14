@@ -5,6 +5,17 @@ import { ref } from 'vue';
 import { usePreferencesStore } from './preferences';
 import { useToastStore } from './toast';
 
+export const MAX_LEGACY_MANIFEST_VERSION = '0.7.9';
+const RELEASE_DOWNLOAD_BASE_URL = 'https://github.com/vantoan1511/table-view/releases/download';
+
+export interface ParsedVersion {
+  major: number;
+  minor: number;
+  patch: number;
+  isPrerelease: boolean;
+  prereleaseIdentifiers: (string | number)[];
+}
+
 export interface UpdateManifest {
   applicationId: string;
   version: string;
@@ -14,6 +25,71 @@ export interface UpdateManifest {
     releaseNotes?: string;
   };
 }
+
+const parseVersion = (v: string): ParsedVersion => {
+  const clean = (v || '').trim().replace(/^v/i, '');
+  const withoutBuild = clean.split('+')[0] || '';
+  const dashIndex = withoutBuild.indexOf('-');
+  let versionCore = withoutBuild;
+  let prereleaseStr = '';
+
+  if (dashIndex !== -1) {
+    versionCore = withoutBuild.slice(0, dashIndex);
+    prereleaseStr = withoutBuild.slice(dashIndex + 1);
+  }
+
+  const numParts = (versionCore || '').split('.').map((n) => parseInt(n, 10) || 0);
+  const major = numParts[0] || 0;
+  const minor = numParts[1] || 0;
+  const patch = numParts[2] || 0;
+
+  const isPrerelease = prereleaseStr.length > 0;
+  const prereleaseIdentifiers: (string | number)[] = isPrerelease
+    ? prereleaseStr.split('.').map((id) => (/^\d+$/.test(id) ? parseInt(id, 10) : id))
+    : [];
+
+  return {
+    major,
+    minor,
+    patch,
+    isPrerelease,
+    prereleaseIdentifiers
+  };
+};
+
+const LEGACY_CAP_VERSION = parseVersion(MAX_LEGACY_MANIFEST_VERSION);
+
+const compareCoreVersion = (a: ParsedVersion, b: ParsedVersion): number => {
+  if (a.major !== b.major) return a.major > b.major ? 1 : -1;
+  if (a.minor !== b.minor) return a.minor > b.minor ? 1 : -1;
+  if (a.patch !== b.patch) return a.patch > b.patch ? 1 : -1;
+  return 0;
+};
+
+const exceedsLegacyCap = (version: string): boolean =>
+  compareCoreVersion(parseVersion(version), LEGACY_CAP_VERSION) > 0;
+
+const isAtOrAboveLegacyCap = (version: string): boolean => {
+  const parsed = parseVersion(version);
+  const coreCmp = compareCoreVersion(parsed, LEGACY_CAP_VERSION);
+  return coreCmp > 0 || (coreCmp === 0 && !parsed.isPrerelease);
+};
+
+const capManifestToLegacyCeiling = (manifest: UpdateManifest): UpdateManifest => {
+  if (!exceedsLegacyCap(manifest.version)) {
+    return manifest;
+  }
+  const tag = `v${MAX_LEGACY_MANIFEST_VERSION}`;
+  return {
+    ...manifest,
+    version: MAX_LEGACY_MANIFEST_VERSION,
+    resourcesURL: `${RELEASE_DOWNLOAD_BASE_URL}/${tag}/resources.neu`,
+    data: {
+      ...manifest.data,
+      extensionUrl: `${RELEASE_DOWNLOAD_BASE_URL}/${tag}/db-bridge.exe`
+    }
+  };
+};
 
 export const useUpdaterStore = defineStore('updater', () => {
   const isChecking = ref(false);
@@ -82,37 +158,40 @@ export const useUpdaterStore = defineStore('updater', () => {
         ? PREVIEW_MANIFEST_URL
         : STABLE_MANIFEST_URL;
       const manifest = (await updater.checkForUpdates(manifestUrl)) as UpdateManifest;
+      const effectiveManifest = capManifestToLegacyCeiling(manifest);
       const currentAppVersion = getCurrentAppVersion();
-      const appNeedsUpdate = isNewerVersion(
-        manifest.version,
-        currentAppVersion,
-        preferencesStore.settings.optInPreview
-      );
+      const appNeedsUpdate =
+        !isAtOrAboveLegacyCap(currentAppVersion) &&
+        isNewerVersion(
+          effectiveManifest.version,
+          currentAppVersion,
+          preferencesStore.settings.optInPreview
+        );
 
       if (appNeedsUpdate) {
         try {
-          const tag = `v${manifest.version}`;
+          const tag = `v${effectiveManifest.version}`;
           const response = await fetch(`${RELEASE_URL}/${tag}`);
           if (response.ok) {
             const release = await response.json();
             if (release && typeof release.body === 'string') {
-              manifest.data = manifest.data || {};
-              manifest.data.releaseNotes = release.body;
+              effectiveManifest.data = effectiveManifest.data || {};
+              effectiveManifest.data.releaseNotes = release.body;
             }
           }
         } catch (fetchErr) {
           console.warn('Failed to fetch release notes from GitHub API:', fetchErr);
         }
 
-        if (manual || manifest.version !== ignoredVersion.value) {
-          updateAvailable.value = manifest;
+        if (manual || effectiveManifest.version !== ignoredVersion.value) {
+          updateAvailable.value = effectiveManifest;
           if (manual) {
             showUpdateDialog.value = true;
           } else {
             const toastStore = useToastStore();
             const toastId = toastStore.addToast({
               title: 'Update Available',
-              message: `Version ${manifest.version} is ready to install.`,
+              message: `Version ${effectiveManifest.version} is ready to install.`,
               severity: 'info',
               ttl: 0,
               actions: [
@@ -159,7 +238,7 @@ export const useUpdaterStore = defineStore('updater', () => {
     updateStatus.value = 'Preparing update...';
 
     try {
-      const manifest = updateAvailable.value;
+      const manifest = capManifestToLegacyCeiling(updateAvailable.value);
       const platform = window.NL_OS.toLowerCase();
 
       if (platform !== 'windows') {
@@ -402,37 +481,6 @@ echo Update complete! Restarting...
 start "" "${exeName}"
 del "%~f0" & exit
 `;
-  };
-
-  const parseVersion = (v: string) => {
-    const clean = (v || '').trim().replace(/^v/i, '');
-    const withoutBuild = clean.split('+')[0] || '';
-    const dashIndex = withoutBuild.indexOf('-');
-    let versionCore = withoutBuild;
-    let prereleaseStr = '';
-
-    if (dashIndex !== -1) {
-      versionCore = withoutBuild.slice(0, dashIndex);
-      prereleaseStr = withoutBuild.slice(dashIndex + 1);
-    }
-
-    const numParts = (versionCore || '').split('.').map((n) => parseInt(n, 10) || 0);
-    const major = numParts[0] || 0;
-    const minor = numParts[1] || 0;
-    const patch = numParts[2] || 0;
-
-    const isPrerelease = prereleaseStr.length > 0;
-    const prereleaseIdentifiers: (string | number)[] = isPrerelease
-      ? prereleaseStr.split('.').map((id) => (/^\d+$/.test(id) ? parseInt(id, 10) : id))
-      : [];
-
-    return {
-      major,
-      minor,
-      patch,
-      isPrerelease,
-      prereleaseIdentifiers
-    };
   };
 
   const isNewerVersion = (latest: string, current: string, optInPreview = false) => {
