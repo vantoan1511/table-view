@@ -328,7 +328,7 @@ describe('nativeService', () => {
 
       const result = await launchNativeUi();
       expect(result).toEqual({ launched: true, processId: 101 });
-      expect(Neutralino.os.spawnProcess).toHaveBeenCalledWith('bin/table-view-desktop.exe');
+      expect(Neutralino.os.spawnProcess).toHaveBeenCalledWith('bin\\table-view-desktop.exe');
     });
 
     it('returns SPAWN_FAILED when os.spawnProcess throws', async () => {

@@ -338,7 +338,8 @@ export async function launchNativeUi(): Promise<NativeUiLaunchResult> {
   }
 
   const binaryName = getNativeUiBinaryName();
-  const binaryPath = `bin/${binaryName}`;
+  const isWindows = binaryName.endsWith('.exe');
+  const binaryPath = isWindows ? `bin\\${binaryName}` : `bin/${binaryName}`;
 
   try {
     const entries = await filesystem.readDirectory('bin');
