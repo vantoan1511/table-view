@@ -38,7 +38,7 @@ Do not begin implementation before completing this phase.
 
 For non-trivial tasks:
 
-1. Following workflow `/plan` to create or update the corresponding plan.
+1. Use `/specify` or `/prp-plan` (or `/plan`) to create or update the corresponding plan under `.agents/PRPs/plans/`.
 2. Record:
    - problem
    - current implementation
@@ -46,34 +46,50 @@ For non-trivial tasks:
    - files to modify
    - files to create
    - reusable existing code
-   - risks
+   - risks & mitigations
    - verification steps
 3. Ensure the plan is based on repository evidence discovered during Phase 1.
+4. **Plan Handoff**: The planning turn must conclude strictly with the standard handoff block pointing to the plan file (`Next Step: Run /implement ...`). Never begin writing implementation or feature code during the planning phase.
 
 Do not invent files, APIs, components, or architecture.
 
 ## Phase 3 — Implement
 
-Implement only the requested scope.
-
+Execute plans via `/implement <plan-path>` for a seamless implementation-to-PR workflow:
+- Write failing tests first (RED).
+- Implement minimal code to pass (GREEN).
+- Run micro-validation after EVERY file edit:
+  ```bash
+  python .agents/scripts/verify_shift_left.py --changed
+  ```
+- Implement only the requested scope.
 - Reuse existing code before creating new abstractions.
 - Follow established patterns before introducing new patterns.
 - Keep changes focused and minimal.
 - Do not refactor unrelated code.
-- Do not add speculative features.
+- Do not add speculative features or abstractions for hypothetical future requirements.
 - Do not change architecture unless required by the task.
 - Do not create local variants of shared components without a clear semantic reason.
+- Upon successful validation, `/implement` automatically writes the implementation report, archives the plan, commits changes, and opens a GitHub pull request.
 
 ## Phase 4 — Verify
 
 After implementation:
 
-1. Run relevant tests.
-2. Run type checking (`npm run type-check` or `vue-tsc`).
-3. Run linting when configured (`npm run lint`).
-4. Build the affected application/package when practical (`cargo build`, `npm run build`).
-5. Inspect `git diff` and `git status`.
-6. Verify that no unrelated files were modified.
+1. Run pre-flight static checks:
+   ```bash
+   python .agents/scripts/verify_shift_left.py --changed
+   ```
+2. Run full validation checks:
+   ```bash
+   python .agents/scripts/verify_shift_left.py --all-checks
+   ```
+3. Run relevant tests (`npm run test:run`, `cargo test --manifest-path extensions/db-bridge/Cargo.toml`).
+4. Run type checking (`npm run type-check`).
+5. Run linting (`npm run lint`).
+6. Build the affected application/package when practical (`cargo build`, `npm run build`).
+7. Inspect `git diff` and `git status`.
+8. Verify that no unrelated files were modified.
 
 If a verification step cannot be performed, explicitly report why.
 
@@ -146,12 +162,10 @@ Do not create a shared abstraction merely because code could theoretically be re
 
 # Git Workflow
 
-For feature work and bug fixes:
-
 1. Do not work directly on `main` or `master`.
-2. Before modifying files, verify the current branch.
-3. Create or checkout a dedicated branch before making changes.
-4. Keep the branch scoped to the task.
+2. Before modifying files, verify the current branch: `git branch --show-current`.
+3. Create or checkout a dedicated branch before making changes: `git checkout -b feat/<name>` or `fix/<name>` or `chore/<name>`.
+4. Keep the branch scoped to the task and keep changes focused and atomic.
 5. Do not commit unrelated changes.
 6. Do not rewrite existing commits unless explicitly requested.
 7. Before finishing, inspect `git diff` and `git status`.
@@ -525,127 +539,18 @@ Documentation should reflect implementation.
 
 # UI Design System
 
-Table View's visual language is **technical, compact, information-dense, and restrained**. It must feel like a high-performance native desktop database client or IDE — not a consumer SaaS dashboard.
+Table View's visual language is **technical, compact, information-dense, and restrained** (inspired by TablePlus, DBeaver, and VS Code).
 
-The canonical source of truth for all visual decisions is:
+Canonical references:
+- Tokens & styles: `src/assets/base.css`, `src/assets/main.css`
+- PrimeVue presets: `src/theme/TableViewTheme.ts`
+- Full specifications: `.agents/rules/table-view-design-system.md` and `.agents/rules/table-view-primevue.md`
+- Workflows & skills: `/table-view-ui-implementation`, `/table-view-primevue-customization`
 
-- `src/assets/base.css` — design tokens (colors, shadows, radii, typography)
-- `src/assets/main.css` — global base styles, scrollbar, layout resets
-- `src/theme/TableViewTheme.ts` — PrimeVue preset customizations
-
-Before adding any CSS, always check these files first.
-
----
-
-## UI Principles
-
-### Information Density
-
-Prefer useful information over decorative whitespace while preserving scanability and clear hierarchy.
-
-### Hierarchy
-
-Establish hierarchy in this order:
-
-1. Typography
-2. Spacing
-3. Surface contrast
-4. Semantic color
-5. Borders only when structural
-
-Do not use every mechanism simultaneously for the same element.
-
-### Progressive Disclosure
-
-Show information needed for the current task first. Move secondary information into side panels, drawers, popovers, tabs, or contextual overlays.
-
-### Interaction Locality
-
-Actions should appear near the resource or state they affect (e.g. table toolbar actions next to the active data table).
-
-### Consistency
-
-Before creating or modifying a UI component:
-
-1. Search for existing instances of the same component or interaction.
-2. Reuse the established implementation.
-3. If the component is shared, modify the shared component instead of creating a local variant.
-4. Do not introduce a new visual variant without a clear semantic reason.
-
----
-
-## Typography
-
-### Fonts
-
-- UI text: `--font-ui` (`Inter`, `Segoe UI`, system-ui, sans-serif)
-- Monospace: `--font-mono` (`JetBrains Mono`, `Cascadia Code`, `Fira Code`, monospace)
-
-Use `font-ui` for all prose, labels, navigation, and standard controls.
-Use `font-mono` for SQL query editors, raw data cells, execution plans, and terminal-style output.
-
-### Text Scale
-
-| Usage | Size class | Weight |
-|---|---|---|
-| Page/section title | `text-xl` | `font-bold` |
-| Modal/drawer/tab title | `text-lg` | `font-bold` |
-| Table headers, form labels | `text-sm` | `font-medium` or `font-semibold` |
-| Grid data cell content | `text-xs` | `font-normal` |
-| Footer / status bar | `text-[11px]` | `font-medium` |
-| Badges / tags | `text-xs` | `font-semibold` |
-
----
-
-## Color & Surface Tokens
-
-Use CSS custom properties from `base.css`. Never hard-code hex values that duplicate an existing token.
-
-- Semantic colors (`--color-success`, `--color-danger`, `--color-warning`) communicate state only. Never use them decoratively.
-- Accent/Primary color (`--color-primary`) is reserved for interactive focus, primary actions, and selected items.
-- Surfaces (`--color-surface`, `--color-sidebar`, `--color-border`) create clean structure without heavy styling.
-
----
-
-## Component Grouping Without Borders
-
-When spacing alone is insufficient to distinguish complex component groups, use these **borderless grouping techniques**:
-
-1. **Proportional Ratio Spacing (1:3 Rhythm)**:
-   - Intra-item gap (between label and input): **tight** (`gap-1.5` / `gap-2`).
-   - Inter-item gap (between controls in the same sub-group): **medium** (`gap-3` / `gap-4`).
-   - Inter-group gap (between major sections): **wide** (`gap-8` / `gap-10`).
-2. **Subtle Surface Tone Shifts (Zonal Backgrounds)**:
-   - Use flat, borderless background fills (`bg-(--color-hover)`, `bg-surface-50`, `bg-surface-900`) with soft radii to group related controls without stroke lines.
-3. **Typographic Rhythm & Eyebrow Headers**:
-   - Use small, uppercase tracked overlines (`text-xs font-semibold tracking-wider text-muted-color`) to demarcate section boundaries clearly.
-4. **Grouped Inset Wells**:
-   - Group repeatable items (e.g. Connection parameters, Column definition lists, Index lists) in borderless inset wells with unified inner padding.
-
----
-
-## Borders and Elevation
-
-- Borders are structural, not decorative.
-- Data tables use a flat, single-container frame (`border border-(--color-border) rounded-lg overflow-hidden bg-(--color-surface)`). Header rows use subtle zonal tone shifts with a crisp bottom separator. Numeric/metric columns should be strictly right-aligned.
-- Do NOT use borders, card wrappers, or `<hr>` lines to group in-page content or divide form sections. Use natural vertical spacing (`gap-6`, `gap-8`) instead.
-- Shadows are used sparingly (only `--shadow-sm` for subtle lifts or `--shadow-modal` for dialogs).
-
----
-
-## PrimeVue Component Foundation
-
-Use PrimeVue v4 components for interactive controls when an equivalent component exists:
-
-- Button → `Button`
-- Text input → `InputText`
-- Number input → `InputNumber`
-- Select → `Select`
-- Toggle → `ToggleSwitch`
-- Dialog → `Dialog`
-- Confirmation → `ConfirmDialog`
-
-Do not recreate a PrimeVue control with custom HTML/CSS without a concrete reason.
+Key constraints:
+- Use PrimeVue v4 components (`Button`, `InputText`, `InputNumber`, `Select`, `ToggleSwitch`, `Dialog`, `ConfirmDialog`) over raw HTML controls.
+- Use CSS tokens (e.g. `bg-(--color-hover)`, `border-(--color-border)`). Zero hardcoded hex colors.
+- Follow borderless grouping (1:3 rhythm spacing, tonal backgrounds, inset wells) instead of dividing cards with strokes or `<hr>`.
 
 ---
 
