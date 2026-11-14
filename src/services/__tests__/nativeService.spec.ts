@@ -6,8 +6,10 @@ import {
   events,
   extensions,
   filesystem,
+  getNativeUiBinaryName,
   init,
   isAvailable,
+  launchNativeUi,
   NativeService,
   os,
   storage,
@@ -290,6 +292,56 @@ describe('nativeService', () => {
       expect(NativeService.extensions).toBe(extensions);
       expect(NativeService.updater).toBe(updater);
       expect(NativeService.dbBridge).toBe(dbBridge);
+    });
+  });
+
+  describe('launchNativeUi', () => {
+    it('resolves binary name per platform', () => {
+      expect(getNativeUiBinaryName('Windows')).toBe('table-view-desktop.exe');
+      expect(getNativeUiBinaryName('Linux')).toBe('table-view-desktop');
+      expect(getNativeUiBinaryName('Darwin')).toBe('table-view-desktop');
+    });
+
+    it('returns RUNTIME_UNAVAILABLE when NL_PORT is unset', async () => {
+      delete (globalThis as any).NL_PORT;
+      const result = await launchNativeUi();
+      expect(result.launched).toBe(false);
+      expect(result.errorCode).toBe('RUNTIME_UNAVAILABLE');
+    });
+
+    it('returns BINARY_NOT_FOUND when binary is missing in bin/', async () => {
+      (Neutralino.filesystem.readDirectory as any).mockResolvedValueOnce([
+        { entry: 'db-bridge.exe', type: 'FILE' }
+      ]);
+
+      const result = await launchNativeUi();
+      expect(result.launched).toBe(false);
+      expect(result.errorCode).toBe('BINARY_NOT_FOUND');
+      expect(Neutralino.os.spawnProcess).not.toHaveBeenCalled();
+    });
+
+    it('spawns the native binary when present in bin/', async () => {
+      (globalThis as any).NL_OS = 'Windows';
+      (Neutralino.filesystem.readDirectory as any).mockResolvedValueOnce([
+        { entry: 'table-view-desktop.exe', type: 'FILE' }
+      ]);
+
+      const result = await launchNativeUi();
+      expect(result).toEqual({ launched: true, processId: 101 });
+      expect(Neutralino.os.spawnProcess).toHaveBeenCalledWith('bin\\table-view-desktop.exe');
+    });
+
+    it('returns SPAWN_FAILED when os.spawnProcess throws', async () => {
+      (globalThis as any).NL_OS = 'Windows';
+      (Neutralino.filesystem.readDirectory as any).mockResolvedValueOnce([
+        { entry: 'table-view-desktop.exe', type: 'FILE' }
+      ]);
+      (Neutralino.os.spawnProcess as any).mockRejectedValueOnce(new Error('spawn error'));
+
+      const result = await launchNativeUi();
+      expect(result.launched).toBe(false);
+      expect(result.errorCode).toBe('SPAWN_FAILED');
+      expect(result.message).toContain('spawn error');
     });
   });
 });

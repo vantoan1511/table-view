@@ -348,7 +348,7 @@ View
 ↓
 Composable
 ↓
-Frontend Service (e.g., `src/services/bridge.ts` or `src/services/native.ts`)
+Frontend Service (e.g., `src/services/bridge.ts` or `src/services/nativeService.ts`)
 ↓
 Neutralino IPC / Extension WebSocket
 ↓

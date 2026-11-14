@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = ["extensions/db-bridge", "apps/desktop"]
+default-members = ["extensions/db-bridge"]
+
+[profile.release]
+opt-level = 3          # speed up compilation
+lto = false            # avoid thin LTO compiler panic when linking PE resources
+codegen-units = 1      # single codegen unit for clean release build
+strip = false          # retain symbol table for AV trust and debugging
+panic = "abort"        # abort on panic (smaller binary)

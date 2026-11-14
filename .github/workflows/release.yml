@@ -34,7 +34,7 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: 'extensions/db-bridge'
+          workspaces: '.'
 
       - name: Install Dependencies
         run: npm install --no-fund --no-audit --legacy-peer-deps

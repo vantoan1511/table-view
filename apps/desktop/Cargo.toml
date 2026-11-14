@@ -1,0 +1,15 @@
+[package]
+name = "table-view-desktop"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "table-view-desktop"
+path = "src/main.rs"
+
+[features]
+default = []
+native-ui = ["dep:gpui"]
+
+[dependencies]
+gpui = { version = "0.2.2", optional = true }

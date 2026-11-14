@@ -12,20 +12,27 @@ vi.mock('@neutralinojs/lib', () => ({
 }));
 
 // Mock NativeService
-vi.mock('@/services/native', () => ({
-  NativeService: {
-    os: {
-      showSaveDialog: vi.fn(),
-      showOpenDialog: vi.fn()
-    },
-    fs: {
-      writeFile: vi.fn(),
-      readFile: vi.fn()
+vi.mock('@/services/nativeService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/nativeService')>();
+  return {
+    ...actual,
+    NativeService: {
+      ...actual.NativeService,
+      os: {
+        ...actual.NativeService.os,
+        showSaveDialog: vi.fn(),
+        showOpenDialog: vi.fn()
+      },
+      fs: {
+        ...actual.NativeService.fs,
+        writeFile: vi.fn(),
+        readFile: vi.fn()
+      }
     }
-  }
-}));
+  };
+});
 
-import { NativeService } from '@/services/native';
+import { NativeService } from '@/services/nativeService';
 
 describe('Connections Store', () => {
   beforeEach(() => {

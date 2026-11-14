@@ -3,9 +3,9 @@ import { usePreferencesStore } from '../stores/preferences';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { NativeService } from '@/services/native';
+import { NativeService } from '@/services/nativeService';
 
-vi.mock('@/services/native', () => ({
+vi.mock('@/services/nativeService', () => ({
   NativeService: {
     storage: {
       get: vi.fn(),

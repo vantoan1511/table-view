@@ -250,6 +250,20 @@ table-view/
 
 ---
 
+## 📐 Architecture & Design Principles
+
+Table View enforces a disciplined, decoupled native architecture and an IDE-inspired design system:
+
+- **Two-Tier Decoupled Architecture**: Strict separation of concerns between the native Rust backend (`extensions/db-bridge`) for privileged operations and the Vue 3 frontend for presentation.
+- **IPC & WebSocket Boundary**: Communication is mediated exclusively via Neutralino IPC and WebSocket events with strongly typed `reqId` request/response contracts. The frontend never accesses databases directly.
+- **Service Isolation**: Presentation components and stores never import `@neutralinojs/lib` directly, delegating all OS/storage operations to `NativeService` and DB queries to `BridgeService`.
+- **PrimeVue v4 Component Foundation**: Built on PrimeVue v4 with the Aura preset (`TableViewTheme.ts`) and Tailwind CSS v4 design tokens.
+- **Local Credential Security**: Database passwords are encrypted locally via AES-GCM before persistence—never stored in cleartext.
+
+For complete architectural rules, design tokens, and engineering guidelines, see [GEMINI.md](GEMINI.md).
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Whether it's reporting a bug, proposing new database drivers, or submitting improvements:

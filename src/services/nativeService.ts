@@ -306,6 +306,75 @@ export const dbBridge = {
   }
 };
 
+export type NativeUiLaunchErrorCode = 'RUNTIME_UNAVAILABLE' | 'BINARY_NOT_FOUND' | 'SPAWN_FAILED';
+
+export interface NativeUiLaunchResult {
+  launched: boolean;
+  processId?: number;
+  errorCode?: NativeUiLaunchErrorCode;
+  message?: string;
+}
+
+/**
+ * Resolves the experimental native desktop binary filename for the given or current OS.
+ */
+export function getNativeUiBinaryName(platform?: string): string {
+  const g = typeof globalThis !== 'undefined' ? (globalThis as { NL_OS?: string }) : undefined;
+  const resolvedPlatform =
+    platform ?? g?.NL_OS ?? (typeof navigator !== 'undefined' ? navigator.platform : '');
+  return /^win/i.test(resolvedPlatform) ? 'table-view-desktop.exe' : 'table-view-desktop';
+}
+
+/**
+ * Launches the experimental native GPUI desktop window binary if available in `bin/`.
+ */
+export async function launchNativeUi(): Promise<NativeUiLaunchResult> {
+  if (!isAvailable()) {
+    return {
+      launched: false,
+      errorCode: 'RUNTIME_UNAVAILABLE',
+      message: 'Native desktop runtime is unavailable.'
+    };
+  }
+
+  const binaryName = getNativeUiBinaryName();
+  const isWindows = binaryName.endsWith('.exe');
+  const binaryPath = isWindows ? `bin\\${binaryName}` : `bin/${binaryName}`;
+
+  try {
+    const entries = await filesystem.readDirectory('bin');
+    const hasBinary = Array.isArray(entries) && entries.some((item) => item?.entry === binaryName);
+    if (!hasBinary) {
+      return {
+        launched: false,
+        errorCode: 'BINARY_NOT_FOUND',
+        message: `Native UI binary not found at ${binaryPath}. Rebuild with ENABLE_NATIVE_UI=true.`
+      };
+    }
+  } catch {
+    return {
+      launched: false,
+      errorCode: 'BINARY_NOT_FOUND',
+      message: `Native UI binary directory is unavailable (${binaryPath}).`
+    };
+  }
+
+  try {
+    const spawned = await os.spawnProcess(binaryPath);
+    return {
+      launched: true,
+      processId: typeof spawned?.id === 'number' ? spawned.id : undefined
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      launched: false,
+      errorCode: 'SPAWN_FAILED',
+      message
+    };
+  }
+}
+
 /**
  * Unified NativeService object for backward compatibility with existing codebase
  */
@@ -321,7 +390,8 @@ export const NativeService = {
   events,
   extensions,
   updater,
-  dbBridge
+  dbBridge,
+  launchNativeUi
 };
 
 export default NativeService;
