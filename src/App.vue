@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MinimizedDock from '@/components/layout/MinimizedDock.vue';
+import MigrationBanner from '@/components/layout/MigrationBanner.vue';
 import Sidebar from '@/components/layout/Sidebar.vue';
 import StatusBar from '@/components/layout/StatusBar.vue';
 import TabContent from '@/components/layout/TabContent.vue';
@@ -120,6 +121,9 @@ const exitApp = async () => {
       <div class="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <!-- Title Bar (Tabs) -->
         <TitleBar />
+
+        <!-- Migration Notice -->
+        <MigrationBanner />
 
         <!-- Workspace Container (Main + Panels) -->
         <WorkspaceContainer>
