@@ -1,16 +1,48 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue';
 import Button from 'primevue/button';
 import ContextMenu from 'primevue/contextmenu';
 import InputText from 'primevue/inputtext';
+import { AppWindow, Code2, LayoutGrid, Minus, Plus, Trash2, X } from 'lucide-vue-next';
 
 import { useConnectionsStore } from '@/stores/connections';
+import { usePreferencesStore } from '@/stores/preferences';
 import { useTabsStore } from '@/stores/tabs';
+import { useToastStore } from '@/stores/toast';
+import { launchNativeUi } from '@/services/nativeService';
 import { TabType, type Tab } from '@/types';
-import { Code2, LayoutGrid, Minus, Plus, Trash2, X } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
 
 const tabsStore = useTabsStore();
 const connectionsStore = useConnectionsStore();
+const preferencesStore = usePreferencesStore();
+const toastStore = useToastStore();
+
+const isLaunchingNativeUi = ref(false);
+
+const onSwitchToNativeUi = async () => {
+  if (isLaunchingNativeUi.value) return;
+  isLaunchingNativeUi.value = true;
+  try {
+    const result = await launchNativeUi();
+    if (result.launched) {
+      toastStore.addToast({
+        title: 'Native UI launched',
+        message: 'Opened experimental GPUI desktop window.',
+        severity: 'info',
+        ttl: 3000
+      });
+    } else {
+      toastStore.addToast({
+        title: 'Native UI unavailable',
+        message: result.message || 'Unable to launch experimental GPUI window.',
+        severity: result.errorCode === 'SPAWN_FAILED' ? 'error' : 'warning',
+        ttl: 5000
+      });
+    }
+  } finally {
+    isLaunchingNativeUi.value = false;
+  }
+};
 
 const getTabColorClass = (connectionId?: string) => {
   if (!connectionId) return '';
@@ -154,9 +186,12 @@ const finishRenaming = () => {
       class="scrollbar-none flex min-w-0 flex-1 items-end overflow-x-auto overflow-y-hidden"
       id="tab-strip"
     >
-      <button
+      <div
         v-for="tab in tabsStore.mainTabs"
         :key="tab.id"
+        role="tab"
+        tabindex="0"
+        :aria-selected="tabsStore.activeTabId === tab.id"
         draggable="true"
         class="group relative flex h-[calc(var(--titlebar-height)-.75rem)] max-w-50 min-w-30 shrink-0 cursor-pointer items-center gap-1.5 rounded-t-lg border border-b-0 border-transparent px-3 text-[13px] whitespace-nowrap transition-colors"
         :class="
@@ -165,6 +200,7 @@ const finishRenaming = () => {
             : 'text-text-secondary hover:bg-hover/50 hover:text-text-primary'
         "
         @click="tabsStore.setActiveTab(tab.id)"
+        @keydown.enter="tabsStore.setActiveTab(tab.id)"
         @contextmenu.prevent="onContextMenu($event, tab.id)"
         @dragstart="onDragStart($event, tab.id)"
         @dragend="onDragEnd"
@@ -210,7 +246,7 @@ const finishRenaming = () => {
         >
           <X :size="12" />
         </span>
-      </button>
+      </div>
 
       <Button
         variant="text"
@@ -225,6 +261,23 @@ const finishRenaming = () => {
         </template>
       </Button>
     </nav>
+
+    <Button
+      v-if="preferencesStore.settings.experimentalFeatures"
+      data-testid="btn-switch-native-ui"
+      label="New UI"
+      variant="outlined"
+      severity="secondary"
+      size="small"
+      :loading="isLaunchingNativeUi"
+      class="ml-2 h-7 shrink-0 text-xs"
+      v-tooltip.bottom="'Launch experimental native GPUI window'"
+      @click="onSwitchToNativeUi"
+    >
+      <template #icon>
+        <AppWindow :size="13" class="mr-1" />
+      </template>
+    </Button>
 
     <!-- Context Menu -->
     <ContextMenu ref="menuRef" :model="menuItems">

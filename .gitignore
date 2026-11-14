@@ -61,7 +61,7 @@ __screenshots__/
 # Rust
 target/
 Cargo.lock
-!extensions/db-bridge/Cargo.lock
+!Cargo.lock
 scratch/
 
 # Installer

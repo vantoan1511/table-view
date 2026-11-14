@@ -295,6 +295,7 @@ const resetToDefaults = () => {
   settings.autoSaveHistory = true;
   settings.playCompletionSound = false;
   settings.telemetry = false;
+  settings.experimentalFeatures = false;
 
   toastStore.addToast({
     title: 'Preferences reset',
