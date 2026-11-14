@@ -1,9 +1,13 @@
 #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
 mod config;
+#[cfg(feature = "native-ui")]
+mod layout;
 #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
 mod theme;
 #[cfg(feature = "native-ui")]
 mod window;
+#[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
+mod workspace;
 
 use std::process::ExitCode;
 
