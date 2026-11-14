@@ -37,6 +37,7 @@ declare module 'vue' {
     IndexDetails: typeof import('./src/components/layout/IndexDetails.vue')['default']
     IndexesPanel: typeof import('./src/components/panels/IndexesPanel.vue')['default']
     InputDialog: typeof import('./src/components/ui/InputDialog.vue')['default']
+    MigrationBanner: typeof import('./src/components/layout/MigrationBanner.vue')['default']
     MinimizedDock: typeof import('./src/components/layout/MinimizedDock.vue')['default']
     NewConnectionModal: typeof import('./src/components/modals/NewConnectionModal.vue')['default']
     ObjectGroupNode: typeof import('./src/components/sidebar/ObjectGroupNode.vue')['default']
