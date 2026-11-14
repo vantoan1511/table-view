@@ -3,6 +3,10 @@ name = "db-bridge"
 version = "0.7.1"
 edition = "2021"
 
+[lib]
+name = "db_bridge"
+path = "src/lib.rs"
+
 [[bin]]
 name = "db-bridge"
 path = "src/main.rs"

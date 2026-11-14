@@ -6365,7 +6365,10 @@ dependencies = [
 name = "table-view-desktop"
 version = "0.1.0"
 dependencies = [
+ "db-bridge",
  "gpui",
+ "log",
+ "tokio",
 ]
 
 [[package]]

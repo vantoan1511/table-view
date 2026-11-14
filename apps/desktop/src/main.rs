@@ -1,5 +1,7 @@
 #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
 mod config;
+#[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
+mod db;
 #[cfg(feature = "native-ui")]
 mod layout;
 #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]

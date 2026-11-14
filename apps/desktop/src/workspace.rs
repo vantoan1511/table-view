@@ -1,5 +1,8 @@
 //! Pure-Rust workspace layout state, tab lifecycle, and status models.
 
+use db_bridge::QueryResult;
+
+use crate::db::ConnectionMetadata;
 use crate::theme::{ConnectionColors, ShellDimensions, ThemeColor};
 
 /// Minimum allowed width for the explorer sidebar in logical pixels.
@@ -162,6 +165,7 @@ pub struct WorkspaceState {
     pub sidebar: SidebarState,
     pub tabs: Vec<TabItem>,
     pub active_tab_id: Option<u64>,
+    pub active_connection_id: Option<String>,
     pub connection_status: ConnectionStatus,
     pub query_status: QueryStatus,
     next_tab_id: u64,
@@ -181,6 +185,7 @@ impl WorkspaceState {
             sidebar: SidebarState::default(),
             tabs: Vec::new(),
             active_tab_id: None,
+            active_connection_id: None,
             connection_status: ConnectionStatus::Disconnected,
             query_status: QueryStatus::Idle,
             next_tab_id: 1,
@@ -299,6 +304,67 @@ impl WorkspaceState {
     #[allow(dead_code)]
     pub fn set_query_status(&mut self, status: QueryStatus) {
         self.query_status = status;
+    }
+
+    /// Transitions the workspace into a connecting state for `connection_name`.
+    #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
+    pub fn begin_connecting(&mut self, connection_name: impl Into<String>) {
+        self.connection_status = ConnectionStatus::Connecting {
+            connection_name: connection_name.into(),
+        };
+    }
+
+    /// Transitions the workspace into a connected state using resolved connection metadata.
+    #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
+    pub fn finish_connecting(&mut self, metadata: &ConnectionMetadata) {
+        self.active_connection_id = Some(metadata.connection_id.clone());
+        self.connection_status = ConnectionStatus::Connected {
+            connection_name: metadata.connection_name.clone(),
+            engine: metadata.engine.clone(),
+            host_port: metadata.host_port.clone(),
+            schema: metadata.schema.clone(),
+            color: metadata.color,
+        };
+    }
+
+    /// Resets connection state to disconnected and surfaces a connection error in query status.
+    #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
+    pub fn fail_connecting(&mut self, error_message: impl Into<String>) {
+        self.active_connection_id = None;
+        self.connection_status = ConnectionStatus::Disconnected;
+        self.query_status = QueryStatus::Error {
+            message: error_message.into(),
+        };
+    }
+
+    /// Clears the active connection and resets connection status to disconnected.
+    #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
+    pub fn set_disconnected(&mut self) {
+        self.active_connection_id = None;
+        self.connection_status = ConnectionStatus::Disconnected;
+    }
+
+    /// Marks query status as running.
+    #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
+    pub fn begin_query(&mut self) {
+        self.query_status = QueryStatus::Running;
+    }
+
+    /// Records completed query execution metrics from `result`.
+    #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
+    pub fn finish_query(&mut self, result: &QueryResult) {
+        self.query_status = QueryStatus::Completed {
+            elapsed_ms: result.execution_time,
+            row_count: result.row_count,
+        };
+    }
+
+    /// Records a query execution failure message.
+    #[cfg_attr(not(feature = "native-ui"), allow(dead_code))]
+    pub fn fail_query(&mut self, error_message: impl Into<String>) {
+        self.query_status = QueryStatus::Error {
+            message: error_message.into(),
+        };
     }
 }
 
@@ -457,5 +523,84 @@ mod tests {
         assert!(workspace.set_tab_dirty(tab_id, true));
         assert!(workspace.active_tab().expect("tab exists").is_dirty);
         assert!(!workspace.set_tab_dirty(9999, true));
+    }
+
+    #[test]
+    fn test_workspace_connection_and_query_lifecycle_transitions() {
+        use crate::db::ConnectionMetadata;
+        use db_bridge::QueryResult;
+
+        let mut workspace = WorkspaceState::new();
+        assert_eq!(workspace.active_connection_id, None);
+        assert_eq!(workspace.connection_status, ConnectionStatus::Disconnected);
+
+        workspace.begin_connecting("local-sqlite");
+        assert_eq!(
+            workspace.connection_status,
+            ConnectionStatus::Connecting {
+                connection_name: "local-sqlite".to_string(),
+            }
+        );
+
+        let metadata = ConnectionMetadata {
+            connection_id: "conn-1".to_string(),
+            connection_name: "local-sqlite".to_string(),
+            engine: "SQLite".to_string(),
+            host_port: ":memory:".to_string(),
+            schema: ":memory:".to_string(),
+            color: ConnectionColorTag::Teal,
+        };
+        workspace.finish_connecting(&metadata);
+        assert_eq!(workspace.active_connection_id.as_deref(), Some("conn-1"));
+        assert_eq!(
+            workspace.connection_status,
+            ConnectionStatus::Connected {
+                connection_name: "local-sqlite".to_string(),
+                engine: "SQLite".to_string(),
+                host_port: ":memory:".to_string(),
+                schema: ":memory:".to_string(),
+                color: ConnectionColorTag::Teal,
+            }
+        );
+
+        workspace.begin_query();
+        assert_eq!(workspace.query_status, QueryStatus::Running);
+
+        let query_result = QueryResult {
+            rows: Vec::new(),
+            fields: Vec::new(),
+            row_count: 3,
+            execution_time: 12,
+        };
+        workspace.finish_query(&query_result);
+        assert_eq!(
+            workspace.query_status,
+            QueryStatus::Completed {
+                elapsed_ms: 12,
+                row_count: 3,
+            }
+        );
+
+        workspace.fail_query("syntax error");
+        assert_eq!(
+            workspace.query_status,
+            QueryStatus::Error {
+                message: "syntax error".to_string(),
+            }
+        );
+
+        workspace.set_disconnected();
+        assert_eq!(workspace.active_connection_id, None);
+        assert_eq!(workspace.connection_status, ConnectionStatus::Disconnected);
+
+        workspace.fail_connecting("timeout");
+        assert_eq!(workspace.active_connection_id, None);
+        assert_eq!(workspace.connection_status, ConnectionStatus::Disconnected);
+        assert_eq!(
+            workspace.query_status,
+            QueryStatus::Error {
+                message: "timeout".to_string(),
+            }
+        );
     }
 }
