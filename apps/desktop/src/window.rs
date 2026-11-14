@@ -1,17 +1,35 @@
 use gpui::{
-    div, prelude::*, px, size, App, Application, Bounds, Context, FontWeight, Subscription,
-    TitlebarOptions, Window, WindowBounds, WindowOptions,
+    div, prelude::*, px, size, App, Application, Bounds, Context, FocusHandle, MouseButton,
+    MouseDownEvent, MouseMoveEvent, MouseUpEvent, Subscription, TitlebarOptions, Window,
+    WindowBounds, WindowOptions,
 };
 
 use crate::config::AppWindowConfig;
-use crate::theme::{ActiveTheme, GlobalTheme, ResolvedAppearance, Theme, ThemeColor, ThemeMode};
+use crate::layout::{
+    bind_workspace_keys, render_main_content, render_sidebar, render_sidebar_resize_handle,
+    render_status_bar, render_tab_strip, CloseActiveTab, NewQueryTab, ToggleSidebar,
+};
+use crate::theme::{ActiveTheme, GlobalTheme, ResolvedAppearance, Theme, ThemeMode};
+use crate::workspace::WorkspaceState;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct SidebarDragState {
+    start_x_px: f32,
+    start_width_px: f32,
+}
 
 struct RootView {
+    workspace: WorkspaceState,
+    focus_handle: FocusHandle,
+    sidebar_drag: Option<SidebarDragState>,
     _subscriptions: Vec<Subscription>,
 }
 
 impl RootView {
-    fn new(window: &Window, cx: &mut Context<Self>) -> Self {
+    fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let focus_handle = cx.focus_handle();
+        window.focus(&focus_handle);
+
         let appearance_subscription = window.observe_window_appearance(|window, cx| {
             Theme::sync_system_appearance(cx, window.appearance().into());
         });
@@ -20,102 +38,168 @@ impl RootView {
         });
 
         Self {
+            workspace: WorkspaceState::new(),
+            focus_handle,
+            sidebar_drag: None,
             _subscriptions: vec![appearance_subscription, theme_subscription],
         }
     }
-}
 
-fn status_pill(label: &'static str, color: ThemeColor, theme: &Theme) -> impl IntoElement {
-    div()
-        .flex()
-        .items_center()
-        .gap(px(theme.spacing.xs_px))
-        .px(px(theme.spacing.md_px))
-        .py(px(theme.spacing.xs_px))
-        .rounded(px(theme.radii.sm_px))
-        .bg(theme.colors.muted.to_gpui())
-        .text_size(px(theme.typography.xs_px))
-        .text_color(theme.colors.text_secondary.to_gpui())
-        .child(
-            div()
-                .size(px(theme.spacing.md_px))
-                .rounded_full()
-                .bg(color.to_gpui()),
-        )
-        .child(label)
+    fn on_toggle_sidebar(
+        &mut self,
+        _: &ToggleSidebar,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.workspace.toggle_sidebar();
+        cx.notify();
+    }
+
+    fn on_new_query_tab(&mut self, _: &NewQueryTab, _window: &mut Window, cx: &mut Context<Self>) {
+        self.workspace.open_new_sql_tab();
+        cx.notify();
+    }
+
+    fn on_close_active_tab(
+        &mut self,
+        _: &CloseActiveTab,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.workspace.close_active_tab() {
+            cx.notify();
+        }
+    }
+
+    fn start_sidebar_drag(
+        &mut self,
+        event: &MouseDownEvent,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.sidebar_drag = Some(SidebarDragState {
+            start_x_px: f32::from(event.position.x),
+            start_width_px: self.workspace.sidebar.width_px,
+        });
+        cx.notify();
+    }
+
+    fn update_sidebar_drag(&mut self, current_x_px: f32) {
+        if let Some(drag) = self.sidebar_drag {
+            self.workspace
+                .sidebar
+                .apply_drag_delta(drag.start_width_px, current_x_px - drag.start_x_px);
+        }
+    }
+
+    fn end_sidebar_drag(&mut self) {
+        self.sidebar_drag = None;
+    }
 }
 
 impl Render for RootView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme();
-        let hover_bg = theme.colors.hover.to_gpui();
-        let toggle_label = if theme.is_dark() {
-            "Switch to Light"
-        } else {
-            "Switch to Dark"
-        };
+        let select_entity = cx.entity();
+        let close_entity = cx.entity();
 
-        div()
+        let mut top_row = div().flex().flex_1().min_h_0().w_full();
+        if self.workspace.sidebar.is_visible {
+            top_row = top_row
+                .child(render_sidebar(
+                    &self.workspace,
+                    theme,
+                    cx.listener(|this, _, _, cx| {
+                        this.workspace.open_new_sql_tab();
+                        cx.notify();
+                    }),
+                ))
+                .child(render_sidebar_resize_handle(
+                    self.sidebar_drag.is_some(),
+                    theme,
+                    cx.listener(Self::start_sidebar_drag),
+                ));
+        }
+
+        let right_workspace = div()
+            .flex_1()
             .flex()
             .flex_col()
-            .items_center()
-            .justify_center()
+            .min_w_0()
+            .min_h_0()
+            .child(render_tab_strip(
+                &self.workspace,
+                theme,
+                move |tab_id, _, _, cx| {
+                    select_entity.update(cx, |this, cx| {
+                        if this.workspace.activate_tab(tab_id) {
+                            cx.notify();
+                        }
+                    });
+                },
+                move |tab_id, _, _, cx| {
+                    close_entity.update(cx, |this, cx| {
+                        if this.workspace.close_tab(tab_id) {
+                            cx.notify();
+                        }
+                    });
+                },
+                cx.listener(|this, _, _, cx| {
+                    this.workspace.open_new_sql_tab();
+                    cx.notify();
+                }),
+            ))
+            .child(render_main_content(&self.workspace, theme));
+
+        top_row = top_row.child(right_workspace);
+
+        let mut root = div()
+            .id("workspace-root")
+            .track_focus(&self.focus_handle)
+            .on_action(cx.listener(Self::on_toggle_sidebar))
+            .on_action(cx.listener(Self::on_new_query_tab))
+            .on_action(cx.listener(Self::on_close_active_tab))
+            .flex()
+            .flex_col()
             .size_full()
             .font_family(theme.typography.ui_font_family)
             .text_size(px(theme.typography.base_px))
             .bg(theme.colors.surface.to_gpui())
             .text_color(theme.colors.text_primary.to_gpui())
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .items_center()
-                    .gap(px(theme.spacing.lg_px))
-                    .p(px(theme.spacing.section_px))
-                    .rounded(px(theme.radii.lg_px))
-                    .bg(theme.colors.sidebar.to_gpui())
-                    .border_1()
-                    .border_color(theme.colors.border.to_gpui())
-                    .child(
-                        div()
-                            .text_size(px(theme.typography.lg_px))
-                            .font_weight(FontWeight::SEMIBOLD)
-                            .text_color(theme.colors.primary.to_gpui())
-                            .child("Table View — Native UI Preview"),
-                    )
-                    .child(
-                        div()
-                            .text_size(px(theme.typography.sm_px))
-                            .text_color(theme.colors.text_secondary.to_gpui())
-                            .child("Experimental GPUI desktop shell"),
-                    )
-                    .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap(px(theme.spacing.md_px))
-                            .child(status_pill("Connected", theme.colors.success, theme))
-                            .child(status_pill("Latency", theme.colors.warning, theme))
-                            .child(status_pill("Error", theme.colors.danger, theme)),
-                    )
-                    .child(
-                        div()
-                            .id("theme-toggle-btn")
-                            .cursor_pointer()
-                            .px(px(theme.spacing.lg_px))
-                            .py(px(theme.spacing.sm_px))
-                            .rounded(px(theme.radii.md_px))
-                            .border_1()
-                            .border_color(theme.colors.border_strong.to_gpui())
-                            .bg(theme.colors.surface.to_gpui())
-                            .hover(move |style| style.bg(hover_bg))
-                            .text_size(px(theme.typography.xs_px))
-                            .font_weight(FontWeight::MEDIUM)
-                            .text_color(theme.colors.text_primary.to_gpui())
-                            .on_click(|_, _, cx| Theme::toggle_light_dark(cx))
-                            .child(toggle_label),
-                    ),
-            )
+            .child(top_row)
+            .child(render_status_bar(
+                &self.workspace,
+                theme,
+                |_, _, cx| Theme::toggle_light_dark(cx),
+                cx.listener(|this, _, _, cx| {
+                    this.workspace.toggle_sidebar();
+                    cx.notify();
+                }),
+            ));
+
+        if self.sidebar_drag.is_some() {
+            root = root
+                .on_mouse_move(cx.listener(|this, event: &MouseMoveEvent, _window, cx| {
+                    this.update_sidebar_drag(f32::from(event.position.x));
+                    cx.notify();
+                }))
+                .on_mouse_up(
+                    MouseButton::Left,
+                    cx.listener(|this, _event: &MouseUpEvent, _window, cx| {
+                        this.end_sidebar_drag();
+                        cx.notify();
+                    }),
+                )
+                .on_mouse_up_out(
+                    MouseButton::Left,
+                    cx.listener(|this, _event: &MouseUpEvent, _window, cx| {
+                        this.end_sidebar_drag();
+                        cx.notify();
+                    }),
+                );
+        }
+
+        root
     }
 }
 
@@ -141,6 +225,7 @@ pub fn run_native_window(config: AppWindowConfig) {
     Application::new().run(move |cx: &mut App| {
         let system_appearance = ResolvedAppearance::from(cx.window_appearance());
         Theme::init(cx, ThemeMode::default(), system_appearance);
+        bind_workspace_keys(cx);
 
         cx.on_window_closed(|cx| {
             if cx.windows().is_empty() {
@@ -171,6 +256,7 @@ pub fn run_native_window(config: AppWindowConfig) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::workspace::SidebarState;
 
     #[test]
     fn test_window_bounds_dimensions() {
@@ -193,5 +279,61 @@ mod tests {
 
             cx.quit();
         });
+    }
+
+    #[test]
+    fn test_root_view_workspace_sidebar_and_tab_actions() {
+        Application::headless().run(|cx| {
+            Theme::init(cx, ThemeMode::default(), ResolvedAppearance::Dark);
+            bind_workspace_keys(cx);
+
+            let window = cx
+                .open_window(WindowOptions::default(), |window, cx| {
+                    cx.new(|cx| RootView::new(window, cx))
+                })
+                .expect("headless window should open");
+
+            window
+                .update(cx, |view, _window, cx| {
+                    assert!(view.workspace.sidebar.is_visible);
+                    assert_eq!(view.workspace.sidebar.width_px, 260.0);
+                    assert!(view.workspace.tabs.is_empty());
+                    assert_eq!(view.workspace.active_tab_id, None);
+
+                    view.workspace.toggle_sidebar();
+                    assert!(!view.workspace.sidebar.is_visible);
+
+                    let tab_id = view.workspace.open_new_sql_tab();
+                    assert_eq!(view.workspace.tabs.len(), 1);
+                    assert_eq!(view.workspace.active_tab_id, Some(tab_id));
+
+                    view.workspace.set_sidebar_width(320.0);
+                    assert_eq!(view.workspace.sidebar.width_px, 320.0);
+
+                    assert!(view.workspace.close_active_tab());
+                    assert!(view.workspace.tabs.is_empty());
+                    assert_eq!(view.workspace.active_tab_id, None);
+                    cx.notify();
+                })
+                .expect("window update should succeed");
+
+            cx.quit();
+        });
+    }
+
+    #[test]
+    fn test_sidebar_drag_resize_clamps_width() {
+        let mut sidebar = SidebarState::default();
+        sidebar.apply_drag_delta(260.0, -500.0);
+        assert_eq!(sidebar.width_px, 150.0);
+
+        sidebar.apply_drag_delta(260.0, 1000.0);
+        assert_eq!(sidebar.width_px, 500.0);
+
+        sidebar.apply_drag_delta(260.0, 40.0);
+        assert_eq!(sidebar.width_px, 300.0);
+
+        sidebar.apply_drag_delta(260.0, f32::NAN);
+        assert_eq!(sidebar.width_px, 300.0);
     }
 }
